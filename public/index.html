@@ -1,0 +1,411 @@
+<script>
+    const APP_STORAGE_KEY = 'ai_chat_app_data_v12';
+    const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v12';
+    const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+
+    let state = { chats: [], currentChatId: null };
+    let settings = { systemPrompt: '' };
+    let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
+    let currentBase64Image = null; 
+
+    let isGenerating = false;
+    let abortController = null;
+    const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
+    const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
+
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => document.querySelectorAll(selector);
+    
+    const elPassOverlay = $('#password-overlay');
+    const elPassInput = $('#app-password-input');
+    const elPassSubmit = $('#submit-password-btn');
+    const elPassError = $('#password-error');
+    const elUserInput = $('#user-input');
+    const elSendBtn = $('#send-btn');
+    const elMessagesContainer = $('#messages-container');
+    const elWelcomeScreen = $('#welcome-screen');
+    const elAttachmentMenu = $('#attachment-menu');
+    const elAttachmentWrapper = $('#attachment-wrapper');
+
+    // SERVER-DRIVEN LOCKDOWN UI
+    function triggerLockdownUI() {
+        elPassOverlay.classList.remove('hidden');
+        elPassInput.classList.add('hidden');
+        elPassSubmit.classList.add('hidden');
+        elPassError.classList.remove('hidden', 'text-red-400');
+        elPassError.classList.add('text-red-500', 'font-bold', 'text-lg', 'mt-0');
+        elPassError.innerHTML = "🚨 IP BANNED 🚨<br><span class='text-sm text-gray-400 font-normal mt-2 block'>Too many failed attempts. Your IP has been logged and blocked by the server.</span>";
+    }
+
+    // SERVER-DRIVEN VERIFICATION
+    async function verifyPassword(pwd, isSilent = false) {
+        if (!isSilent) {
+            elPassSubmit.innerText = 'Verifying...';
+            elPassSubmit.disabled = true;
+        }
+
+        try {
+            const res = await fetch('/api/verify', {
+                method: 'POST',
+                headers: { 'x-app-password': pwd }
+            });
+
+            if (res.ok) {
+                // SUCCESS
+                currentPassword = pwd;
+                localStorage.setItem(PWD_STORAGE_KEY, pwd);
+                elPassOverlay.classList.add('hidden');
+                elPassError.classList.add('hidden');
+            } else if (res.status === 403) {
+                // BANNED BY SERVER
+                triggerLockdownUI();
+            } else {
+                // INCORRECT PASSWORD
+                const data = await res.json();
+                if (isSilent) {
+                    currentPassword = '';
+                    localStorage.removeItem(PWD_STORAGE_KEY);
+                    elPassOverlay.classList.remove('hidden');
+                } else {
+                    elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`;
+                    elPassError.classList.remove('hidden');
+                    elPassInput.value = '';
+                    elPassInput.focus();
+                }
+            }
+        } catch (err) {
+            if (!isSilent) {
+                elPassError.innerText = "Network error connecting to server.";
+                elPassError.classList.remove('hidden');
+            }
+        } finally {
+            if (!isSilent) {
+                elPassSubmit.innerText = 'Unlock App';
+                elPassSubmit.disabled = false;
+            }
+        }
+    }
+
+    if (currentPassword) {
+        verifyPassword(currentPassword, true);
+    } else {
+        elPassOverlay.classList.remove('hidden');
+    }
+
+    function unlockApp() {
+        const pwd = elPassInput.value.trim();
+        if (pwd) verifyPassword(pwd);
+    }
+
+    elPassSubmit.addEventListener('click', unlockApp);
+    elPassInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlockApp(); });
+
+    // Attachment Menu Logic
+    $('#upload-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        elAttachmentMenu.classList.toggle('hidden');
+        elAttachmentMenu.classList.toggle('flex');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!elAttachmentMenu.contains(e.target) && e.target !== $('#upload-btn')) {
+            elAttachmentMenu.classList.add('hidden');
+            elAttachmentMenu.classList.remove('flex');
+        }
+    });
+
+    $('#menu-photo-btn').addEventListener('click', () => {
+        $('#file-input').click();
+        elAttachmentMenu.classList.add('hidden'); elAttachmentMenu.classList.remove('flex');
+    });
+
+    $('#menu-file-btn').addEventListener('click', () => {
+        $('#general-file-input').click();
+        elAttachmentMenu.classList.add('hidden'); elAttachmentMenu.classList.remove('flex');
+    });
+
+    $('#general-file-input').addEventListener('change', (e) => {
+        alert("Document parsing is coming soon! Please use 'Upload a photo' for images.");
+        e.target.value = ''; 
+    });
+    
+    $('#file-input').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            currentBase64Image = event.target.result;
+            $('#image-preview').src = currentBase64Image;
+            $('#image-preview-container').classList.remove('hidden');
+            if (!isGenerating) elSendBtn.disabled = false; 
+        };
+        reader.readAsDataURL(file);
+    });
+
+    $('#remove-image-btn').addEventListener('click', () => {
+        currentBase64Image = null;
+        $('#file-input').value = '';
+        $('#image-preview-container').classList.add('hidden');
+        if (elUserInput.value.trim() === '' && !isGenerating) elSendBtn.disabled = true;
+    });
+
+    function init() { loadSettings(); loadChats(); renderSidebar(); if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); }
+    function saveChats() { localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); }
+    function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
+    function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
+    function loadSettings() {
+        const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (stored) settings = { ...settings, ...JSON.parse(stored) };
+        $('#system-prompt-input').value = settings.systemPrompt || '';
+    }
+
+    function getOrCreateChat(firstMessage) {
+        if (state.currentChatId) return state.chats.find(c => c.id === state.currentChatId);
+        const title = firstMessage ? (firstMessage.substring(0, 30) + (firstMessage.length > 30 ? '...' : '')) : "Image Chat";
+        const newChat = { id: Date.now().toString(), title: title, messages: [] };
+        state.chats.unshift(newChat); state.currentChatId = newChat.id; saveChats(); renderSidebar(); return newChat;
+    }
+
+    function clearMessages() { Array.from(elMessagesContainer.children).forEach(child => { if (child.id !== 'welcome-screen') child.remove(); }); }
+
+    function showWelcome() { clearMessages(); elWelcomeScreen.classList.remove('hidden'); }
+    
+    function loadChat(id) { 
+        state.currentChatId = id; 
+        const chat = state.chats.find(c => c.id === id); 
+        clearMessages();
+        
+        if (chat && chat.messages.length > 0) { 
+            elWelcomeScreen.classList.add('hidden');
+            chat.messages.forEach(msg => appendMessageToDOM(msg.role, msg.content)); 
+            scrollToBottom(); 
+        } else { elWelcomeScreen.classList.remove('hidden'); }
+
+        if (window.innerWidth < 768) { 
+            $('#sidebar').classList.add('-translate-x-full'); 
+            $('#sidebar-overlay').classList.add('hidden'); 
+            elAttachmentWrapper.classList.remove('opacity-0', 'pointer-events-none');
+        }
+    }
+    
+    function renderSidebar() { 
+        $('#chat-history-list').innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>';
+        state.chats.forEach(chat => {
+            const isActive = chat.id === state.currentChatId;
+            const div = document.createElement('div');
+            div.className = `group flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-800/80 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'}`;
+            div.onclick = () => loadChat(chat.id);
+            div.innerHTML = `<div class="flex items-center gap-3 overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive ? 'text-blue-400' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg><span class="truncate font-medium">${escapeHtml(chat.title)}</span></div><button class="opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-400/10 p-1.5 rounded-lg transition-all" onclick="deleteChat(event, '${chat.id}')"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>`;
+            $('#chat-history-list').appendChild(div);
+        });
+    }
+
+    function deleteChat(e, id) { e.stopPropagation(); if(!confirm('Delete this chat?')) return; state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (state.currentChatId === id) { state.currentChatId = null; showWelcome(); } }
+    function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
+    function formatText(text) { let safeText = escapeHtml(text).replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>').replace(/`([^`]+)`/g, '<code class="bg-gray-700 px-1.5 py-0.5 rounded text-pink-300 font-mono text-[0.9em]">$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white">$1</strong>'); return safeText.split(/(<pre>[\s\S]*?<\/pre>)/g).map(part => part.startsWith('<pre>') ? part : part.replace(/\n/g, '<br>')).join(''); }
+    
+    function appendMessageToDOM(role, content) {
+        if(role === 'system') return;
+        
+        let displayContent = "";
+        let imageHtml = "";
+
+        if (Array.isArray(content)) {
+            let textObj = content.find(c => c.type === 'text');
+            displayContent = textObj ? textObj.text : "";
+            let imgObj = content.find(c => c.type === 'image_url');
+            if (imgObj) imageHtml = `<img src="${imgObj.image_url.url}" class="max-w-[200px] rounded-xl mb-3 border border-gray-700 shadow-md">`;
+        } else {
+            displayContent = content;
+        }
+
+        if (role === 'user' && displayContent.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { 
+            const parts = displayContent.split('\n\nUser Message: '); 
+            if (parts.length > 1) displayContent = parts.slice(1).join('\n\nUser Message: '); 
+        }
+        
+        const isUser = role === 'user'; 
+        const div = document.createElement('div'); 
+        div.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'} fade-in mb-2`;
+        
+        const copyBtnHtml = !isUser ? 
+            `<button onclick="copyToClipboard(this)" data-content="${escapeHtml(displayContent)}" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center z-10" title="Copy Message">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            </button>` : '';
+
+        const bubbleStyles = isUser 
+            ? 'bg-gray-800 text-white rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm' 
+            : 'text-gray-200 px-5 py-4 bg-gray-900 border border-gray-800 rounded-2xl rounded-tl-sm w-full relative pr-12 min-w-[120px] shadow-sm'; 
+
+        div.innerHTML = `
+        <div class="max-w-[85%] md:max-w-[80%] flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} group">
+            <div class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-gray-700' : 'bg-gradient-to-br from-blue-500 to-purple-600'}">
+                ${isUser ? '<svg class="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' : '<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'}
+            </div>
+            <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full">
+                <div class="prose-content ${bubbleStyles}">
+                    ${copyBtnHtml}
+                    ${imageHtml}
+                    <div class="message-text w-full">${isUser ? escapeHtml(displayContent) : formatText(displayContent)}</div>
+                </div>
+            </div>
+        </div>`;
+        elMessagesContainer.appendChild(div);
+    }
+
+    function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-800 shadow-sm"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; elMessagesContainer.appendChild(div); scrollToBottom(); }
+    function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
+    function scrollToBottom() { elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; }
+
+    async function sendMessage() {
+        if (isGenerating) {
+            if (abortController) abortController.abort();
+            return;
+        }
+
+        const text = elUserInput.value.trim();
+        if (!text && !currentBase64Image) return;
+
+        isGenerating = true;
+        abortController = new AbortController();
+        
+        elUserInput.value = ''; 
+        elUserInput.style.height = 'auto'; 
+        elUserInput.disabled = true; 
+        elUserInput.placeholder = "Anurag's GPT is typing...";
+        
+        elSendBtn.innerHTML = STOP_ICON; 
+        elSendBtn.disabled = false; 
+        elWelcomeScreen.classList.add('hidden');
+
+        const chat = getOrCreateChat(text); 
+        
+        let messageContent = text;
+        if (currentBase64Image) {
+            messageContent = [
+                { type: "text", text: text || "Analyze this image." },
+                { type: "image_url", image_url: { url: currentBase64Image } }
+            ];
+        }
+
+        chat.messages.push({ role: 'user', content: messageContent }); saveChats(); 
+        appendMessageToDOM('user', messageContent); scrollToBottom(); createLoadingIndicator();
+
+        currentBase64Image = null;
+        $('#file-input').value = '';
+        $('#image-preview-container').classList.add('hidden');
+
+        try {
+            let payloadMessages = chat.messages.map(m => ({ role: m.role, content: m.content }));
+
+            if (settings.systemPrompt && settings.systemPrompt.trim() !== '') {
+                if (typeof payloadMessages[0].content === 'string') {
+                    payloadMessages[0].content = `[STRICT SYSTEM INSTRUCTIONS: ${settings.systemPrompt.trim()}]\n\nUser Message: ${payloadMessages[0].content}`;
+                } else if (Array.isArray(payloadMessages[0].content)) {
+                    let textObj = payloadMessages[0].content.find(c => c.type === 'text');
+                    if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${settings.systemPrompt.trim()}]\n\nUser Message: ${textObj.text}`;
+                }
+            }
+
+            let response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "x-app-password": currentPassword },
+                body: JSON.stringify({ messages: payloadMessages }),
+                signal: abortController.signal
+            });
+
+            if (response.status === 401) { currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); elPassOverlay.classList.remove('hidden'); elPassError.classList.remove('hidden'); throw new Error("Incorrect Password."); }
+            if (response.status === 403) { triggerLockdownUI(); throw new Error("IP BANNED"); }
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error || `API Error: ${response.status}`);
+            }
+
+            removeLoadingIndicator(); appendMessageToDOM('assistant', '');
+            
+            const textContainers = elMessagesContainer.querySelectorAll('.message-text'); 
+            const lastTextContainer = textContainers[textContainers.length - 1];
+            const lastCopyBtn = lastTextContainer.parentElement.querySelector('button');
+            if(lastCopyBtn) lastCopyBtn.style.display = 'none';
+
+            const reader = response.body.getReader(); const decoder = new TextDecoder(); let aiContent = ""; let buffer = "";
+            while (true) {
+                const { done, value } = await reader.read(); if (done) break;
+                buffer += decoder.decode(value, { stream: true }); let boundary = buffer.indexOf('\n\n');
+                while (boundary !== -1) {
+                    const message = buffer.substring(0, boundary); buffer = buffer.substring(boundary + 2);
+                    if (message.startsWith('data: ')) {
+                        const dataStr = message.slice(6); if (dataStr === '[DONE]') break;
+                        try { const data = JSON.parse(dataStr); aiContent += data.choices[0]?.delta?.content || ""; lastTextContainer.innerHTML = formatText(aiContent); scrollToBottom(); } catch (e) {} 
+                    }
+                    boundary = buffer.indexOf('\n\n');
+                }
+            }
+            chat.messages.push({ role: 'assistant', content: aiContent }); saveChats();
+            
+            if(lastCopyBtn) {
+                lastCopyBtn.style.display = 'flex';
+                lastCopyBtn.setAttribute('data-content', escapeHtml(aiContent));
+            }
+
+        } catch (error) {
+            removeLoadingIndicator();
+            if (error.name === 'AbortError') {
+                const textContainers = elMessagesContainer.querySelectorAll('.message-text');
+                const lastText = textContainers[textContainers.length - 1]?.innerText || "";
+                if (lastText) {
+                    chat.messages.push({ role: 'assistant', content: lastText }); 
+                    saveChats();
+                }
+            } else if (error.message !== "Incorrect Password." && error.message !== "IP BANNED") {
+                appendMessageToDOM('assistant', `\n\n${error.message}`);
+            }
+        } finally { 
+            isGenerating = false;
+            abortController = null;
+            elSendBtn.innerHTML = SEND_ICON;
+            elUserInput.disabled = false;
+            elUserInput.placeholder = "Message Anurag's GPT...";
+            elSendBtn.disabled = elUserInput.value.trim() === '' && !currentBase64Image; 
+            elUserInput.focus(); 
+        }
+    }
+
+    elSendBtn.addEventListener('click', sendMessage);
+    elUserInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+    elUserInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if (!isGenerating) elSendBtn.disabled = this.value.trim() === '' && !currentBase64Image; });
+    
+    $('#clear-chat-btn').addEventListener('click', () => { if (!state.currentChatId || !confirm('Clear all messages?')) return; const chat = state.chats.find(c => c.id === state.currentChatId); if (chat) { chat.messages = []; saveChats(); loadChat(state.currentChatId); } });
+    $('#new-chat-btn').addEventListener('click', () => { state.currentChatId = null; showWelcome(); });
+    $('#open-settings-btn').addEventListener('click', () => $('#settings-modal').classList.remove('hidden'));
+    $('#close-settings-btn').addEventListener('click', () => $('#settings-modal').classList.add('hidden'));
+
+    $('#save-settings-btn').addEventListener('click', () => { settings.systemPrompt = $('#system-prompt-input').value.trim(); saveSettings(); $('#settings-modal').classList.add('hidden'); const originalText = $('#save-settings-btn').innerText; $('#save-settings-btn').innerText = 'Saved!'; $('#save-settings-btn').classList.replace('bg-blue-600', 'bg-green-600'); setTimeout(() => { $('#save-settings-btn').innerText = originalText; $('#save-settings-btn').classList.replace('bg-green-600', 'bg-blue-600'); }, 1000); });
+    $('#lock-app-btn').addEventListener('click', () => { currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); $('#settings-modal').classList.add('hidden'); elPassInput.value = ''; elPassError.classList.add('hidden'); elPassOverlay.classList.remove('hidden'); });
+    
+    $('#mobile-menu-btn').addEventListener('click', () => { 
+        $('#sidebar').classList.remove('-translate-x-full'); 
+        $('#sidebar-overlay').classList.remove('hidden'); 
+        elAttachmentWrapper.classList.add('opacity-0', 'pointer-events-none');
+    });
+    
+    $('#sidebar-overlay').addEventListener('click', () => { 
+        $('#sidebar').classList.add('-translate-x-full'); 
+        $('#sidebar-overlay').classList.add('hidden'); 
+        elAttachmentWrapper.classList.remove('opacity-0', 'pointer-events-none');
+    });
+
+    $$('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { elUserInput.value = btn.innerText.replace(/"/g, '').trim(); elSendBtn.disabled = false; sendMessage(); }); });
+
+    window.copyToClipboard = (btn) => {
+        const txt = document.createElement('textarea'); txt.innerHTML = btn.getAttribute('data-content');
+        navigator.clipboard.writeText(txt.value).then(() => {
+            const originalHTML = btn.innerHTML; 
+            btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
+            setTimeout(() => btn.innerHTML = originalHTML, 2000);
+        });
+    };
+
+    init();
+</script>
