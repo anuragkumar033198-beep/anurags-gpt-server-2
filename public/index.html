@@ -13,7 +13,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 750: '#2d3748', 850: '#1a202c', 950: '#0d1117' }, primary: { 500: '#3b82f6', 600: '#2563eb' } }, animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite' } } } }
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 750: '#2d3748', 850: '#1a202c', 950: '#0d1117' }, primary: { 500: '#3b82f6', 600: '#2563eb' } }, animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite', 'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' } } } }
     </script>
     <style>
         html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; overscroll-behavior-y: none; }
@@ -21,6 +21,9 @@
         ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: #0d1117; } ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
         .prose-content pre { background-color: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-top: 0.5rem; margin-bottom: 0.5rem; font-family: monospace; border: 1px solid #374151; } .prose-content code { background-color: #374151; padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.9em; } .prose-content pre code { background-color: transparent; padding: 0; border: none; color: #e5e7eb; } .prose-content p { margin-bottom: 0.75rem; line-height: 1.6; }
         .typing-dot { animation: typing 1.4s infinite ease-in-out both; } .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; } @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } .fade-in { animation: fadeIn 0.3s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Custom Microphone Pulse */
+        .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
@@ -110,8 +113,14 @@
                         <input type="file" id="general-file-input" accept=".txt,.pdf,.md,.csv,.js,.py,.html,.css,.json" class="hidden">
                         <input type="file" id="file-input" accept="image/*" class="hidden">
                         
-                        <textarea id="user-input" rows="1" class="w-full bg-transparent text-gray-100 placeholder-gray-500 pl-14 py-4 pr-14 rounded-3xl outline-none resize-none max-h-48 overflow-y-auto leading-relaxed" placeholder="Message Anurag's GPT..."></textarea>
+                        <textarea id="user-input" rows="1" class="w-full bg-transparent text-gray-100 placeholder-gray-500 pl-14 py-4 pr-24 rounded-3xl outline-none resize-none max-h-48 overflow-y-auto leading-relaxed" placeholder="Message Anurag's GPT..."></textarea>
                         
+                        <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800" title="Speak">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </button>
+
                         <button id="send-btn" class="absolute right-2 bottom-2 p-2 bg-white text-gray-900 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center h-9 w-9" disabled><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg></button>
                     </div>
                 </div>
@@ -154,11 +163,14 @@
         let isGenerating = false;
         let abortController = null;
         let isUserScrolledUp = false;
+        let recognition = null; // Speech Recognition Object
 
         const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
         const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
         const CLIPBOARD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>`;
         const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-green-400"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
+        const SPEAKER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" /></svg>`;
+        const SPEAKER_OFF_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-blue-400 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>`;
 
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
@@ -169,6 +181,7 @@
         const elPassError = $('#password-error');
         const elUserInput = $('#user-input');
         const elSendBtn = $('#send-btn');
+        const elMicBtn = $('#mic-btn');
         const elMessagesContainer = $('#messages-container');
         const elWelcomeScreen = $('#welcome-screen');
         const elAttachmentMenu = $('#attachment-menu');
@@ -326,8 +339,85 @@
             if (elUserInput.value.trim() === '' && !isGenerating) elSendBtn.disabled = true;
         }
 
+        // --- SPEECH RECOGNITION (MICROPHONE) ---
+        function setupSpeechRecognition() {
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    elMicBtn.classList.add('mic-active');
+                    elUserInput.placeholder = "Listening...";
+                };
+
+                recognition.onend = () => {
+                    elMicBtn.classList.remove('mic-active');
+                    elUserInput.placeholder = "Message Anurag's GPT...";
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    elUserInput.value += (elUserInput.value ? ' ' : '') + transcript;
+                    elUserInput.dispatchEvent(new Event('input')); // Trigger height/button update
+                    elUserInput.focus();
+                };
+
+                recognition.onerror = (event) => {
+                    console.error("Speech Error:", event.error);
+                    elMicBtn.classList.remove('mic-active');
+                    elUserInput.placeholder = "Error listening.";
+                    setTimeout(() => elUserInput.placeholder = "Message Anurag's GPT...", 2000);
+                };
+            } else {
+                elMicBtn.style.display = 'none'; // Hide if browser not supported
+            }
+        }
+
+        elMicBtn.addEventListener('click', () => {
+            if (elMicBtn.classList.contains('mic-active')) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
+
+        // --- TEXT TO SPEECH (SPEAKER) ---
+        let currentUtterance = null;
+        window.toggleSpeech = (btn) => {
+            const textToSpeak = btn.getAttribute('data-content');
+            
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                // Reset all speaker icons
+                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON);
+                if (currentUtterance === textToSpeak) {
+                    currentUtterance = null;
+                    return; // Just stop if clicking the same one
+                }
+            }
+
+            currentUtterance = textToSpeak;
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.onend = () => {
+                btn.innerHTML = SPEAKER_ICON;
+                currentUtterance = null;
+            };
+            
+            // Visual feedback
+            btn.innerHTML = SPEAKER_OFF_ICON;
+            window.speechSynthesis.speak(utterance);
+        };
+
+
         // CORE APP LOGIC
-        function init() { loadSettings(); loadChats(); renderSidebar(); if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); }
+        function init() { 
+            setupSpeechRecognition();
+            loadSettings(); loadChats(); renderSidebar(); 
+            if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); 
+        }
+
         function saveChats() { localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); }
         function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
         function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
@@ -430,8 +520,15 @@
             const div = document.createElement('div'); 
             div.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'} fade-in mb-2`;
             
-            const copyBtnHtml = !isUser ? 
-                `<button onclick="copyToClipboard(this)" data-content="${escapeHtml(displayContent)}" class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center z-10 border border-gray-600" title="Copy Full Message">${CLIPBOARD_ICON}</button>` : '';
+            // Generate Buttons for Assistant Messages (Copy + Speaker)
+            let actionButtons = '';
+            if (!isUser) {
+                actionButtons = `
+                    <div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <button onclick="toggleSpeech(this)" data-content="${escapeHtml(displayContent)}" class="speaker-btn bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Read Aloud">${SPEAKER_ICON}</button>
+                        <button onclick="copyToClipboard(this)" data-content="${escapeHtml(displayContent)}" class="bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Copy Full Message">${CLIPBOARD_ICON}</button>
+                    </div>`;
+            }
 
             const bubbleStyles = isUser ? 'bg-gray-800 text-white rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm' : 'text-gray-200 px-5 py-4 bg-gray-900 border border-gray-800 rounded-2xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-sm'; 
 
@@ -442,7 +539,7 @@
                 </div>
                 <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full">
                     <div class="prose-content ${bubbleStyles}">
-                        ${copyBtnHtml} ${imageHtml}
+                        ${actionButtons} ${imageHtml}
                         <div class="message-text w-full">${isUser ? escapeHtml(displayContent) : formatText(displayContent)}</div>
                     </div>
                 </div>
@@ -543,7 +640,7 @@
                 let isFirstToken = true;
                 let textContainers = null;
                 let lastTextContainer = null;
-                let lastCopyBtn = null;
+                let lastActionButtons = null;
 
                 while (true) {
                     const { done, value } = await reader.read(); 
@@ -574,9 +671,11 @@
                                         
                                         textContainers = elMessagesContainer.querySelectorAll('.message-text'); 
                                         lastTextContainer = textContainers[textContainers.length - 1];
-                                        lastCopyBtn = lastTextContainer.parentElement.querySelector('button[title="Copy Full Message"]');
-                                        if(lastCopyBtn) lastCopyBtn.style.display = 'none'; // Hide copy button while typing
                                         
+                                        // Hide action buttons while typing
+                                        lastActionButtons = lastTextContainer.parentElement.querySelector('.absolute.top-3.right-3');
+                                        if(lastActionButtons) lastActionButtons.style.display = 'none';
+
                                         isFirstToken = false; // The Lock is released!
                                     }
                                     
@@ -596,15 +695,19 @@
                     appendMessageToDOM('assistant', '*(No text generated by AI)*');
                     textContainers = elMessagesContainer.querySelectorAll('.message-text'); 
                     lastTextContainer = textContainers[textContainers.length - 1];
-                    lastCopyBtn = lastTextContainer.parentElement.querySelector('button[title="Copy Full Message"]');
+                    lastActionButtons = lastTextContainer.parentElement.querySelector('.absolute.top-3.right-3');
                 }
 
                 chat.messages.push({ role: 'assistant', content: aiContent }); saveChats();
                 
-                // Show the copy button now that the stream is finished
-                if(lastCopyBtn && aiContent.trim() !== "") { 
-                    lastCopyBtn.style.display = 'flex'; 
-                    lastCopyBtn.setAttribute('data-content', escapeHtml(aiContent)); 
+                // Show the copy/speak buttons now that the stream is finished
+                if(lastActionButtons && aiContent.trim() !== "") { 
+                    lastActionButtons.style.display = 'flex'; 
+                    // Update data attributes for correct copying/speaking
+                    const copyBtn = lastActionButtons.querySelector('button[title="Copy Full Message"]');
+                    const speakBtn = lastActionButtons.querySelector('button[title="Read Aloud"]');
+                    if(copyBtn) copyBtn.setAttribute('data-content', escapeHtml(aiContent));
+                    if(speakBtn) speakBtn.setAttribute('data-content', escapeHtml(aiContent));
                 }
 
             } catch (error) {
