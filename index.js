@@ -8,9 +8,44 @@ const app = express();
 app.use(cors()); 
 app.use(express.json({ limit: '50mb' })); 
 
-// VERY IMPORTANT: { index: false } prevents the server from secretly serving an empty index.html
 app.use(express.static(path.join(__dirname, 'public'), { index: false })); 
 app.use(express.static(__dirname, { index: false })); 
+
+// --- DYNAMIC PWA GENERATORS (Fixes Vercel Static Block) ---
+app.get('/sw.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.send(`
+        const CACHE_NAME = 'anurags-gpt-v1';
+        self.addEventListener('install', event => {
+            self.skipWaiting();
+            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/')));
+        });
+        self.addEventListener('activate', event => {
+            event.waitUntil(clients.claim());
+        });
+        self.addEventListener('fetch', event => {
+            event.respondWith(fetch(event.request).catch(() => caches.match('/')));
+        });
+    `);
+});
+
+app.get('/manifest.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.json({
+      "name": "Anurag's GPT",
+      "short_name": "AnuragGPT",
+      "description": "Anurag's Custom AI Backend",
+      "start_url": "/",
+      "display": "standalone",
+      "background_color": "#0d1117",
+      "theme_color": "#0d1117",
+      "orientation": "portrait",
+      "icons": [
+        { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+        { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" }
+      ]
+    });
+});
 
 // --- THE BULLETPROOF HTML ROUTER ---
 app.get('/', (req, res) => {
@@ -26,7 +61,6 @@ app.get('/', (req, res) => {
             <div style="font-family: sans-serif; text-align: center; margin-top: 50px; color: #333; background: white; padding: 20px;">
                 <h1>✅ The Server is Online!</h1>
                 <p style="color: red;">❌ But <b>index.html</b> is completely missing from the server.</p>
-                <p>Please check your files.</p>
             </div>
         `);
     }
@@ -34,10 +68,10 @@ app.get('/', (req, res) => {
 
 // A SECRET DEV ROUTE
 app.get('/ping', (req, res) => {
-    res.status(200).send("<h2>PONG! The backend is 100% alive and routing correctly.</h2>");
+    res.status(200).send("<h2>PONG! The backend is 100% alive.</h2>");
 });
 
-// --- SECURITY SYSTEM (IP BANNING & RATE LIMITING) ---
+// --- SECURITY SYSTEM ---
 const failedAttempts = new Map(); 
 const bannedIPs = new Set();      
 const MAX_ATTEMPTS = 5;
@@ -48,12 +82,10 @@ app.use('/api', (req, res, next) => {
     if (req.path === '/unban') return next(); 
     const ip = getIP(req);
     if (bannedIPs.has(ip)) {
-        return res.status(403).json({ error: "BANNED: Your IP has been blocked due to suspicious activity." });
+        return res.status(403).json({ error: "BANNED: Your IP has been blocked." });
     }
     next();
 });
-
-// --- API ROUTES ---
 
 // 1. Password Verification
 app.post('/api/verify', async (req, res) => {
@@ -67,17 +99,6 @@ app.post('/api/verify', async (req, res) => {
         
         if (attempts >= MAX_ATTEMPTS) {
             bannedIPs.add(ip); 
-            const webhookUrl = process.env.DISCORD_WEBHOOK_URL || process.env.DISCORDWEBHOOKURL;
-            if (webhookUrl) {
-                const unbanLink = `https://${req.get('host')}/api/unban?ip=${ip}&pwd=YOUR_APP_PASSWORD_HERE`;
-                fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        content: `🚨 **SECURITY ALERT** 🚨\nAn intruder has been permanently **IP BANNED**.\n**IP:** \`${ip}\`\n\n🛠️ **Unban Link:**\n${unbanLink}`
-                    })
-                }).catch(() => {});
-            }
             return res.status(403).json({ error: "BANNED" });
         }
         return res.status(401).json({ error: "Incorrect Password", attemptsLeft: MAX_ATTEMPTS - attempts });
@@ -94,13 +115,12 @@ app.get('/api/unban', (req, res) => {
     const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
 
     if (!correctPassword || providedPwd !== correctPassword) {
-        return res.status(401).send("<h1 style='color:red;'>Unauthorized</h1><p>Incorrect developer password.</p>");
+        return res.status(401).send("<h1 style='color:red;'>Unauthorized</h1>");
     }
-
     if (targetIp) {
         bannedIPs.delete(targetIp);
         failedAttempts.delete(targetIp);
-        return res.send(`<h1 style='color:green;'>Unbanned!</h1><p>IP <b>${targetIp}</b> has been successfully removed from the ban list.</p>`);
+        return res.send(`<h1 style='color:green;'>Unbanned!</h1><p>IP <b>${targetIp}</b> has been removed.</p>`);
     }
     res.send("<h1>Error</h1><p>No IP provided.</p>");
 });
@@ -116,17 +136,12 @@ app.post('/api/chat', async (req, res) => {
         }
 
         const { messages } = req.body;
-        
-        if (!messages || !Array.isArray(messages)) {
-            return res.status(400).json({ error: "Invalid message format." });
-        }
+        if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "Invalid message format." });
 
         const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY;
-        if (!apiKey) {
-            return res.status(500).json({ error: "Server Configuration Error: OpenRouter API Key is missing!" });
-        }
+        if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. If someone asks 'Who are you?', proudly state that you are Anurag's GPT. If someone asks 'Who is he?' or 'Who is Anurag?', state that Anurag is your creator and a brilliant developer. Never refer to yourself as Gemini, OpenAI, ChatGPT, LLaMA, or any other corporate entity.";
+        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. Never refer to yourself as Gemini, OpenAI, ChatGPT, LLaMA, or any other corporate entity.";
         
         if (messages.length > 0) {
             if (typeof messages[0].content === 'string' && !messages[0].content.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
@@ -139,17 +154,11 @@ app.post('/api/chat', async (req, res) => {
             }
         }
 
-        // --- THE DYNAMIC AUTO-ROUTER LOOP ---
-        const autoModels = [
-            "openrouter/auto", // Best available model
-            "openrouter/free"  // Explicitly cycles free endpoints only
-        ];
-
+        const autoModels = ["openrouter/auto", "openrouter/free"];
         let response = null;
         let errorLogs = [];
 
         for (const currentModel of autoModels) {
-            console.log(`Routing through: ${currentModel}...`);
             response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
                 headers: {
@@ -158,71 +167,51 @@ app.post('/api/chat', async (req, res) => {
                     "HTTP-Referer": "https://anurags-gpt.vercel.app", 
                     "X-Title": "Anurag's GPT"
                 },
-                body: JSON.stringify({
-                    model: currentModel,
-                    messages: messages,
-                    stream: true 
-                })
+                body: JSON.stringify({ model: currentModel, messages: messages, stream: true })
             });
 
-            if (response.ok) {
-                console.log(`Success! Stream established via: ${currentModel}`);
-                break; 
-            } else {
+            if (response.ok) break;
+            else {
                 let errText = `HTTP ${response.status}`;
-                try {
-                    const errData = await response.json();
-                    errText = errData.error?.message || errText;
-                } catch(e) {}
+                try { errText = (await response.json()).error?.message || errText; } catch(e) {}
                 errorLogs.push(`${currentModel}: ${errText}`);
             }
         }
 
         if (!response || !response.ok) {
-            let finalErrorMsg = "OpenRouter Auto-Routing Failed.\n\nDiagnostics:\n" + errorLogs.map(log => `• ${log}`).join("\n");
-            return res.status(response ? response.status : 500).json({ error: finalErrorMsg });
+            return res.status(response ? response.status : 500).json({ error: "Auto-Routing Failed.\n\nDiagnostics:\n" + errorLogs.join("\n") });
         }
 
-        // --- RAW BYTE-STREAM BYPASS (Forces Live-Streaming) ---
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache, no-transform');
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('X-Accel-Buffering', 'no'); 
         res.flushHeaders(); 
         
-        // This physically rips the data out of OpenRouter's payload and flushes it immediately
         const reader = response.body.getReader();
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
             res.write(value);
-            // Force Express/Node to push the data out to the network immediately
-            if (typeof res.flush === 'function') {
-                res.flush(); 
-            }
+            if (typeof res.flush === 'function') res.flush(); 
         }
         res.end();
 
     } catch (error) {
         console.error("Chat API Error:", error.message);
-        if (!res.headersSent) {
-            res.status(500).json({ error: "Internal Server Error occurred during generation." });
-        } else {
-            res.end();
-        }
+        if (!res.headersSent) res.status(500).json({ error: "Internal Server Error." });
+        else res.end();
     }
 });
 
-// --- GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
     console.error("Unhandled Server Error:", err.stack);
-    res.status(500).send('Something broke on the server!');
+    res.status(500).send('Something broke!');
 });
 
-// --- SERVER INITIALIZATION ---
 const port = process.env.PORT || 3000;
 app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 Anurag's GPT Backend is running smoothly on port ${port}!`);
+    console.log(`🚀 Anurag's GPT Backend is running!`);
 });
 
 module.exports = app;
