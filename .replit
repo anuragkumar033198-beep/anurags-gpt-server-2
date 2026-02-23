@@ -12,6 +12,7 @@ channel = "stable-24_11"
 run = ["node", "index.js"]
 deploymentTarget = "autoscale"
 ignorePorts = false
+publicDir = "public"
 
 [agent]
 expertMode = true
