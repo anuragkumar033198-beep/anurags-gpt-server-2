@@ -14,49 +14,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        tailwind.config = { 
-            darkMode: 'class', 
-            theme: { 
-                extend: { 
-                    colors: { gray: { 750: '#2d3748', 850: '#1a202c', 950: '#0d1117' }, primary: { 500: '#3b82f6', 600: '#2563eb' } }, 
-                    animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite', 'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' } 
-                } 
-            } 
-        }
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 750: '#2d3748', 850: '#1a202c', 950: '#0d1117' }, primary: { 500: '#3b82f6', 600: '#2563eb' } }, animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite', 'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' } } } }
     </script>
     <style>
         html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; overscroll-behavior-y: none; }
         .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
-        ::-webkit-scrollbar { width: 8px; height: 8px; } 
-        ::-webkit-scrollbar-track { background: #0d1117; } 
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; } 
-        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: #0d1117; } ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
         
-        /* Markdown Styling */
         .prose-content { line-height: 1.6; }
         .prose-content h1, .prose-content h2, .prose-content h3, .prose-content h4 { color: white; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.75em; }
-        .prose-content h1 { font-size: 1.5em; } 
-        .prose-content h2 { font-size: 1.25em; } 
-        .prose-content h3 { font-size: 1.1em; }
+        .prose-content h1 { font-size: 1.5em; } .prose-content h2 { font-size: 1.25em; } .prose-content h3 { font-size: 1.1em; }
         .prose-content ul, .prose-content ol { margin-left: 1.5rem; margin-bottom: 1rem; padding-left: 1rem; }
-        .prose-content ul { list-style-type: disc; } 
-        .prose-content ol { list-style-type: decimal; } 
-        .prose-content li { margin-bottom: 0.5rem; }
-        .prose-content strong { color: white; font-weight: 700; } 
-        .prose-content em { font-style: italic; } 
-        .prose-content a { color: #60a5fa; text-decoration: underline; }
+        .prose-content ul { list-style-type: disc; } .prose-content ol { list-style-type: decimal; } .prose-content li { margin-bottom: 0.5rem; }
+        .prose-content strong { color: white; font-weight: 700; } .prose-content em { font-style: italic; } .prose-content a { color: #60a5fa; text-decoration: underline; }
         .prose-content pre { margin-top: 1em; margin-bottom: 1em; }
         .prose-content :not(pre) > code { background-color: #374151; padding: 0.2em 0.4em; border-radius: 0.3em; font-size: 0.9em; font-family: monospace; color: #e5e7eb; }
 
-        /* Animations */
-        .typing-dot { animation: typing 1.4s infinite ease-in-out both; } 
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; } 
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; } 
-        @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } 
-        .fade-in { animation: fadeIn 0.3s ease-in-out; } 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } 
-        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; } .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; } @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } .fade-in { animation: fadeIn 0.3s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
@@ -267,6 +242,24 @@
         </div>
     </div>
 
+    <div id="confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                    <svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 id="confirm-modal-title" class="text-xl font-bold text-white mb-2">Are you sure?</h3>
+                <p id="confirm-modal-text" class="text-gray-400 text-sm">This action cannot be undone.</p>
+            </div>
+            <div class="p-4 border-t border-gray-800 bg-gray-900 flex gap-3">
+                <button id="confirm-cancel-btn" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button>
+                <button id="confirm-action-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-red-500/20">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
@@ -293,8 +286,8 @@
         };
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v19_complete';
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v19_complete';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v20_final';
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v20_final';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -334,6 +327,28 @@
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn');
         const elPlusBtn = $('#plus-menu-btn');
         const elCreateImgBtn = $('#menu-create-image-btn');
+
+        // CUSTOM CONFIRM MODAL LOGIC
+        let confirmActionCallback = null;
+
+        function showConfirmModal(title, text, callback) {
+            $('#confirm-modal-title').innerText = title;
+            $('#confirm-modal-text').innerText = text;
+            confirmActionCallback = callback;
+            $('#confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            $('#confirm-modal').classList.add('hidden');
+            confirmActionCallback = null;
+        }
+
+        $('#confirm-cancel-btn').addEventListener('click', closeConfirmModal);
+        $('#confirm-action-btn').addEventListener('click', () => {
+            if (confirmActionCallback) confirmActionCallback();
+            closeConfirmModal();
+        });
+
 
         // PWA CUSTOM INSTALL PROMPT LOGIC
         let deferredPrompt;
@@ -715,11 +730,12 @@
 
         function deleteChat(e, id) { 
             e.stopPropagation(); 
-            if(!confirm('Delete this chat?')) return; 
-            state.chats = state.chats.filter(c => c.id !== id); 
-            saveChats(); 
-            renderSidebar(); 
-            if (state.currentChatId === id) { state.currentChatId = null; showWelcome(); } 
+            showConfirmModal("Delete Chat?", "This will permanently remove this entire conversation.", () => {
+                state.chats = state.chats.filter(c => c.id !== id); 
+                saveChats(); 
+                renderSidebar(); 
+                if (state.currentChatId === id) { state.currentChatId = null; showWelcome(); } 
+            });
         }
         
         function escapeHtml(text) { 
@@ -942,7 +958,6 @@
             } catch (error) {
                 removeLoadingIndicator();
                 if (error.name === 'AbortError') {
-                    // NEW STOP MECHANISM LOGIC
                     const textContainers = elMessagesContainer.querySelectorAll('.message-text');
                     if (textContainers.length > 0) {
                         const stopHtml = "<br><br><span class='text-red-400 text-sm italic font-medium'>🛑 You stopped this response.</span>";
@@ -965,7 +980,6 @@
                 elSendBtn.innerHTML = SEND_ICON;
                 elUserInput.disabled = false; 
                 elUserInput.placeholder = "Message Anurag's GPT...";
-                // RE-RUN THE DYNAMIC SEND BUTTON CHECK
                 elSendBtn.disabled = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment; 
                 elUserInput.focus(); 
             }
@@ -977,7 +991,6 @@
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } 
         });
         
-        // DYNAMIC SEND BUTTON LISTENER
         elUserInput.addEventListener('input', function() { 
             this.style.height = 'auto'; 
             this.style.height = (this.scrollHeight) + 'px'; 
@@ -988,14 +1001,17 @@
         
         $('#clear-chat-btn').addEventListener('click', () => { 
             if (isTempChat) { 
-                if(!confirm('Clear temporary messages?')) return; 
-                tempChatData.messages = []; 
-                clearMessages(); 
-                showWelcome();
+                showConfirmModal("Clear Temp Chat?", "This will completely wipe your current temporary messages.", () => {
+                    tempChatData.messages = []; 
+                    clearMessages(); 
+                    showWelcome();
+                });
             } else { 
-                if (!state.currentChatId || !confirm('Clear all messages in this chat?')) return; 
-                const chat = state.chats.find(c => c.id === state.currentChatId); 
-                if (chat) { chat.messages = []; saveChats(); loadChat(state.currentChatId); } 
+                if (!state.currentChatId) return;
+                showConfirmModal("Clear Chat History?", "This will delete all messages in this conversation.", () => {
+                    const chat = state.chats.find(c => c.id === state.currentChatId); 
+                    if (chat) { chat.messages = []; saveChats(); loadChat(state.currentChatId); }
+                });
             }
         });
 
