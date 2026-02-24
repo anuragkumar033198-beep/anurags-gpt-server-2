@@ -40,11 +40,30 @@ app.get('/manifest.json', (req, res) => {
       "background_color": "#0d1117",
       "theme_color": "#0d1117",
       "orientation": "portrait",
+      "categories": ["productivity", "education"],
       "icons": [
-        { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
-        { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" }
+        { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+      ],
+      "screenshots": [
+        { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "form_factor": "narrow" },
+        { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "form_factor": "wide" }
       ]
     });
+});
+
+// --- DIGITAL ASSET LINK (For APK Full-Screen Native Mode) ---
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.json([{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.anurags_gpt_server_2.twa",
+        "sha256_cert_fingerprints": [
+          "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"]
+      }
+    }]);
 });
 
 // --- THE BULLETPROOF HTML ROUTER ---
@@ -141,7 +160,8 @@ app.post('/api/chat', async (req, res) => {
         const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY;
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. Never refer to yourself as Gemini, OpenAI, ChatGPT, LLaMA, or any other corporate entity.";
+        // THE UPGRADED AI IDENTITY WITH IMAGE GENERATION CAPABILITIES
+        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. Never refer to yourself as Gemini, OpenAI, ChatGPT, LLaMA, or any other corporate entity. IMAGE GENERATION CAPABILITY: If the user asks you to generate, draw, or make an image, you MUST reply with this exact markdown format to display it: ![Image](https://image.pollinations.ai/prompt/detailed%20description%20of%20image?width=1024&height=1024&nologo=true). You MUST replace all spaces in the prompt with %20. Example: ![Cat](https://image.pollinations.ai/prompt/A%20fluffy%20cat%20in%20space?width=1024&height=1024&nologo=true). Do not put the image link inside a code block.";
         
         if (messages.length > 0) {
             if (typeof messages[0].content === 'string' && !messages[0].content.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
@@ -209,7 +229,7 @@ app.use((err, req, res, next) => {
     res.status(500).send('Something broke!');
 });
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Anurag's GPT Backend is running!`);
 });

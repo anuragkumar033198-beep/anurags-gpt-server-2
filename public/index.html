@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="/icon.png">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
@@ -19,14 +20,44 @@
         html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; overscroll-behavior-y: none; }
         .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
         ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: #0d1117; } ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
-        .prose-content pre { background-color: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin-top: 0.5rem; margin-bottom: 0.5rem; font-family: monospace; border: 1px solid #374151; } .prose-content code { background-color: #374151; padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.9em; } .prose-content pre code { background-color: transparent; padding: 0; border: none; color: #e5e7eb; } .prose-content p { margin-bottom: 0.75rem; line-height: 1.6; }
+        
+        /* --- MARKDOWN STYLING FOR AI RESPONSES --- */
+        .prose-content { line-height: 1.6; }
+        .prose-content h1, .prose-content h2, .prose-content h3, .prose-content h4 { color: white; font-weight: 700; margin-top: 1.5em; margin-bottom: 0.75em; }
+        .prose-content h1 { font-size: 1.5em; } .prose-content h2 { font-size: 1.25em; } .prose-content h3 { font-size: 1.1em; }
+        .prose-content ul, .prose-content ol { margin-left: 1.5rem; margin-bottom: 1rem; padding-left: 1rem; }
+        .prose-content ul { list-style-type: disc; }
+        .prose-content ol { list-style-type: decimal; }
+        .prose-content li { margin-bottom: 0.5rem; }
+        .prose-content strong { color: white; font-weight: 700; }
+        .prose-content em { font-style: italic; }
+        .prose-content a { color: #60a5fa; text-decoration: underline; }
+        .prose-content pre { margin-top: 1em; margin-bottom: 1em; }
+        .prose-content :not(pre) > code { background-color: #374151; padding: 0.2em 0.4em; border-radius: 0.3em; font-size: 0.9em; font-family: monospace; color: #e5e7eb; }
+
+        /* Animations */
         .typing-dot { animation: typing 1.4s infinite ease-in-out both; } .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; } @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } .fade-in { animation: fadeIn 0.3s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        /* Custom Microphone Pulse */
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; }
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
+
+    <div id="install-prompt" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-4 md:p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[150] transform translate-y-full transition-transform duration-500 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-t-3xl">
+        <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center shrink-0 shadow-lg border border-gray-700">
+                <img src="/icon.png" alt="App Icon" class="w-8 h-8 rounded-lg object-contain">
+            </div>
+            <div>
+                <h3 class="text-white font-bold text-sm">Install Anurag's GPT</h3>
+                <p class="text-gray-400 text-xs">Add to your home screen for the full-screen native experience.</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+            <button id="close-install-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors">Later</button>
+            <button id="install-app-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95">Install App</button>
+        </div>
+    </div>
 
     <div id="password-overlay" class="fixed inset-0 bg-gray-950 z-[100] flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center transform transition-all">
@@ -61,18 +92,16 @@
                 <div><h2 class="text-2xl font-bold text-gray-200 mb-2">How can I help you today?</h2><p class="text-sm max-w-md mx-auto text-gray-500">Connected securely to your backend server.</p></div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl px-4 mt-6">
-                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Explain quantum computing in simple terms"</button>
-                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Write a Python script to scrape a website"</button>
-                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Debug this React component code..."</button>
-                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Draft a professional email to a client"</button>
+                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Explain quantum computing"</button>
+                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Write a Python script to scrape a site"</button>
+                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Generate an image of a cyberpunk city"</button>
+                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Draft a professional email"</button>
                 </div>
             </div>
         </div>
 
         <button id="scroll-to-bottom-btn" class="absolute bottom-28 right-6 md:right-10 bg-gray-800/90 backdrop-blur-md border border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700 p-2.5 rounded-full shadow-2xl transition-all duration-300 z-50 opacity-0 pointer-events-none translate-y-4">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg>
         </button>
 
         <div class="p-4 md:p-6 pb-safe bg-gradient-to-t from-gray-950 via-gray-950 to-transparent shrink-0 z-10">
@@ -84,29 +113,30 @@
                             <img id="image-preview" class="h-16 w-16 object-cover rounded-xl border border-gray-600 shadow-md hidden">
                             <div id="file-preview" class="h-16 flex items-center gap-3 bg-gray-800 border border-gray-600 rounded-xl px-4 shadow-md hidden max-w-[200px]">
                                 <svg class="w-6 h-6 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <div class="flex flex-col overflow-hidden">
-                                    <span id="file-preview-name" class="text-xs font-medium text-gray-200 truncate"></span>
-                                    <span id="file-preview-status" class="text-[10px] text-gray-400">Extracted</span>
-                                </div>
+                                <div class="flex flex-col overflow-hidden"><span id="file-preview-name" class="text-xs font-medium text-gray-200 truncate"></span><span id="file-preview-status" class="text-[10px] text-gray-400">Extracted</span></div>
                             </div>
-                            <button id="remove-attachment-btn" class="absolute -top-2 -right-2 bg-gray-700 hover:bg-red-500 text-white rounded-full p-1.5 shadow-md transition-colors z-10 border border-gray-600">
-                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            </button>
+                            <button id="remove-attachment-btn" class="absolute -top-2 -right-2 bg-gray-700 hover:bg-red-500 text-white rounded-full p-1.5 shadow-md transition-colors z-10 border border-gray-600"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                         </div>
                     </div>
 
                     <div class="relative flex items-end w-full">
-                        <div id="attachment-wrapper" class="absolute left-2 bottom-2 z-20 transition-opacity duration-200">
-                            <div id="attachment-menu" class="absolute bottom-12 left-0 w-44 bg-gray-800 border border-gray-700 rounded-xl shadow-lg hidden flex-col overflow-hidden">
-                                <button id="menu-file-btn" class="text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2 border-b border-gray-700">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Upload a document
+                        <div id="attachment-wrapper" class="absolute left-2 bottom-2 z-20">
+                            <div id="attachment-menu" class="absolute bottom-12 left-0 min-w-[200px] bg-gray-900 border border-gray-700 rounded-xl shadow-xl hidden flex-col overflow-hidden z-30 pb-1">
+                                <button id="menu-file-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-800">
+                                    <svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> 
+                                    <div><div class="font-medium">Upload Document</div><div class="text-xs text-gray-500">PDF, TXT, Code...</div></div>
                                 </button>
-                                <button id="menu-photo-btn" class="text-left px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> Upload a photo
+                                <button id="menu-photo-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-800">
+                                    <svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> 
+                                     <div><div class="font-medium">Upload Photo</div><div class="text-xs text-gray-500">JPEG, PNG...</div></div>
+                                </button>
+                                <button id="menu-create-image-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                                     <div><div class="font-medium text-purple-400">Create Image</div><div class="text-xs text-gray-500">Generate with AI</div></div>
                                 </button>
                             </div>
-                            <button id="upload-btn" class="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800" title="Attach">
-                                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            <button id="plus-menu-btn" class="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800 transition-transform duration-200" title="Open Menu">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
                             </button>
                         </div>
                         
@@ -116,9 +146,7 @@
                         <textarea id="user-input" rows="1" class="w-full bg-transparent text-gray-100 placeholder-gray-500 pl-14 py-4 pr-24 rounded-3xl outline-none resize-none max-h-48 overflow-y-auto leading-relaxed" placeholder="Message Anurag's GPT..."></textarea>
                         
                         <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800" title="Speak">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                         </button>
 
                         <button id="send-btn" class="absolute right-2 bottom-2 p-2 bg-white text-gray-900 rounded-full hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center h-9 w-9" disabled><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg></button>
@@ -146,24 +174,31 @@
     </div>
 
     <script>
-        // Setup PDF.js Worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        const renderer = new marked.Renderer();
+        renderer.code = function(code, language) {
+          const lang = language || 'code';
+          return `<div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content ${language ? 'language-' + language : ''}">${code}</code></pre></div>`;
+        };
+        renderer.image = function(href, title, text) {
+             return `<div class="relative group my-3"><img src="${href}" alt="${text}" class="rounded-xl shadow-lg w-full max-w-md border border-gray-700 bg-gray-900 object-cover min-h-[200px]" loading="lazy"><div class="absolute bottom-2 right-2 bg-gray-900/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-gray-400 tracking-wider">AI GENERATED</div></div>`;
+        };
+        marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v13';
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v13';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v16_pwa';
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v16_pwa';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
         let settings = { systemPrompt: '' };
         let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
-        
         let currentBase64Image = null; 
         let currentFileAttachment = null; 
-
         let isGenerating = false;
         let abortController = null;
         let isUserScrolledUp = false;
-        let recognition = null; // Speech Recognition Object
+        let recognition = null;
 
         const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
         const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
@@ -185,15 +220,54 @@
         const elMessagesContainer = $('#messages-container');
         const elWelcomeScreen = $('#welcome-screen');
         const elAttachmentMenu = $('#attachment-menu');
-        const elAttachmentWrapper = $('#attachment-wrapper');
         const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn');
+        const elPlusBtn = $('#plus-menu-btn');
+        const elCreateImgBtn = $('#menu-create-image-btn');
 
-        // SCROLL TRACKING LOGIC
+        // --- PWA CUSTOM INSTALL PROMPT LOGIC ---
+        let deferredPrompt;
+        const installPromptEl = $('#install-prompt');
+        const installBtn = $('#install-app-btn');
+        const closeInstallBtn = $('#close-install-btn');
+
+        // Check if the user is already using the app in full screen
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (!isStandalone) {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault(); // Stop Chrome's default mini-infobar
+                deferredPrompt = e; // Save the event
+                
+                // Show our custom banner after 2 seconds
+                setTimeout(() => {
+                    installPromptEl.classList.remove('translate-y-full');
+                }, 2000); 
+            });
+
+            installBtn.addEventListener('click', async () => {
+                installPromptEl.classList.add('translate-y-full'); // Hide our banner
+                if (deferredPrompt) {
+                    deferredPrompt.prompt(); // Trigger Chrome's native install popup
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                }
+            });
+
+            closeInstallBtn.addEventListener('click', () => {
+                installPromptEl.classList.add('translate-y-full');
+            });
+
+            window.addEventListener('appinstalled', () => {
+                deferredPrompt = null;
+                installPromptEl.classList.add('translate-y-full');
+            });
+        }
+
+
         elMessagesContainer.addEventListener('scroll', () => {
             const distanceToBottom = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight;
             isUserScrolledUp = distanceToBottom > 80; 
-            
             if (isUserScrolledUp) {
                 elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
                 elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0');
@@ -209,12 +283,9 @@
         });
 
         function scrollToBottom() { 
-            if (!isUserScrolledUp) {
-                elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; 
-            }
+            if (!isUserScrolledUp) { elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; }
         }
 
-        // SECURITY LOCKDOWN UI
         function triggerLockdownUI() {
             elPassOverlay.classList.remove('hidden');
             elPassInput.classList.add('hidden');
@@ -224,7 +295,6 @@
             elPassError.innerHTML = "🚨 IP BANNED 🚨<br><span class='text-sm text-gray-400 font-normal mt-2 block'>Too many failed attempts. Your IP has been logged and blocked by the server.</span>";
         }
 
-        // PASSWORD VERIFICATION
         async function verifyPassword(pwd, isSilent = false) {
             if (!isSilent) { elPassSubmit.innerText = 'Verifying...'; elPassSubmit.disabled = true; }
             try {
@@ -243,28 +313,40 @@
         }
 
         if (currentPassword) { verifyPassword(currentPassword, true); } else { elPassOverlay.classList.remove('hidden'); }
-
         function unlockApp() { const pwd = elPassInput.value.trim(); if (pwd) verifyPassword(pwd); }
         elPassSubmit.addEventListener('click', unlockApp);
         elPassInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlockApp(); });
 
-        // ATTACHMENTS MENU
-        $('#upload-btn').addEventListener('click', (e) => {
-            e.stopPropagation(); elAttachmentMenu.classList.toggle('hidden'); elAttachmentMenu.classList.toggle('flex');
+        elPlusBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            elAttachmentMenu.classList.toggle('hidden');
+            elAttachmentMenu.classList.toggle('flex');
+            elPlusBtn.classList.toggle('rotate-45');
         });
+        
         document.addEventListener('click', (e) => {
-            if (!elAttachmentMenu.contains(e.target) && e.target !== $('#upload-btn')) {
+            if (!elAttachmentMenu.contains(e.target) && e.target !== elPlusBtn) {
                 elAttachmentMenu.classList.add('hidden'); elAttachmentMenu.classList.remove('flex');
+                elPlusBtn.classList.remove('rotate-45');
             }
         });
-        $('#menu-photo-btn').addEventListener('click', () => {
-            $('#file-input').click(); elAttachmentMenu.classList.add('hidden'); elAttachmentMenu.classList.remove('flex');
-        });
-        $('#menu-file-btn').addEventListener('click', () => {
-            $('#general-file-input').click(); elAttachmentMenu.classList.add('hidden'); elAttachmentMenu.classList.remove('flex');
-        });
 
-        // IMAGE HANDLER
+        $('#menu-photo-btn').addEventListener('click', () => { $('#file-input').click(); closeMenu(); });
+        $('#menu-file-btn').addEventListener('click', () => { $('#general-file-input').click(); closeMenu(); });
+        
+        elCreateImgBtn.addEventListener('click', () => {
+            closeMenu();
+            elUserInput.value = "Generate an image of ";
+            elUserInput.focus();
+            elSendBtn.disabled = false;
+            elUserInput.dispatchEvent(new Event('input'));
+        });
+        
+        function closeMenu() {
+            elAttachmentMenu.classList.add('hidden'); elAttachmentMenu.classList.remove('flex');
+            elPlusBtn.classList.remove('rotate-45');
+        }
+
         $('#file-input').addEventListener('change', (e) => {
             const file = e.target.files[0]; if (!file) return;
             resetAttachments();
@@ -280,11 +362,9 @@
             reader.readAsDataURL(file);
         });
 
-        // DOCUMENT HANDLER
         $('#general-file-input').addEventListener('change', async (e) => {
             const file = e.target.files[0]; if (!file) return;
             resetAttachments();
-            
             $('#file-preview-name').innerText = file.name;
             $('#file-preview-status').innerText = "Extracting...";
             $('#file-preview-status').classList.replace('text-gray-400', 'text-yellow-400');
@@ -339,7 +419,6 @@
             if (elUserInput.value.trim() === '' && !isGenerating) elSendBtn.disabled = true;
         }
 
-        // --- SPEECH RECOGNITION (MICROPHONE) ---
         function setupSpeechRecognition() {
             if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
                 recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -347,74 +426,44 @@
                 recognition.interimResults = false;
                 recognition.lang = 'en-US';
 
-                recognition.onstart = () => {
-                    elMicBtn.classList.add('mic-active');
-                    elUserInput.placeholder = "Listening...";
-                };
-
-                recognition.onend = () => {
-                    elMicBtn.classList.remove('mic-active');
-                    elUserInput.placeholder = "Message Anurag's GPT...";
-                };
-
+                recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; };
+                recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; };
                 recognition.onresult = (event) => {
                     const transcript = event.results[0][0].transcript;
                     elUserInput.value += (elUserInput.value ? ' ' : '') + transcript;
-                    elUserInput.dispatchEvent(new Event('input')); // Trigger height/button update
+                    elUserInput.dispatchEvent(new Event('input')); 
                     elUserInput.focus();
                 };
-
                 recognition.onerror = (event) => {
                     console.error("Speech Error:", event.error);
                     elMicBtn.classList.remove('mic-active');
                     elUserInput.placeholder = "Error listening.";
                     setTimeout(() => elUserInput.placeholder = "Message Anurag's GPT...", 2000);
                 };
-            } else {
-                elMicBtn.style.display = 'none'; // Hide if browser not supported
-            }
+            } else { elMicBtn.style.display = 'none'; }
         }
 
         elMicBtn.addEventListener('click', () => {
-            if (elMicBtn.classList.contains('mic-active')) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
+            if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); }
         });
 
-        // --- TEXT TO SPEECH (SPEAKER) ---
         let currentUtterance = null;
         window.toggleSpeech = (btn) => {
             const textToSpeak = btn.getAttribute('data-content');
-            
             if (window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
-                // Reset all speaker icons
                 $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON);
-                if (currentUtterance === textToSpeak) {
-                    currentUtterance = null;
-                    return; // Just stop if clicking the same one
-                }
+                if (currentUtterance === textToSpeak) { currentUtterance = null; return; }
             }
-
             currentUtterance = textToSpeak;
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            utterance.onend = () => {
-                btn.innerHTML = SPEAKER_ICON;
-                currentUtterance = null;
-            };
-            
-            // Visual feedback
+            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; currentUtterance = null; };
             btn.innerHTML = SPEAKER_OFF_ICON;
             window.speechSynthesis.speak(utterance);
         };
 
-
-        // CORE APP LOGIC
         function init() { 
-            setupSpeechRecognition();
-            loadSettings(); loadChats(); renderSidebar(); 
+            setupSpeechRecognition(); loadSettings(); loadChats(); renderSidebar(); 
             if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); 
         }
 
@@ -449,7 +498,6 @@
             if (window.innerWidth < 768) { 
                 $('#sidebar').classList.add('-translate-x-full'); 
                 $('#sidebar-overlay').classList.add('hidden'); 
-                elAttachmentWrapper.classList.remove('opacity-0', 'pointer-events-none');
             }
         }
         
@@ -468,31 +516,7 @@
         function deleteChat(e, id) { e.stopPropagation(); if(!confirm('Delete this chat?')) return; state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (state.currentChatId === id) { state.currentChatId = null; showWelcome(); } }
         function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
         
-        // MARKDOWN PARSER
-        function formatText(text) { 
-            let safeText = escapeHtml(text);
-
-            safeText = safeText.replace(/```(\w*)\n([\s\S]*?)```/g, function(match, lang, code) {
-                return `<div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm">
-                            <div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700">
-                                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang || 'code'}</span>
-                                <button onclick="copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">
-                                    ${CLIPBOARD_ICON} <span>Copy Code</span>
-                                </button>
-                            </div>
-                            <pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content">${code}</code></pre>
-                        </div>`;
-            });
-
-            safeText = safeText.replace(/`([^`\n]+)`/g, '<code class="bg-gray-700 px-1.5 py-0.5 rounded text-pink-300 font-mono text-[0.9em]">$1</code>');
-            safeText = safeText.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white">$1</strong>');
-            
-            let parts = safeText.split(/(<div class="relative group\/code[\s\S]*?<\/div>)/g);
-            return parts.map(part => {
-                if (part.startsWith('<div class="relative group/code')) return part;
-                return part.replace(/\n/g, '<br>');
-            }).join('');
-        }
+        function formatText(text) { return marked.parse(text); }
         
         function appendMessageToDOM(role, content) {
             if(role === 'system') return;
@@ -520,7 +544,6 @@
             const div = document.createElement('div'); 
             div.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'} fade-in mb-2`;
             
-            // Generate Buttons for Assistant Messages (Copy + Speaker)
             let actionButtons = '';
             if (!isUser) {
                 actionButtons = `
@@ -548,17 +571,12 @@
         }
 
         function createLoadingIndicator() { 
-            const div = document.createElement('div'); 
-            div.id = 'loading-indicator'; 
-            div.className = 'flex w-full justify-start fade-in mb-2'; 
+            const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; 
             div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-800 shadow-sm"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; 
-            elMessagesContainer.appendChild(div); 
-            scrollToBottom(); 
+            elMessagesContainer.appendChild(div); scrollToBottom(); 
         }
-        
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
-        // CORE CHAT SUBMISSION (Upgraded with The First Token Lock)
         async function sendMessage() {
             if (isGenerating) { if (abortController) abortController.abort(); return; }
 
@@ -571,7 +589,6 @@
             elSendBtn.innerHTML = STOP_ICON; elSendBtn.disabled = false; elWelcomeScreen.classList.add('hidden');
 
             const chat = getOrCreateChat(text || "Document Analysis"); 
-            
             let messageContent = text;
             if (currentBase64Image) {
                 messageContent = [{ type: "text", text: text || "Analyze this image." }, { type: "image_url", image_url: { url: currentBase64Image } }];
@@ -582,7 +599,6 @@
             chat.messages.push({ role: 'user', content: messageContent }); saveChats(); 
             appendMessageToDOM('user', messageContent); 
             
-            // 1. Instantly show the bouncing dots while OpenRouter hunts for a model
             createLoadingIndicator();
             resetAttachments();
 
@@ -615,23 +631,12 @@
 
                     if ((response.status === 502 || response.status === 503 || response.status === 429) && attempt < maxRetries) {
                         elUserInput.placeholder = `Servers busy. Retrying in ${waitTime/1000}s... (Attempt ${attempt}/${maxRetries})`;
-                        await new Promise(res => setTimeout(res, waitTime));
-                        waitTime += 2000;
-                        continue;
+                        await new Promise(res => setTimeout(res, waitTime)); waitTime += 2000; continue;
                     }
-
-                    if (!response.ok) { 
-                        const errData = await response.json().catch(() => ({})); 
-                        throw new Error(errData.error || `API Error: ${response.status}`); 
-                    }
-                    
+                    if (!response.ok) { const errData = await response.json().catch(() => ({})); throw new Error(errData.error || `API Error: ${response.status}`); }
                     break;
                 }
 
-                // --- THE FIRST TOKEN LOCK LOGIC ---
-                // We do NOT remove the loading indicator here!
-                // We keep it spinning until the first token physically arrives.
-                
                 const reader = response.body.getReader(); 
                 const decoder = new TextDecoder(); 
                 let aiContent = ""; 
@@ -663,23 +668,15 @@
                                 
                                 if (deltaContent) {
                                     aiContent += deltaContent; 
-                                    
-                                    // 2. The millisecond the first piece of text arrives:
                                     if (isFirstToken) {
-                                        removeLoadingIndicator(); // Destroy the bouncing dots
-                                        appendMessageToDOM('assistant', ''); // Create the dark-mode bubble
-                                        
+                                        removeLoadingIndicator();
+                                        appendMessageToDOM('assistant', ''); 
                                         textContainers = elMessagesContainer.querySelectorAll('.message-text'); 
                                         lastTextContainer = textContainers[textContainers.length - 1];
-                                        
-                                        // Hide action buttons while typing
                                         lastActionButtons = lastTextContainer.parentElement.querySelector('.absolute.top-3.right-3');
                                         if(lastActionButtons) lastActionButtons.style.display = 'none';
-
-                                        isFirstToken = false; // The Lock is released!
+                                        isFirstToken = false; 
                                     }
-                                    
-                                    // Render the text into the newly created bubble
                                     lastTextContainer.innerHTML = formatText(aiContent); 
                                     scrollToBottom(); 
                                 }
@@ -689,7 +686,6 @@
                     }
                 }
                 
-                // Fallback: If OpenRouter sent a totally empty stream but didn't crash
                 if (isFirstToken) {
                     removeLoadingIndicator();
                     appendMessageToDOM('assistant', '*(No text generated by AI)*');
@@ -700,10 +696,8 @@
 
                 chat.messages.push({ role: 'assistant', content: aiContent }); saveChats();
                 
-                // Show the copy/speak buttons now that the stream is finished
                 if(lastActionButtons && aiContent.trim() !== "") { 
                     lastActionButtons.style.display = 'flex'; 
-                    // Update data attributes for correct copying/speaking
                     const copyBtn = lastActionButtons.querySelector('button[title="Copy Full Message"]');
                     const speakBtn = lastActionButtons.querySelector('button[title="Read Aloud"]');
                     if(copyBtn) copyBtn.setAttribute('data-content', escapeHtml(aiContent));
@@ -718,11 +712,7 @@
                     if (lastText) { chat.messages.push({ role: 'assistant', content: lastText }); saveChats(); }
                 } else if (error.message !== "Incorrect Password." && error.message !== "IP BANNED") {
                     appendMessageToDOM('assistant', `\n\n⚠️ **${error.message}**\n*(Could not connect to AI after multiple attempts).*`);
-                    
-                    if (chat.messages.length > 0 && chat.messages[chat.messages.length - 1].role === 'user') {
-                        chat.messages.pop(); 
-                        saveChats();
-                    }
+                    if (chat.messages.length > 0 && chat.messages[chat.messages.length - 1].role === 'user') { chat.messages.pop(); saveChats(); }
                 }
             } finally { 
                 isGenerating = false; abortController = null; elSendBtn.innerHTML = SEND_ICON;
@@ -744,36 +734,28 @@
         $('#save-settings-btn').addEventListener('click', () => { settings.systemPrompt = $('#system-prompt-input').value.trim(); saveSettings(); $('#settings-modal').classList.add('hidden'); const originalText = $('#save-settings-btn').innerText; $('#save-settings-btn').innerText = 'Saved!'; $('#save-settings-btn').classList.replace('bg-blue-600', 'bg-green-600'); setTimeout(() => { $('#save-settings-btn').innerText = originalText; $('#save-settings-btn').classList.replace('bg-green-600', 'bg-blue-600'); }, 1000); });
         $('#lock-app-btn').addEventListener('click', () => { currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); $('#settings-modal').classList.add('hidden'); elPassInput.value = ''; elPassError.classList.add('hidden'); elPassOverlay.classList.remove('hidden'); });
         
-        $('#mobile-menu-btn').addEventListener('click', () => { $('#sidebar').classList.remove('-translate-x-full'); $('#sidebar-overlay').classList.remove('hidden'); elAttachmentWrapper.classList.add('opacity-0', 'pointer-events-none'); });
-        $('#sidebar-overlay').addEventListener('click', () => { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); elAttachmentWrapper.classList.remove('opacity-0', 'pointer-events-none'); });
+        $('#mobile-menu-btn').addEventListener('click', () => { $('#sidebar').classList.remove('-translate-x-full'); $('#sidebar-overlay').classList.remove('hidden'); });
+        $('#sidebar-overlay').addEventListener('click', () => { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); });
 
         $$('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { elUserInput.value = btn.innerText.replace(/"/g, '').trim(); elSendBtn.disabled = false; sendMessage(); }); });
 
-        // PREMIUM COPY MESSAGE LOGIC
         window.copyToClipboard = (btn) => {
             const txt = document.createElement('textarea'); txt.innerHTML = btn.getAttribute('data-content');
             navigator.clipboard.writeText(txt.value).then(() => {
-                const originalHTML = btn.innerHTML; 
-                btn.innerHTML = CHECK_ICON;
-                setTimeout(() => btn.innerHTML = originalHTML, 2000);
+                const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000);
             });
         };
 
-        // PREMIUM COPY CODE LOGIC
         window.copyCodeBlock = (btn) => {
             const preContainer = btn.closest('.relative').querySelector('.raw-code-content');
             const txt = document.createElement('textarea'); 
             let codeHtml = preContainer.innerHTML.replace(/<br\s*[\/]?>/gi, '\n');
             txt.innerHTML = codeHtml;
-            
             navigator.clipboard.writeText(txt.value).then(() => {
                 const originalHTML = btn.innerHTML; 
                 btn.innerHTML = `${CHECK_ICON} <span>Copied!</span>`;
                 btn.classList.replace('text-gray-400', 'text-green-400');
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    btn.classList.replace('text-green-400', 'text-gray-400');
-                }, 2000);
+                setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-400', 'text-gray-400'); }, 2000);
             });
         };
 
