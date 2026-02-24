@@ -32,7 +32,6 @@
 
         .typing-dot { animation: typing 1.4s infinite ease-in-out both; } .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; } @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } .fade-in { animation: fadeIn 0.3s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-        /* Dropdown Menu Styles */
         .chat-menu-dropdown { transform-origin: top right; transition: all 0.2s ease-in-out; }
         .chat-menu-dropdown.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
     </style>
@@ -141,10 +140,11 @@
             </div>
         </div>
 
-        <button id="scroll-to-bottom-btn" class="absolute bottom-28 right-6 md:right-10 bg-gray-800/90 backdrop-blur-md border border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700 p-2.5 rounded-full shadow-2xl transition-all duration-300 z-50 opacity-0 pointer-events-none translate-y-4">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+        <button id="scroll-to-bottom-btn" class="absolute bottom-28 left-1/2 -translate-x-1/2 bg-blue-600/90 backdrop-blur-md border border-blue-500 text-white hover:bg-blue-500 py-2.5 px-5 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all duration-300 z-50 opacity-0 pointer-events-none translate-y-4 flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4 animate-bounce">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
             </svg>
+            Jump to latest
         </button>
 
         <div class="p-4 md:p-6 pb-safe bg-gradient-to-t from-gray-950 via-gray-950 to-transparent shrink-0 z-10">
@@ -285,32 +285,23 @@
             </div>`;
         };
         
-        // *** ROBUST IMAGE RENDERER FIX ***
         renderer.image = function(arg1, arg2, arg3) {
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
              if (!rawHref) rawHref = '';
+             let cleanHref = rawHref.replace(/&amp;/g, '&');
              
-             // Use encodeURI to correctly handle spaces and other special characters in URLs.
-             // This is much more reliable than regex replacement.
-             let cleanHref;
-             try {
-                 cleanHref = encodeURI(rawHref);
-             } catch (e) {
-                 console.error("Error encoding image URL:", e);
-                 cleanHref = rawHref; // Fallback to raw if encoding fails
-             }
-
              return `
              <div class="relative group my-3">
                 <img src="${cleanHref}" alt="${text}" onerror="this.onerror=null; this.src='https://placehold.co/600x400/1a202c/ef4444?text=Image+Load+Failed';" class="rounded-xl shadow-lg w-full max-w-md border border-gray-700 bg-gray-900 object-cover min-h-[200px] bg-gray-800" loading="lazy">
+                <div class="absolute bottom-2 right-2 bg-gray-900/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-gray-400 tracking-wider">AI GENERATED</div>
              </div>`;
         };
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v24_final_fixes';
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v24_final_fixes';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v25_perfect'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v25_perfect';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -326,7 +317,7 @@
         let isTempChat = false;
         let tempChatData = { messages: [] };
         
-        // ICONS used in the menu (Updated Three Dots to Vertical and Thicker)
+        // ICONS used in the menu (Vertical, Thicker, Always Visible style)
         const THREE_DOTS_VERTICAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12a.75.75 0 110-1.5.75.75 0 010 1.5zM12 17.25a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>`;
         const PIN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0111.186 0z" /></svg>`;
         const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>`;
@@ -445,10 +436,12 @@
             $('#temp-chat-toggle-btn').classList.add('text-gray-400');
         }
 
+        // SCROLL BUTTON LOGIC (FIXED)
         elMessagesContainer.addEventListener('scroll', () => {
             const distanceToBottom = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight;
             isUserScrolledUp = distanceToBottom > 80; 
-            if (isUserScrolledUp) { 
+            // ONLY show the button if they are scrolled up AND AI is actively generating
+            if (isUserScrolledUp && isGenerating) { 
                 elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); 
                 elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); 
             } else { 
@@ -526,15 +519,12 @@
             elPlusBtn.classList.toggle('rotate-45'); 
         });
         
-        // Global click listener to close menus
         document.addEventListener('click', (e) => { 
-            // Close attachment menu
             if (!elAttachmentMenu.contains(e.target) && e.target !== elPlusBtn) { 
                 elAttachmentMenu.classList.add('hidden'); 
                 elAttachmentMenu.classList.remove('flex'); 
                 elPlusBtn.classList.remove('rotate-45'); 
             } 
-            // Close chat item dropdowns
             if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) {
                  $$('.chat-menu-dropdown').forEach(menu => menu.classList.add('hidden'));
             }
@@ -693,28 +683,23 @@
             loadSettings(); 
             loadChats(); 
             
-            // Check for shared chat in URL
             if(window.location.hash && window.location.hash.startsWith('#share=')) {
                  try {
                      const base64Data = window.location.hash.substring(7);
                      const decodedData = atob(base64Data);
                      const sharedChat = JSON.parse(decodedData);
-                     // Load shared chat as a temp read-only view
                      disableTempMode();
                      state.currentChatId = 'shared-' + Date.now();
                      clearMessages();
                      elWelcomeScreen.classList.add('hidden');
-                     // Add a banner for shared chat view
                      const banner = document.createElement('div');
                      banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50';
                      banner.innerHTML = `Viewing shared chat: <strong>${escapeHtml(sharedChat.title)}</strong> (Read-only)`;
-                     // Insert before messages container
                      elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer);
 
                      sharedChat.messages.forEach(msg => appendMessageToDOM(msg.role, msg.content));
                      scrollToBottom();
                      
-                     // Disable input
                      elUserInput.disabled = true;
                      elUserInput.placeholder = "This is a read-only shared chat.";
                      elSendBtn.disabled = true;
@@ -733,11 +718,10 @@
         }
 
         function saveChats() { 
-            // Sort chats: pinned first, then by ID (newest)
             state.chats.sort((a, b) => {
                 if (a.pinned && !b.pinned) return -1;
                 if (!a.pinned && b.pinned) return 1;
-                return b.id - a.id; // Assuming numeric timestamps for IDs
+                return b.id - a.id; 
             });
             localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); 
         }
@@ -774,10 +758,9 @@
             state.currentChatId = id; 
             const chat = state.chats.find(c => c.id === id); 
             clearMessages();
-            // Remove shared banner if it exists
+            
             if(elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) {
                  elMessagesContainer.previousElementSibling.remove();
-                 // Re-enable inputs
                  elUserInput.disabled = false;
                  elUserInput.placeholder = "Message Anurag's GPT...";
                  elMicBtn.style.display = '';
@@ -798,11 +781,9 @@
             renderSidebar(); 
         }
         
-        // --- UPDATED RENDER SIDEBAR WITH MENU ---
         function renderSidebar() { 
             $('#chat-history-list').innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>';
             
-            // Ensure sorted before render
             state.chats.sort((a, b) => {
                 if (a.pinned && !b.pinned) return -1;
                 if (!a.pinned && b.pinned) return 1;
@@ -812,10 +793,8 @@
             state.chats.forEach(chat => {
                 const isActive = chat.id === state.currentChatId && !isTempChat; 
                 const div = document.createElement('div');
-                // Added 'relative' class for absolute positioning of dropdown
                 div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-800/80 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'}`;
                 
-                // Click handler to load chat, but ignore if menu trigger was clicked
                 div.onclick = (e) => {
                     if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) {
                         loadChat(chat.id);
@@ -853,11 +832,8 @@
             });
         }
 
-        // --- NEW MENU FUNCTIONS ---
-
         function toggleChatMenu(e, chatId) {
             e.stopPropagation();
-            // Close all other menus first
             $$('.chat-menu-dropdown').forEach(menu => {
                 if (menu.id !== `chat-menu-${chatId}`) menu.classList.add('hidden');
             });
@@ -879,14 +855,12 @@
              e.stopPropagation();
              const chat = state.chats.find(c => c.id === chatId);
              if (chat) {
-                 // Using standard prompt for simplicity. Could be a custom modal.
                  const newTitle = prompt("Enter new name:", chat.title);
                  if (newTitle !== null && newTitle.trim() !== "") {
                      chat.title = newTitle.trim();
                      saveChats();
                      renderSidebar();
                  }
-                 // Close menu
                  document.getElementById(`chat-menu-${chatId}`).classList.add('hidden');
              }
         }
@@ -896,12 +870,10 @@
              const chat = state.chats.find(c => c.id === chatId);
              if (chat) {
                  try {
-                     // Encode chat data to base64
                      const chatDataStr = JSON.stringify(chat);
                      const encodedData = btoa(chatDataStr);
                      const shareUrl = `${window.location.origin}${window.location.pathname}#share=${encodedData}`;
                      
-                     // Copy to clipboard
                      navigator.clipboard.writeText(shareUrl).then(() => {
                           alert("Link copied to clipboard!\n\nNote: Long chats will create very long URLs.");
                      }).catch(err => {
@@ -918,7 +890,6 @@
 
         function deleteChat(e, id) { 
             e.stopPropagation(); 
-            // Close menu immediately
             document.getElementById(`chat-menu-${id}`).classList.add('hidden');
             showConfirmModal("Delete Chat?", "This will permanently remove this entire conversation.", () => {
                 state.chats = state.chats.filter(c => c.id !== id); 
@@ -933,9 +904,15 @@
             return text.replace(/[&<>"']/g, m => map[m]); 
         }
         
+        // PRE-PROCESSOR FOR IMAGES (Bulletproof URL encoding)
         function formatText(text) { 
             if (!text) return "";
-            return marked.parse(text); 
+            let processedText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, url) {
+                // Remove whitespace and encode the URL so the parser doesn't break
+                let fixedUrl = url.trim().replace(/\s+/g, '%20');
+                return `![${alt}](${fixedUrl})`;
+            });
+            return marked.parse(processedText); 
         }
         
         function appendMessageToDOM(role, content) {
@@ -1173,6 +1150,11 @@
                 elUserInput.disabled = false; 
                 elUserInput.placeholder = "Message Anurag's GPT...";
                 elSendBtn.disabled = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment; 
+                
+                // FIXED SCROLL BUTTON LOGIC: Hide immediately when generation finishes
+                elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); 
+                elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0');
+
                 elUserInput.focus(); 
             }
         }
