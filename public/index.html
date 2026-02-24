@@ -32,6 +32,9 @@
 
         .typing-dot { animation: typing 1.4s infinite ease-in-out both; } .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; } @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } .fade-in { animation: fadeIn 0.3s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        /* Dropdown Menu Styles */
+        .chat-menu-dropdown { transform-origin: top right; transition: all 0.2s ease-in-out; }
+        .chat-menu-dropdown.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
@@ -71,7 +74,8 @@
                 <span class="font-medium text-sm">New Chat</span>
             </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list"></div>
+        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list">
+            </div>
         <div class="p-4 border-t border-gray-800 bg-gray-900">
             <button id="open-settings-btn" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -263,7 +267,6 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
-        // --- BULLETPROOF MARKDOWN RENDERER ---
         const renderer = new marked.Renderer();
         
         renderer.code = function(arg1, arg2) {
@@ -283,18 +286,21 @@
         };
         
         renderer.image = function(arg1, arg2, arg3) {
-             const href = typeof arg1 === 'object' ? arg1.href : arg1;
+             let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
+             if (!rawHref) rawHref = '';
+             let cleanHref = rawHref.replace(/&amp;/g, '&');
              return `
              <div class="relative group my-3">
-                <img src="${href}" alt="${text}" class="rounded-xl shadow-lg w-full max-w-md border border-gray-700 bg-gray-900 object-cover min-h-[200px]" loading="lazy">
+                <img src="${cleanHref}" alt="${text}" onerror="this.onerror=null; this.src='https://placehold.co/1024x1024/0d1117/ef4444?text=Image+Unavailable';" class="rounded-xl shadow-lg w-full max-w-md border border-gray-700 bg-gray-900 object-cover min-h-[200px]" loading="lazy">
                 <div class="absolute bottom-2 right-2 bg-gray-900/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-gray-400 tracking-wider">AI GENERATED</div>
              </div>`;
         };
+        
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v21_final_audited';
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v21_final_audited';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v23_menu'; // Updated storage key
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v23_menu';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -309,6 +315,14 @@
 
         let isTempChat = false;
         let tempChatData = { messages: [] };
+        
+        // ICONS used in the menu
+        const THREE_DOTS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
+        const PIN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0111.186 0z" /></svg>`;
+        const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>`;
+        const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`;
+        const SHARE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.287.696.287 1.093a2.25 2.25 0 01-.287 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>`;
+
 
         const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
         const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
@@ -335,7 +349,6 @@
         const elPlusBtn = $('#plus-menu-btn');
         const elCreateImgBtn = $('#menu-create-image-btn');
 
-        // CUSTOM CONFIRM MODAL LOGIC
         let confirmActionCallback = null;
 
         function showConfirmModal(title, text, callback) {
@@ -356,7 +369,6 @@
             closeConfirmModal();
         });
 
-        // PWA CUSTOM INSTALL PROMPT LOGIC
         let deferredPrompt;
         const installPromptEl = $('#install-prompt');
         const installBtn = $('#install-app-btn');
@@ -386,7 +398,6 @@
             });
         }
 
-        // TEMP CHAT TOGGLE LOGIC
         $('#temp-chat-toggle-btn').addEventListener('click', () => {
             if (isTempChat) {
                 disableTempMode();
@@ -424,7 +435,6 @@
             $('#temp-chat-toggle-btn').classList.add('text-gray-400');
         }
 
-        // SCROLL LOGIC
         elMessagesContainer.addEventListener('scroll', () => {
             const distanceToBottom = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight;
             isUserScrolledUp = distanceToBottom > 80; 
@@ -448,7 +458,6 @@
             } 
         }
 
-        // SECURITY LOGIC
         function triggerLockdownUI() {
             elPassOverlay.classList.remove('hidden'); 
             elPassInput.classList.add('hidden'); 
@@ -500,7 +509,6 @@
         elPassSubmit.addEventListener('click', unlockApp); 
         elPassInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlockApp(); });
 
-        // MENU LOGIC
         elPlusBtn.addEventListener('click', (e) => { 
             e.stopPropagation(); 
             elAttachmentMenu.classList.toggle('hidden'); 
@@ -508,12 +516,18 @@
             elPlusBtn.classList.toggle('rotate-45'); 
         });
         
+        // Global click listener to close menus
         document.addEventListener('click', (e) => { 
+            // Close attachment menu
             if (!elAttachmentMenu.contains(e.target) && e.target !== elPlusBtn) { 
                 elAttachmentMenu.classList.add('hidden'); 
                 elAttachmentMenu.classList.remove('flex'); 
                 elPlusBtn.classList.remove('rotate-45'); 
             } 
+            // Close chat item dropdowns
+            if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) {
+                 $$('.chat-menu-dropdown').forEach(menu => menu.classList.add('hidden'));
+            }
         });
         
         $('#menu-photo-btn').addEventListener('click', () => { $('#file-input').click(); closeMenu(); });
@@ -533,7 +547,6 @@
             elPlusBtn.classList.remove('rotate-45'); 
         }
 
-        // FILE UPLOAD LOGIC
         $('#file-input').addEventListener('change', (e) => {
             const file = e.target.files[0]; if (!file) return;
             resetAttachments();
@@ -614,7 +627,6 @@
             if (elUserInput.value.trim() === '' && !isGenerating) elSendBtn.disabled = true;
         }
 
-        // SPEECH TO TEXT LOGIC
         function setupSpeechRecognition() {
             if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
                 recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -651,7 +663,6 @@
             if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } 
         });
 
-        // TEXT TO SPEECH LOGIC
         let currentUtterance = null;
         window.toggleSpeech = (btn) => {
             const textToSpeak = btn.getAttribute('data-content');
@@ -667,16 +678,59 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // CORE APP INITIALIZATION
         function init() { 
             setupSpeechRecognition(); 
             loadSettings(); 
             loadChats(); 
-            renderSidebar(); 
-            if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); 
+            
+            // Check for shared chat in URL
+            if(window.location.hash && window.location.hash.startsWith('#share=')) {
+                 try {
+                     const base64Data = window.location.hash.substring(7);
+                     const decodedData = atob(base64Data);
+                     const sharedChat = JSON.parse(decodedData);
+                     // Load shared chat as a temp read-only view
+                     disableTempMode();
+                     state.currentChatId = 'shared-' + Date.now();
+                     clearMessages();
+                     elWelcomeScreen.classList.add('hidden');
+                     // Add a banner for shared chat view
+                     const banner = document.createElement('div');
+                     banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50';
+                     banner.innerHTML = `Viewing shared chat: <strong>${escapeHtml(sharedChat.title)}</strong> (Read-only)`;
+                     // Insert before messages container
+                     elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer);
+
+                     sharedChat.messages.forEach(msg => appendMessageToDOM(msg.role, msg.content));
+                     scrollToBottom();
+                     
+                     // Disable input
+                     elUserInput.disabled = true;
+                     elUserInput.placeholder = "This is a read-only shared chat.";
+                     elSendBtn.disabled = true;
+                     elMicBtn.style.display = 'none';
+                     elPlusBtn.style.display = 'none';
+
+                 } catch(e) {
+                     alert("Error loading shared chat: Invalid link format.");
+                     window.location.hash = '';
+                     if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome();
+                 }
+            } else {
+                if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); 
+            }
+             renderSidebar();
         }
 
-        function saveChats() { localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); }
+        function saveChats() { 
+            // Sort chats: pinned first, then by ID (newest)
+            state.chats.sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return b.id - a.id; // Assuming numeric timestamps for IDs
+            });
+            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); 
+        }
         function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
         function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
         function loadSettings() { 
@@ -689,7 +743,7 @@
             disableTempMode(); 
             if (state.currentChatId) return state.chats.find(c => c.id === state.currentChatId);
             const title = firstMessage ? (firstMessage.substring(0, 30) + (firstMessage.length > 30 ? '...' : '')) : "New Chat";
-            const newChat = { id: Date.now().toString(), title: title, messages: [] };
+            const newChat = { id: Date.now().toString(), title: title, messages: [], pinned: false };
             state.chats.unshift(newChat); 
             state.currentChatId = newChat.id; 
             saveChats(); 
@@ -710,6 +764,16 @@
             state.currentChatId = id; 
             const chat = state.chats.find(c => c.id === id); 
             clearMessages();
+            // Remove shared banner if it exists
+            if(elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) {
+                 elMessagesContainer.previousElementSibling.remove();
+                 // Re-enable inputs
+                 elUserInput.disabled = false;
+                 elUserInput.placeholder = "Message Anurag's GPT...";
+                 elMicBtn.style.display = '';
+                 elPlusBtn.style.display = '';
+            }
+
             if (chat && chat.messages.length > 0) { 
                 elWelcomeScreen.classList.add('hidden'); 
                 chat.messages.forEach(msg => appendMessageToDOM(msg.role, msg.content)); 
@@ -724,27 +788,128 @@
             renderSidebar(); 
         }
         
+        // --- UPDATED RENDER SIDEBAR WITH MENU ---
         function renderSidebar() { 
             $('#chat-history-list').innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>';
+            
+            // Ensure sorted before render
+            state.chats.sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                 return b.id - a.id;
+            });
+
             state.chats.forEach(chat => {
                 const isActive = chat.id === state.currentChatId && !isTempChat; 
                 const div = document.createElement('div');
-                div.className = `group flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-800/80 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'}`;
-                div.onclick = () => loadChat(chat.id);
+                // Added 'relative' class for absolute positioning of dropdown
+                div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-800/80 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'}`;
+                
+                // Click handler to load chat, but ignore if menu trigger was clicked
+                div.onclick = (e) => {
+                    if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) {
+                        loadChat(chat.id);
+                    }
+                };
+
+                const pinIconHtml = chat.pinned ? `<span class="text-blue-400 mr-2">${PIN_ICON}</span>` : '';
+
                 div.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive ? 'text-blue-400' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                    <div class="flex items-center gap-3 overflow-hidden flex-1">
+                        ${pinIconHtml}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-400' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                         <span class="truncate font-medium">${escapeHtml(chat.title)}</span>
                     </div>
-                    <button class="opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-400/10 p-1.5 rounded-lg transition-all" onclick="deleteChat(event, '${chat.id}')">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>`;
+                    <button class="chat-menu-trigger opacity-0 group-hover:opacity-100 hover:text-white hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="toggleChatMenu(event, '${chat.id}')">
+                        ${THREE_DOTS_ICON}
+                    </button>
+                    
+                    <div id="chat-menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-48 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1">
+                        <button onclick="togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">
+                             ${PIN_ICON} <span>${chat.pinned ? 'Unpin Chat' : 'Pin Chat'}</span>
+                        </button>
+                         <button onclick="renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">
+                             ${EDIT_ICON} <span>Rename Chat</span>
+                        </button>
+                         <button onclick="shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">
+                             ${SHARE_ICON} <span>Share Chat</span>
+                        </button>
+                        <button onclick="deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-800">
+                             ${TRASH_ICON} <span>Delete Chat</span>
+                        </button>
+                    </div>
+                    `;
                 $('#chat-history-list').appendChild(div);
             });
         }
 
+        // --- NEW MENU FUNCTIONS ---
+
+        function toggleChatMenu(e, chatId) {
+            e.stopPropagation();
+            // Close all other menus first
+            $$('.chat-menu-dropdown').forEach(menu => {
+                if (menu.id !== `chat-menu-${chatId}`) menu.classList.add('hidden');
+            });
+            const menu = document.getElementById(`chat-menu-${chatId}`);
+            menu.classList.toggle('hidden');
+        }
+
+        function togglePinChat(e, chatId) {
+             e.stopPropagation();
+             const chat = state.chats.find(c => c.id === chatId);
+             if (chat) {
+                 chat.pinned = !chat.pinned;
+                 saveChats();
+                 renderSidebar();
+             }
+        }
+
+        function renameChat(e, chatId) {
+             e.stopPropagation();
+             const chat = state.chats.find(c => c.id === chatId);
+             if (chat) {
+                 // Using standard prompt for simplicity. Could be a custom modal.
+                 const newTitle = prompt("Enter new name for this chat:", chat.title);
+                 if (newTitle !== null && newTitle.trim() !== "") {
+                     chat.title = newTitle.trim();
+                     saveChats();
+                     renderSidebar();
+                 }
+                 // Close menu
+                 document.getElementById(`chat-menu-${chatId}`).classList.add('hidden');
+             }
+        }
+
+        function shareChat(e, chatId) {
+             e.stopPropagation();
+             const chat = state.chats.find(c => c.id === chatId);
+             if (chat) {
+                 try {
+                     // Encode chat data to base64
+                     const chatDataStr = JSON.stringify(chat);
+                     const encodedData = btoa(chatDataStr);
+                     const shareUrl = `${window.location.origin}${window.location.pathname}#share=${encodedData}`;
+                     
+                     // Copy to clipboard
+                     navigator.clipboard.writeText(shareUrl).then(() => {
+                          alert("Link copied to clipboard!\n\nNote: Long chats will create very long URLs.");
+                     }).catch(err => {
+                          console.error('Could not copy link: ', err);
+                          prompt("Copy this link to share:", shareUrl);
+                     });
+                 } catch (err) {
+                     alert("Could not generate share link. Chat history might be too large.");
+                 }
+                  document.getElementById(`chat-menu-${chatId}`).classList.add('hidden');
+             }
+        }
+
+
         function deleteChat(e, id) { 
             e.stopPropagation(); 
+            // Close menu immediately
+            document.getElementById(`chat-menu-${id}`).classList.add('hidden');
             showConfirmModal("Delete Chat?", "This will permanently remove this entire conversation.", () => {
                 state.chats = state.chats.filter(c => c.id !== id); 
                 saveChats(); 
@@ -758,7 +923,14 @@
             return text.replace(/[&<>"']/g, m => map[m]); 
         }
         
-        function formatText(text) { return marked.parse(text); }
+        function formatText(text) { 
+            if (!text) return "";
+            let safeText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, url) {
+                let fixedUrl = url.replace(/\s/g, '%20');
+                return `![${alt}](${fixedUrl})`;
+            });
+            return marked.parse(safeText); 
+        }
         
         function appendMessageToDOM(role, content) {
             if(role === 'system') return;
@@ -838,7 +1010,6 @@
         }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
-        // MAIN CHAT LOGIC
         async function sendMessage() {
             if (isGenerating) { if (abortController) abortController.abort(); return; }
 
@@ -1000,7 +1171,6 @@
             }
         }
 
-        // EVENT LISTENERS
         elSendBtn.addEventListener('click', sendMessage);
         elUserInput.addEventListener('keydown', (e) => { 
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } 
