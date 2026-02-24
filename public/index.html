@@ -73,8 +73,7 @@
                 <span class="font-medium text-sm">New Chat</span>
             </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list">
-            </div>
+        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list"></div>
         <div class="p-4 border-t border-gray-800 bg-gray-900">
             <button id="open-settings-btn" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -293,32 +292,51 @@
              
              let cleanHref = rawHref.replace(/&amp;/g, '&');
              
-             // Encode Pollinations URL properly
-             if (cleanHref.includes('pollinations.ai/prompt/')) {
+             // If this is an AI image, we MUST lock the URL so it doesn't infinite-loop while typing
+             if (cleanHref.includes('pollinations.ai')) {
                  try {
-                     let promptPart = cleanHref.split('pollinations.ai/prompt/')[1].split('?')[0];
+                     let promptPart = cleanHref.split('pollinations.ai/')[1];
+                     promptPart = promptPart.replace('prompt/', '').replace('image/', '').replace('p/', '');
+                     promptPart = promptPart.split('?')[0]; // Strip old AI parameters
+                     
                      let decodedPrompt = promptPart;
                      try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {}
-                     decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); 
+                     decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); // Remove Markdown junk
                      
-                     let safePrompt = encodeURIComponent(decodedPrompt);
+                     let safePrompt = encodeURIComponent(decodedPrompt); 
                      
+                     // DETERMINISTIC SEED: Convert the text into a fixed number so the browser ONLY downloads it once!
                      let seed = 0;
                      for (let i = 0; i < safePrompt.length; i++) {
                          seed = safePrompt.charCodeAt(i) + ((seed << 5) - seed);
                      }
                      seed = Math.abs(seed);
                      
-                     cleanHref = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
-                 } catch(e) {}
-             } else {
-                 cleanHref = cleanHref.replace(/\s+/g, '%20');
+                     cleanHref = `https://gen.pollinations.ai/image/${safePrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
+                 } catch(e) {
+                     console.error("Image generation fix applied", e);
+                 }
              }
 
-             // HARDCODED inline styles prevent the container from ever squishing
+             // If AI is currently typing, NEVER load the image! Just show the spinner. 
+             // This absolutely prevents the "Infinite Reload" crash bug!
+             if (window.isGenerating) {
+                 return `
+                 <div class="relative group my-4 flex w-full max-w-[280px] sm:max-w-md">
+                    <div class="relative w-full aspect-square bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
+                            <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
+                        </div>
+                    </div>
+                 </div>`;
+             }
+
+             // AI is finished typing. Now it is safe to load the image into the rigid container!
+             // Removed 'crossorigin' to fix the Pollinations blocking bug.
              return `
-             <div class="my-4" style="width: 280px; height: 280px;">
-                <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
+             <div class="relative group my-4 flex w-full max-w-[280px] sm:max-w-md">
+                <div class="relative w-full aspect-square bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
                     
                     <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
                         <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -327,8 +345,8 @@
 
                     <img src="${cleanHref}" alt="${text}" 
                          referrerpolicy="no-referrer"
-                         onload="this.previousElementSibling.style.display='none'; this.style.opacity='1';" 
-                         onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div class=\\'flex flex-col items-center w-full h-full justify-center bg-gray-800 p-4 text-center\\'><span class=\\'text-3xl mb-2\\'>⚠️</span><div class=\\'text-red-400 text-base font-bold\\'>Image Failed</div><div class=\\'text-gray-500 text-xs mt-1\\'>Tap to retry</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();}; this.remove();" 
+                         onload="this.previousElementSibling.style.display='none'; this.classList.remove('opacity-0');" 
+                         onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div class=\\'flex flex-col items-center w-full h-full justify-center bg-gray-800 p-4 text-center\\'><span class=\\'text-3xl mb-2\\'>⚠️</span><div class=\\'text-red-400 text-base font-bold\\'>Image Failed</div><div class=\\'text-gray-500 text-xs mt-1\\'>Tap to retry</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();};" 
                          class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700 cursor-pointer z-10" loading="lazy">
                     
                     <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div>
@@ -338,8 +356,8 @@
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v31_final'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v31_final';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v33_final_fix'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v33_final_fix';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -348,7 +366,7 @@
         let currentBase64Image = null; 
         let currentFileAttachment = null; 
         
-        // EXPOSED GLOBAL VARIABLE FOR RENDERER
+        // Exposed globally for the renderer
         window.isGenerating = false; 
         
         let abortController = null;
@@ -358,11 +376,13 @@
         let isTempChat = false;
         let tempChatData = { messages: [] };
         
+        // ICONS used in the menu
         const THREE_DOTS_VERTICAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12a.75.75 0 110-1.5.75.75 0 010 1.5zM12 17.25a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>`;
         const PIN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0111.186 0z" /></svg>`;
         const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>`;
         const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`;
         const SHARE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.287.696.287 1.093a2.25 2.25 0 01-.287 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>`;
+
 
         const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
         const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
@@ -408,6 +428,7 @@
             if (confirmActionCallback) confirmActionCallback();
             closeConfirmModal();
         });
+
 
         let deferredPrompt;
         const installPromptEl = $('#install-prompt');
@@ -864,46 +885,26 @@
             if (!text) return "";
             let processedText = text;
 
-            // 1. HIDE URLs WHILE TYPING: Replaces incomplete image links with a clean loading animation
+            // HIDE URLs WHILE TYPING: Safely catch incomplete image links without using crashing Regex
             if (window.isGenerating) {
-                // Matches the start of an image tag up to the end of the current streaming string
+                // Hide Markdown links in progress
                 processedText = processedText.replace(/!\[[^\]]*\]\([^)]*$/, `
-                <div class="my-4" style="width: 280px; height: 280px;">
-                    <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
-                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
-                            <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
-                        </div>
-                    </div>
+                <div class="my-4 w-full max-w-[280px] sm:max-w-md aspect-square bg-gray-900 rounded-2xl border border-gray-700 flex flex-col items-center justify-center shadow-lg">
+                    <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
                 </div>`);
                 
-                // Matches raw, free-floating Pollinations links that haven't finished typing
-                processedText = processedText.replace(/(?<!\()https:\/\/image\.pollinations\.ai\/prompt\/.*$/, `
-                <div class="my-4" style="width: 280px; height: 280px;">
-                    <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
-                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
-                            <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
-                        </div>
-                    </div>
+                // Hide naked Pollinations links in progress
+                processedText = processedText.replace(/https:\/\/(image|gen)?\.?pollinations\.ai\/(prompt|image|p)\/[^\s]*$/, `
+                <div class="my-4 w-full max-w-[280px] sm:max-w-md aspect-square bg-gray-900 rounded-2xl border border-gray-700 flex flex-col items-center justify-center shadow-lg">
+                    <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
                 </div>`);
             }
 
-            // 2. Fix FULL Markdown image links that contain spaces or bad encoding
-            processedText = processedText.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, url) {
-                let cleanUrl = url.trim().replace(/&amp;/g, '&');
-                // Encode spaces so Marked.js doesn't ignore the markdown!
-                cleanUrl = cleanUrl.replace(/\s/g, '%20');
-                return `![${alt}](${cleanUrl})`;
-            });
-
-            // 3. Catch RAW free-floating Pollinations URLs that the AI forgot to put in markdown
-            // It matches the URL up to a newline or markdown boundary, capturing spaces!
-            processedText = processedText.replace(/(?<!\()https:\/\/image\.pollinations\.ai\/prompt\/([^\n\r]+)/g, function(match, prompt) {
-                // If it accidentally picked up a closing markdown tag, strip it
-                let cleanPrompt = prompt.replace(/\)$/, '').replace(/\]$/, '');
-                let encodedPrompt = encodeURIComponent(cleanPrompt.trim());
-                return `![AI Image](https://image.pollinations.ai/prompt/${encodedPrompt})`;
+            // AUTO-FORMAT: If the AI forgot to wrap the Pollinations link in markdown ![], we do it for them safely
+            processedText = processedText.replace(/(^|\s)(https:\/\/(image|gen)?\.?pollinations\.ai\/(prompt|image|p)\/[^\s<]+)/g, function(match, space, url) {
+                return `${space}![AI Image](${url})`;
             });
 
             return marked.parse(processedText); 
@@ -997,7 +998,7 @@
                     }
                 }
                 
-                // STREAM COMPLETELY FINISHED
+                // CRITICAL FIX: Stream completely finished. Set this to false BEFORE the final render so the real image loads!
                 window.isGenerating = false; 
                 
                 if (isFirstToken) { 
@@ -1007,7 +1008,6 @@
                     lastTextContainer = textContainers[textContainers.length - 1]; 
                     lastActionButtons = lastTextContainer.parentElement.querySelector('.absolute.top-3.right-3'); 
                 } else if (lastTextContainer) {
-                    // ONE FINAL RENDER: Now that isGenerating is false, the real image tags will load!
                     lastTextContainer.innerHTML = formatText(aiContent); 
                     scrollToBottom();
                 }
@@ -1016,7 +1016,7 @@
                 if(lastActionButtons && aiContent.trim() !== "") { lastActionButtons.style.display = 'flex'; const copyBtn = lastActionButtons.querySelector('button[title="Copy Full Message"]'); const speakBtn = lastActionButtons.querySelector('button[title="Read Aloud"]'); if(copyBtn) copyBtn.setAttribute('data-content', escapeHtml(aiContent)); if(speakBtn) speakBtn.setAttribute('data-content', escapeHtml(aiContent)); }
 
             } catch (error) {
-                window.isGenerating = false; // Turn off generating state on error
+                window.isGenerating = false;
                 removeLoadingIndicator();
                 if (error.name === 'AbortError') {
                     const textContainers = elMessagesContainer.querySelectorAll('.message-text');
