@@ -209,7 +209,7 @@ app.use((err, req, res, next) => {
     res.status(500).send('Something broke!');
 });
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Anurag's GPT Backend is running!`);
 });
