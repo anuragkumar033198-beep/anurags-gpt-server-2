@@ -285,22 +285,32 @@
             </div>`;
         };
         
+        // *** ROBUST IMAGE RENDERER FIX ***
         renderer.image = function(arg1, arg2, arg3) {
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
              if (!rawHref) rawHref = '';
-             let cleanHref = rawHref.replace(/&amp;/g, '&');
+             
+             // Use encodeURI to correctly handle spaces and other special characters in URLs.
+             // This is much more reliable than regex replacement.
+             let cleanHref;
+             try {
+                 cleanHref = encodeURI(rawHref);
+             } catch (e) {
+                 console.error("Error encoding image URL:", e);
+                 cleanHref = rawHref; // Fallback to raw if encoding fails
+             }
+
              return `
              <div class="relative group my-3">
-                <img src="${cleanHref}" alt="${text}" onerror="this.onerror=null; this.src='https://placehold.co/1024x1024/0d1117/ef4444?text=Image+Unavailable';" class="rounded-xl shadow-lg w-full max-w-md border border-gray-700 bg-gray-900 object-cover min-h-[200px]" loading="lazy">
-                <div class="absolute bottom-2 right-2 bg-gray-900/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-gray-400 tracking-wider">AI GENERATED</div>
+                <img src="${cleanHref}" alt="${text}" onerror="this.onerror=null; this.src='https://placehold.co/600x400/1a202c/ef4444?text=Image+Load+Failed';" class="rounded-xl shadow-lg w-full max-w-md border border-gray-700 bg-gray-900 object-cover min-h-[200px] bg-gray-800" loading="lazy">
              </div>`;
         };
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v23_menu'; // Updated storage key
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v23_menu';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v24_final_fixes';
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v24_final_fixes';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -316,8 +326,8 @@
         let isTempChat = false;
         let tempChatData = { messages: [] };
         
-        // ICONS used in the menu
-        const THREE_DOTS_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
+        // ICONS used in the menu (Updated Three Dots to Vertical and Thicker)
+        const THREE_DOTS_VERTICAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12a.75.75 0 110-1.5.75.75 0 010 1.5zM12 17.25a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>`;
         const PIN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0111.186 0z" /></svg>`;
         const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>`;
         const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`;
@@ -820,22 +830,22 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-400' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                         <span class="truncate font-medium">${escapeHtml(chat.title)}</span>
                     </div>
-                    <button class="chat-menu-trigger opacity-0 group-hover:opacity-100 hover:text-white hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="toggleChatMenu(event, '${chat.id}')">
-                        ${THREE_DOTS_ICON}
+                    <button class="chat-menu-trigger text-white hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="toggleChatMenu(event, '${chat.id}')">
+                        ${THREE_DOTS_VERTICAL_ICON}
                     </button>
                     
-                    <div id="chat-menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-48 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1">
+                    <div id="chat-menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1">
                         <button onclick="togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">
-                             ${PIN_ICON} <span>${chat.pinned ? 'Unpin Chat' : 'Pin Chat'}</span>
+                             ${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span>
                         </button>
                          <button onclick="renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">
-                             ${EDIT_ICON} <span>Rename Chat</span>
+                             ${EDIT_ICON} <span>Rename</span>
                         </button>
                          <button onclick="shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">
-                             ${SHARE_ICON} <span>Share Chat</span>
+                             ${SHARE_ICON} <span>Share</span>
                         </button>
                         <button onclick="deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-800">
-                             ${TRASH_ICON} <span>Delete Chat</span>
+                             ${TRASH_ICON} <span>Delete</span>
                         </button>
                     </div>
                     `;
@@ -870,7 +880,7 @@
              const chat = state.chats.find(c => c.id === chatId);
              if (chat) {
                  // Using standard prompt for simplicity. Could be a custom modal.
-                 const newTitle = prompt("Enter new name for this chat:", chat.title);
+                 const newTitle = prompt("Enter new name:", chat.title);
                  if (newTitle !== null && newTitle.trim() !== "") {
                      chat.title = newTitle.trim();
                      saveChats();
@@ -925,11 +935,7 @@
         
         function formatText(text) { 
             if (!text) return "";
-            let safeText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, url) {
-                let fixedUrl = url.replace(/\s/g, '%20');
-                return `![${alt}](${fixedUrl})`;
-            });
-            return marked.parse(safeText); 
+            return marked.parse(text); 
         }
         
         function appendMessageToDOM(role, content) {
@@ -1171,6 +1177,7 @@
             }
         }
 
+        // EVENT LISTENERS
         elSendBtn.addEventListener('click', sendMessage);
         elUserInput.addEventListener('keydown', (e) => { 
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } 
