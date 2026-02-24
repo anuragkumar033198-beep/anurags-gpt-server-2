@@ -73,7 +73,8 @@
                 <span class="font-medium text-sm">New Chat</span>
             </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list"></div>
+        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list">
+            </div>
         <div class="p-4 border-t border-gray-800 bg-gray-900">
             <button id="open-settings-btn" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -284,7 +285,7 @@
             </div>`;
         };
         
-        // --- THE PERFECT IMAGE GENERATOR FIX ---
+        // --- BULLETPROOF, ANTI-SQUISH, ANTI-LOOP IMAGE RENDERER ---
         renderer.image = function(arg1, arg2, arg3) {
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
@@ -292,32 +293,33 @@
              
              let cleanHref = rawHref.replace(/&amp;/g, '&');
              
-             // If this is an AI image, we MUST lock the URL so it doesn't infinite-loop while typing
              if (cleanHref.includes('pollinations.ai/prompt/')) {
                  try {
                      let promptPart = cleanHref.split('pollinations.ai/prompt/')[1];
-                     promptPart = promptPart.split('?')[0]; // Strip AI parameters
+                     promptPart = promptPart.split('?')[0]; 
                      
-                     let decodedPrompt = decodeURIComponent(promptPart);
-                     let safePrompt = encodeURIComponent(decodedPrompt); // Perfect URL encoding
+                     let decodedPrompt = promptPart;
+                     try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {}
+                     let safePrompt = encodeURIComponent(decodedPrompt); 
                      
-                     // DETERMINISTIC SEED: Convert the text into a fixed number so the browser ONLY downloads it once!
+                     // DETERMINISTIC SEED: Prevents the infinite reload loop!
                      let seed = 0;
                      for (let i = 0; i < safePrompt.length; i++) {
                          seed = safePrompt.charCodeAt(i) + ((seed << 5) - seed);
                      }
-                     seed = Math.abs(seed); // Make it a positive number
+                     seed = Math.abs(seed);
                      
                      cleanHref = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
                  } catch(e) {
-                     console.error("Image generation fix applied", e);
+                     console.error("Image gen parsing error:", e);
                  }
              }
 
-             // ADDED: aspect-square and min-width so the box never squishes!
+             // HARDCODED flex dimensions (w-[260px] h-[260px] shrink-0) completely prevents the box from squishing!
+             // Added referrerpolicy="no-referrer" to prevent free APIs from blocking Vercel/Replit
              return `
-             <div class="relative group my-4 flex w-full max-w-[280px] sm:max-w-md">
-                <div class="relative w-full aspect-square bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
+             <div class="relative group my-4 flex w-full">
+                <div class="relative w-[260px] h-[260px] sm:w-[350px] sm:h-[350px] shrink-0 bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
                     
                     <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
                         <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -325,6 +327,7 @@
                     </div>
 
                     <img src="${cleanHref}" alt="${text}" 
+                         referrerpolicy="no-referrer" crossorigin="anonymous"
                          onload="this.previousElementSibling.style.display='none'; this.classList.remove('opacity-0');" 
                          onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div class=\\'flex flex-col items-center w-full h-full justify-center bg-gray-800 p-4 text-center\\'><span class=\\'text-3xl mb-2\\'>⚠️</span><div class=\\'text-red-400 text-base font-bold\\'>Image Failed</div><div class=\\'text-gray-500 text-xs mt-1\\'>Tap to retry</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();};" 
                          class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700 cursor-pointer z-10" loading="lazy">
@@ -336,8 +339,8 @@
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v27_final_fix'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v27_final_fix';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v28_final'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v28_final';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -469,10 +472,9 @@
             $('#temp-chat-toggle-btn').classList.add('text-gray-400');
         }
 
-        // PERFECTED SCROLL BUTTON LOGIC
         elMessagesContainer.addEventListener('scroll', () => {
             const distanceToBottom = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight;
-            isUserScrolledUp = distanceToBottom > 150; 
+            isUserScrolledUp = distanceToBottom > 80; 
             
             if (isUserScrolledUp && isGenerating) { 
                 elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); 
@@ -856,7 +858,6 @@
         function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
         function formatText(text) { 
             if (!text) return "";
-            // Replace generic image markdown with proper URLs before marked.js parses
             let processedText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, url) {
                 let fixedUrl = url.trim().replace(/\s+/g, '%20');
                 return `![${alt}](${fixedUrl})`;
