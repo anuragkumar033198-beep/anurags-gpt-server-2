@@ -263,10 +263,14 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
+        // --- BULLETPROOF MARKDOWN RENDERER ---
         const renderer = new marked.Renderer();
-        renderer.code = function(code, language) {
-          const lang = language || 'code';
-          return `
+        
+        renderer.code = function(arg1, arg2) {
+            const codeText = typeof arg1 === 'object' ? arg1.text : arg1;
+            const langCode = typeof arg1 === 'object' ? arg1.lang : arg2;
+            const lang = langCode || 'code';
+            return `
             <div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm">
                 <div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700">
                     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span>
@@ -274,10 +278,13 @@
                         ${CLIPBOARD_ICON} <span>Copy Code</span>
                     </button>
                 </div>
-                <pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content ${language ? 'language-' + language : ''}">${code}</code></pre>
+                <pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content ${langCode ? 'language-' + langCode : ''}">${codeText}</code></pre>
             </div>`;
         };
-        renderer.image = function(href, title, text) {
+        
+        renderer.image = function(arg1, arg2, arg3) {
+             const href = typeof arg1 === 'object' ? arg1.href : arg1;
+             const text = typeof arg1 === 'object' ? arg1.text : arg3;
              return `
              <div class="relative group my-3">
                 <img src="${href}" alt="${text}" class="rounded-xl shadow-lg w-full max-w-md border border-gray-700 bg-gray-900 object-cover min-h-[200px]" loading="lazy">
@@ -286,8 +293,8 @@
         };
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v20_final';
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v20_final';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v21_final_audited';
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v21_final_audited';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -349,7 +356,6 @@
             closeConfirmModal();
         });
 
-
         // PWA CUSTOM INSTALL PROMPT LOGIC
         let deferredPrompt;
         const installPromptEl = $('#install-prompt');
@@ -383,14 +389,12 @@
         // TEMP CHAT TOGGLE LOGIC
         $('#temp-chat-toggle-btn').addEventListener('click', () => {
             if (isTempChat) {
-                // If it is ON, turn it OFF
                 disableTempMode();
                 state.currentChatId = null;
                 clearMessages();
                 showWelcome();
                 renderSidebar();
             } else {
-                // If it is OFF, turn it ON
                 isTempChat = true; 
                 state.currentChatId = null; 
                 tempChatData.messages = []; 
