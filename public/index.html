@@ -73,8 +73,7 @@
                 <span class="font-medium text-sm">New Chat</span>
             </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list">
-            </div>
+        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list"></div>
         <div class="p-4 border-t border-gray-800 bg-gray-900">
             <button id="open-settings-btn" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -92,9 +91,7 @@
         <header class="h-14 border-b border-gray-800 flex items-center justify-between px-4 bg-gray-950 z-10 shrink-0">
             <div class="flex items-center gap-3">
                 <button id="mobile-menu-btn" class="md:hidden text-gray-400 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
                 <span class="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent flex items-center gap-2">
                     Anurag's GPT
@@ -104,16 +101,12 @@
             
             <div class="flex items-center gap-4">
                 <button id="temp-chat-toggle-btn" class="text-gray-400 hover:text-purple-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Temporary Chat (Incognito)">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
                     <span class="hidden sm:inline font-medium">Temp Chat</span>
                 </button>
 
                 <button id="clear-chat-btn" class="text-gray-400 hover:text-red-400 text-sm flex items-center gap-1.5 transition-colors" title="Clear Chat">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     <span class="hidden sm:inline font-medium">Clear</span>
                 </button>
             </div>
@@ -122,9 +115,7 @@
         <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth relative">
             <div id="welcome-screen" class="h-full flex flex-col items-center justify-center text-center space-y-6 text-gray-400">
                 <div class="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-2 shadow-lg shadow-blue-900/20">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
                 <div>
                     <h2 class="text-2xl font-bold text-gray-200 mb-2">How can I help you today?</h2>
@@ -141,9 +132,7 @@
         </div>
 
         <button id="scroll-to-bottom-btn" class="absolute bottom-28 left-1/2 -translate-x-1/2 bg-blue-600/90 backdrop-blur-md border border-blue-500 text-white hover:bg-blue-500 py-2.5 px-5 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all duration-300 z-50 opacity-0 pointer-events-none translate-y-4 flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4 animate-bounce">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4 animate-bounce"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg>
             Jump to latest
         </button>
 
@@ -155,18 +144,11 @@
                         <div class="relative inline-block group">
                             <img id="image-preview" class="h-16 w-16 object-cover rounded-xl border border-gray-600 shadow-md hidden">
                             <div id="file-preview" class="h-16 flex items-center gap-3 bg-gray-800 border border-gray-600 rounded-xl px-4 shadow-md hidden max-w-[200px]">
-                                <svg class="w-6 h-6 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                <div class="flex flex-col overflow-hidden">
-                                    <span id="file-preview-name" class="text-xs font-medium text-gray-200 truncate"></span>
-                                    <span id="file-preview-status" class="text-[10px] text-gray-400">Extracted</span>
-                                </div>
+                                <svg class="w-6 h-6 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <div class="flex flex-col overflow-hidden"><span id="file-preview-name" class="text-xs font-medium text-gray-200 truncate"></span><span id="file-preview-status" class="text-[10px] text-gray-400">Extracted</span></div>
                             </div>
                             <button id="remove-attachment-btn" class="absolute -top-2 -right-2 bg-gray-700 hover:bg-red-500 text-white rounded-full p-1.5 shadow-md transition-colors z-10 border border-gray-600">
-                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
                         </div>
                     </div>
@@ -175,28 +157,20 @@
                         <div id="attachment-wrapper" class="absolute left-2 bottom-2 z-20">
                             <div id="attachment-menu" class="absolute bottom-12 left-0 min-w-[200px] bg-gray-900 border border-gray-700 rounded-xl shadow-xl hidden flex-col overflow-hidden z-30 pb-1">
                                 <button id="menu-file-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-800">
-                                    <svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                    </svg> 
+                                    <svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> 
                                     <div><div class="font-medium">Upload Document</div><div class="text-xs text-gray-500">PDF, TXT, Code...</div></div>
                                 </button>
                                 <button id="menu-photo-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-800">
-                                    <svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                    </svg> 
+                                    <svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> 
                                      <div><div class="font-medium">Upload Photo</div><div class="text-xs text-gray-500">JPEG, PNG...</div></div>
                                 </button>
                                 <button id="menu-create-image-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                                    </svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
                                      <div><div class="font-medium text-purple-400">Create Image</div><div class="text-xs text-gray-500">Generate with AI</div></div>
                                 </button>
                             </div>
                             <button id="plus-menu-btn" class="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800 transition-transform duration-200" title="Open Menu">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
                             </button>
                         </div>
                         
@@ -206,15 +180,11 @@
                         <textarea id="user-input" rows="1" class="w-full bg-transparent text-gray-100 placeholder-gray-500 pl-14 py-4 pr-24 rounded-3xl outline-none resize-none max-h-48 overflow-y-auto leading-relaxed" placeholder="Message Anurag's GPT..."></textarea>
                         
                         <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800" title="Speak">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                         </button>
 
                         <button id="send-btn" class="absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-800 text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed enabled:bg-blue-600 enabled:text-white hover:enabled:bg-blue-500" disabled>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
                         </button>
                     </div>
                 </div>
@@ -227,9 +197,7 @@
             <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900 shrink-0">
                 <h3 class="text-lg font-semibold text-white flex items-center gap-2">Settings</h3>
                 <button id="close-settings-btn" class="text-gray-500 hover:text-white transition-colors bg-gray-800 hover:bg-gray-700 p-1.5 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
             <div class="p-6 space-y-5 overflow-y-auto">
@@ -285,24 +253,22 @@
             </div>`;
         };
         
-        // --- BULLETPROOF, ANTI-SQUISH, ANTI-LOOP IMAGE RENDERER ---
+        // --- 100% BULLETPROOF IMAGE RENDERER ---
         renderer.image = function(arg1, arg2, arg3) {
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
              if (!rawHref) rawHref = '';
-             
              let cleanHref = rawHref.replace(/&amp;/g, '&');
              
              if (cleanHref.includes('pollinations.ai/prompt/')) {
                  try {
-                     let promptPart = cleanHref.split('pollinations.ai/prompt/')[1];
-                     promptPart = promptPart.split('?')[0]; 
-                     
+                     let promptPart = cleanHref.split('pollinations.ai/prompt/')[1].split('?')[0];
                      let decodedPrompt = promptPart;
                      try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {}
-                     let safePrompt = encodeURIComponent(decodedPrompt); 
+                     decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); // Remove trailing junk
                      
-                     // DETERMINISTIC SEED: Prevents the infinite reload loop!
+                     let safePrompt = encodeURIComponent(decodedPrompt);
+                     
                      let seed = 0;
                      for (let i = 0; i < safePrompt.length; i++) {
                          seed = safePrompt.charCodeAt(i) + ((seed << 5) - seed);
@@ -310,28 +276,35 @@
                      seed = Math.abs(seed);
                      
                      cleanHref = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
-                 } catch(e) {
-                     console.error("Image gen parsing error:", e);
-                 }
+                 } catch(e) {}
+             } else {
+                 cleanHref = cleanHref.replace(/\s+/g, '%20');
              }
 
-             // HARDCODED flex dimensions (w-[260px] h-[260px] shrink-0) completely prevents the box from squishing!
-             // Added referrerpolicy="no-referrer" to prevent free APIs from blocking Vercel/Replit
+             // If the AI is currently streaming, DO NOT try to load the image yet! This prevents the infinite reload bug.
+             if (window.isGenerating) {
+                 return `
+                 <div class="relative group my-4 flex w-full max-w-[280px] sm:max-w-md">
+                    <div class="relative w-full aspect-square bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
+                            <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
+                        </div>
+                    </div>
+                 </div>`;
+             }
+
              return `
-             <div class="relative group my-4 flex w-full">
-                <div class="relative w-[260px] h-[260px] sm:w-[350px] sm:h-[350px] shrink-0 bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
-                    
+             <div class="relative group my-4 flex w-full max-w-[280px] sm:max-w-md">
+                <div class="relative w-full aspect-square bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
                     <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
                         <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Generating...</span>
+                        <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span>
                     </div>
-
-                    <img src="${cleanHref}" alt="${text}" 
-                         referrerpolicy="no-referrer" crossorigin="anonymous"
+                    <img src="${cleanHref}" alt="${text}" referrerpolicy="no-referrer"
                          onload="this.previousElementSibling.style.display='none'; this.classList.remove('opacity-0');" 
                          onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div class=\\'flex flex-col items-center w-full h-full justify-center bg-gray-800 p-4 text-center\\'><span class=\\'text-3xl mb-2\\'>⚠️</span><div class=\\'text-red-400 text-base font-bold\\'>Image Failed</div><div class=\\'text-gray-500 text-xs mt-1\\'>Tap to retry</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();};" 
                          class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700 cursor-pointer z-10" loading="lazy">
-                    
                     <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div>
                 </div>
              </div>`;
@@ -339,8 +312,8 @@
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v28_final'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v28_final';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v30_final'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v30_final';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -348,7 +321,10 @@
         let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; 
         let currentFileAttachment = null; 
-        let isGenerating = false;
+        
+        // Exposed globally for the renderer
+        window.isGenerating = false; 
+        
         let abortController = null;
         let isUserScrolledUp = false;
         let recognition = null;
@@ -472,11 +448,13 @@
             $('#temp-chat-toggle-btn').classList.add('text-gray-400');
         }
 
+        // PERFECTED SCROLL LOGIC
         elMessagesContainer.addEventListener('scroll', () => {
             const distanceToBottom = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight;
             isUserScrolledUp = distanceToBottom > 80; 
             
-            if (isUserScrolledUp && isGenerating) { 
+            // Only show button if user scrolled up AND AI is currently generating
+            if (isUserScrolledUp && window.isGenerating) { 
                 elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); 
                 elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); 
             } else { 
@@ -583,7 +561,7 @@
                 $('#image-preview').classList.remove('hidden'); 
                 $('#file-preview').classList.add('hidden');
                 elAttachmentPreviewContainer.classList.remove('hidden');
-                if (!isGenerating) elSendBtn.disabled = false; 
+                if (!window.isGenerating) elSendBtn.disabled = false; 
             };
             reader.readAsDataURL(file);
         });
@@ -609,7 +587,7 @@
                     currentFileAttachment = { name: file.name, text: extractedText };
                     $('#file-preview-status').innerText = "Attached"; 
                     $('#file-preview-status').classList.replace('text-yellow-400', 'text-green-400');
-                    if (!isGenerating) elSendBtn.disabled = false;
+                    if (!window.isGenerating) elSendBtn.disabled = false;
                 } else { throw new Error("File is empty."); }
             } catch (error) { 
                 alert("Could not read file. Please ensure it is a valid document or PDF."); 
@@ -640,7 +618,7 @@
             elAttachmentPreviewContainer.classList.add('hidden'); 
             $('#file-preview-status').classList.remove('text-green-400', 'text-yellow-400'); 
             $('#file-preview-status').classList.add('text-gray-400');
-            if (elUserInput.value.trim() === '' && !isGenerating) elSendBtn.disabled = true;
+            if (elUserInput.value.trim() === '' && !window.isGenerating) elSendBtn.disabled = true;
         }
 
         function setupSpeechRecognition() {
@@ -856,12 +834,30 @@
         }
         
         function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
+        
+        // --- 100% BULLETPROOF PRE-PROCESSOR ---
         function formatText(text) { 
             if (!text) return "";
-            let processedText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, url) {
-                let fixedUrl = url.trim().replace(/\s+/g, '%20');
-                return `![${alt}](${fixedUrl})`;
+            let processedText = text;
+
+            // 1. HIDE URLs WHILE TYPING: Replaces incomplete image links with a clean loading animation
+            if (window.isGenerating) {
+                processedText = processedText.replace(/!\[[^\]]*\]\([^)]*$/, `
+                <div class="relative group my-4 flex w-full max-w-[280px] sm:max-w-md">
+                    <div class="relative w-full aspect-square bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
+                            <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
+                        </div>
+                    </div>
+                </div>`);
+            }
+
+            // 2. CATCH RAW URLs: If the AI forgot the Markdown formatting entirely, wrap it!
+            processedText = processedText.replace(/(?<!\()https:\/\/image\.pollinations\.ai\/prompt\/([^\s\)]+)/g, function(match) {
+                return `![Image](${match})`;
             });
+
             return marked.parse(processedText); 
         }
         
@@ -896,12 +892,12 @@
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
         async function sendMessage() {
-            if (isGenerating) { if (abortController) abortController.abort(); return; }
+            if (window.isGenerating) { if (abortController) abortController.abort(); return; }
 
             const text = elUserInput.value.trim();
             if (!text && !currentBase64Image && !currentFileAttachment) return;
 
-            isGenerating = true; abortController = new AbortController();
+            window.isGenerating = true; abortController = new AbortController();
             elUserInput.value = ''; elUserInput.style.height = 'auto'; elUserInput.disabled = true; elUserInput.placeholder = "Anurag's GPT is typing...";
             elSendBtn.innerHTML = STOP_ICON; elSendBtn.disabled = false; elWelcomeScreen.classList.add('hidden');
 
@@ -953,12 +949,26 @@
                     }
                 }
                 
-                if (isFirstToken) { removeLoadingIndicator(); appendMessageToDOM('assistant', '*(No text generated by AI)*'); textContainers = elMessagesContainer.querySelectorAll('.message-text'); lastTextContainer = textContainers[textContainers.length - 1]; lastActionButtons = lastTextContainer.parentElement.querySelector('.absolute.top-3.right-3'); }
+                // STREAM COMPLETELY FINISHED
+                window.isGenerating = false; 
+                
+                if (isFirstToken) { 
+                    removeLoadingIndicator(); 
+                    appendMessageToDOM('assistant', '*(No text generated by AI)*'); 
+                    textContainers = elMessagesContainer.querySelectorAll('.message-text'); 
+                    lastTextContainer = textContainers[textContainers.length - 1]; 
+                    lastActionButtons = lastTextContainer.parentElement.querySelector('.absolute.top-3.right-3'); 
+                } else if (lastTextContainer) {
+                    // ONE FINAL RENDER: Now that isGenerating is false, the real image tags will load!
+                    lastTextContainer.innerHTML = formatText(aiContent); 
+                    scrollToBottom();
+                }
 
                 chat.messages.push({ role: 'assistant', content: aiContent }); if (!isTempChat) saveChats();
                 if(lastActionButtons && aiContent.trim() !== "") { lastActionButtons.style.display = 'flex'; const copyBtn = lastActionButtons.querySelector('button[title="Copy Full Message"]'); const speakBtn = lastActionButtons.querySelector('button[title="Read Aloud"]'); if(copyBtn) copyBtn.setAttribute('data-content', escapeHtml(aiContent)); if(speakBtn) speakBtn.setAttribute('data-content', escapeHtml(aiContent)); }
 
             } catch (error) {
+                window.isGenerating = false; // Turn off generating state on error
                 removeLoadingIndicator();
                 if (error.name === 'AbortError') {
                     const textContainers = elMessagesContainer.querySelectorAll('.message-text');
@@ -970,20 +980,18 @@
                     if (chat.messages.length > 0 && chat.messages[chat.messages.length - 1].role === 'user') { chat.messages.pop(); if(!isTempChat) saveChats(); }
                 }
             } finally { 
-                isGenerating = false; abortController = null; elSendBtn.innerHTML = SEND_ICON;
+                window.isGenerating = false; abortController = null; elSendBtn.innerHTML = SEND_ICON;
                 elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT...";
                 elSendBtn.disabled = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment; 
                 
-                elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); 
-                elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0');
-
+                elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0');
                 elUserInput.focus(); 
             }
         }
 
         elSendBtn.addEventListener('click', sendMessage);
         elUserInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-        elUserInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if (!isGenerating) { elSendBtn.disabled = this.value.trim() === '' && !currentBase64Image && !currentFileAttachment; } });
+        elUserInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if (!window.isGenerating) { elSendBtn.disabled = this.value.trim() === '' && !currentBase64Image && !currentFileAttachment; } });
         
         $('#clear-chat-btn').addEventListener('click', () => { 
             if (isTempChat) { 
