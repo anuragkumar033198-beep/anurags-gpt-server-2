@@ -73,8 +73,7 @@
                 <span class="font-medium text-sm">New Chat</span>
             </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list">
-            </div>
+        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list"></div>
         <div class="p-4 border-t border-gray-800 bg-gray-900">
             <button id="open-settings-btn" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -285,7 +284,7 @@
             </div>`;
         };
         
-        // --- SMART POLLINATIONS FIX & LOADING UI ---
+        // --- THE PERFECT IMAGE GENERATOR FIX ---
         renderer.image = function(arg1, arg2, arg3) {
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
@@ -293,45 +292,52 @@
              
              let cleanHref = rawHref.replace(/&amp;/g, '&');
              
-             // If it's a pollinations URL, we intercept and rigorously clean it
+             // If this is an AI image, we MUST lock the URL so it doesn't infinite-loop while typing
              if (cleanHref.includes('pollinations.ai/prompt/')) {
                  try {
                      let promptPart = cleanHref.split('pollinations.ai/prompt/')[1];
-                     promptPart = promptPart.split('?')[0]; // strip old parameters
+                     promptPart = promptPart.split('?')[0]; // Strip AI parameters
                      
-                     let decodedPrompt = decodeURIComponent(promptPart); // decode just in case AI partially encoded it
-                     let safePrompt = encodeURIComponent(decodedPrompt); // strictly re-encode spaces and symbols
+                     let decodedPrompt = decodeURIComponent(promptPart);
+                     let safePrompt = encodeURIComponent(decodedPrompt); // Perfect URL encoding
                      
-                     let randomSeed = Math.floor(Math.random() * 9999999); // bypass bad cache
-                     cleanHref = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&nologo=true&seed=${randomSeed}`;
+                     // DETERMINISTIC SEED: Convert the text into a fixed number so the browser ONLY downloads it once!
+                     let seed = 0;
+                     for (let i = 0; i < safePrompt.length; i++) {
+                         seed = safePrompt.charCodeAt(i) + ((seed << 5) - seed);
+                     }
+                     seed = Math.abs(seed); // Make it a positive number
+                     
+                     cleanHref = `https://image.pollinations.ai/prompt/${safePrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
                  } catch(e) {
-                     console.error("Pollinations Parse Error", e);
+                     console.error("Image generation fix applied", e);
                  }
              }
 
+             // ADDED: aspect-square and min-width so the box never squishes!
              return `
-             <div class="relative group my-3 flex justify-center w-full">
-                <div class="relative w-full max-w-md bg-gray-900 rounded-xl border border-gray-700 overflow-hidden min-h-[250px] flex items-center justify-center shadow-lg">
+             <div class="relative group my-4 flex w-full max-w-[280px] sm:max-w-md">
+                <div class="relative w-full aspect-square bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
                     
                     <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
                         <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Generating Image...</span>
+                        <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Generating...</span>
                     </div>
 
                     <img src="${cleanHref}" alt="${text}" 
                          onload="this.previousElementSibling.style.display='none'; this.classList.remove('opacity-0');" 
-                         onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div class=\\'text-red-400 text-sm font-bold\\'>⚠️ Image Failed</div><div class=\\'text-gray-500 text-xs mt-1\\'>Tap to retry</div>'; this.previousElementSibling.querySelector('svg')?.remove(); this.previousElementSibling.onclick=function(){window.location.reload();};" 
-                         class="relative z-10 w-full h-auto object-cover opacity-0 transition-opacity duration-700" loading="lazy">
+                         onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div class=\\'flex flex-col items-center w-full h-full justify-center bg-gray-800 p-4 text-center\\'><span class=\\'text-3xl mb-2\\'>⚠️</span><div class=\\'text-red-400 text-base font-bold\\'>Image Failed</div><div class=\\'text-gray-500 text-xs mt-1\\'>Tap to retry</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();};" 
+                         class="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-700 cursor-pointer z-10" loading="lazy">
                     
-                    <div class="absolute bottom-2 right-2 bg-gray-900/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-gray-400 tracking-wider z-20 pointer-events-none">AI GENERATED</div>
+                    <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div>
                 </div>
              </div>`;
         };
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v26_final'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v26_final';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v27_final_fix'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v27_final_fix';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -463,12 +469,11 @@
             $('#temp-chat-toggle-btn').classList.add('text-gray-400');
         }
 
-        // --- UPDATED SCROLL LOGIC ---
+        // PERFECTED SCROLL BUTTON LOGIC
         elMessagesContainer.addEventListener('scroll', () => {
             const distanceToBottom = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight;
-            isUserScrolledUp = distanceToBottom > 80; 
+            isUserScrolledUp = distanceToBottom > 150; 
             
-            // Only show button if user scrolled up AND AI is currently generating
             if (isUserScrolledUp && isGenerating) { 
                 elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); 
                 elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); 
@@ -520,10 +525,7 @@
                     }
                 }
             } catch (err) { 
-                if (!isSilent) { 
-                    elPassError.innerText = "Network error connecting to server."; 
-                    elPassError.classList.remove('hidden'); 
-                } 
+                if (!isSilent) { elPassError.innerText = "Network error connecting to server."; elPassError.classList.remove('hidden'); } 
             } finally { 
                 if (!isSilent) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; } 
             }
@@ -854,6 +856,7 @@
         function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
         function formatText(text) { 
             if (!text) return "";
+            // Replace generic image markdown with proper URLs before marked.js parses
             let processedText = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(match, alt, url) {
                 let fixedUrl = url.trim().replace(/\s+/g, '%20');
                 return `![${alt}](${fixedUrl})`;
@@ -884,7 +887,6 @@
             elMessagesContainer.appendChild(div);
         }
 
-        // Add Loading Indicator
         function createLoadingIndicator() { 
             const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; 
             div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-800 shadow-sm"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; 
@@ -892,7 +894,6 @@
         }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
-        // MAIN CHAT LOGIC
         async function sendMessage() {
             if (isGenerating) { if (abortController) abortController.abort(); return; }
 
@@ -972,7 +973,6 @@
                 elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT...";
                 elSendBtn.disabled = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment; 
                 
-                // Hide Scroll Button perfectly
                 elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); 
                 elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0');
 
