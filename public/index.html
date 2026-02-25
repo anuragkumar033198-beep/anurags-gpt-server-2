@@ -240,6 +240,21 @@
         // HOISTED HELPER FUNCTIONS
         window.escapeHtml = function(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); };
         
+        // --- ICONS ---
+        const DOWNLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`;
+        const REGENERATE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
+        const THREE_DOTS_VERTICAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12a.75.75 0 110-1.5.75.75 0 010 1.5zM12 17.25a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>`;
+        const PIN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0111.186 0z" /></svg>`;
+        const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>`;
+        const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`;
+        const SHARE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.287.696.287 1.093a2.25 2.25 0 01-.287 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>`;
+        const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
+        const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
+        const CLIPBOARD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>`;
+        const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-green-400"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
+        const SPEAKER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" /></svg>`;
+        const SPEAKER_OFF_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-blue-400 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>`;
+
         // --- NEW HELPER FUNCTIONS FOR IMAGE ACTIONS ---
         window.downloadImageBtn = async function(btn) {
             try {
@@ -281,6 +296,30 @@
              elSendBtn.click();
         };
 
+        window.fetchSecureImage = async function(prompt, imgEl) {
+            try {
+                const pwd = encodeURIComponent(currentPassword);
+                const seed = Math.floor(Math.random() * 1000000);
+                const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}&seed=${seed}`);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(errText || "Unknown Backend Error");
+                }
+                const blob = await res.blob();
+                imgEl.src = URL.createObjectURL(blob);
+                if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none';
+                imgEl.style.opacity = '1';
+            } catch (e) {
+                const container = imgEl.parentElement;
+                container.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#1f2937; padding:1rem; text-align:center;">
+                    <span style="font-size:2rem; margin-bottom:0.5rem;">⚠️</span>
+                    <div style="color:#f87171; font-weight:bold; font-size:1rem;">Image Failed</div>
+                    <div style="color:#9ca3af; font-size:0.7rem; margin-top:0.5rem; word-break: break-all;">${window.escapeHtml(e.message)}</div>
+                </div>`;
+            }
+        };
+
         renderer.code = function(arg1, arg2) {
             const codeText = typeof arg1 === 'object' ? arg1.text : arg1;
             const langCode = typeof arg1 === 'object' ? arg1.lang : arg2;
@@ -289,7 +328,7 @@
             <div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm">
                 <div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700">
                     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span>
-                    <button onclick="copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">
+                    <button onclick="window.copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">
                         ${CLIPBOARD_ICON} <span>Copy Code</span>
                     </button>
                 </div>
@@ -297,7 +336,7 @@
             </div>`;
         };
         
-        // --- 100% BULLETPROOF BASE64 AND POLLINATIONS RENDERER ---
+        // --- SECURE BACKEND IMAGE PROXY ---
         renderer.image = function(arg1, arg2, arg3) {
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
@@ -354,10 +393,9 @@
                         <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span>
                     </div>
-                    <img src="${cleanHref}" alt="${window.escapeHtml(text || 'AI Image')}" 
+                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" 
                          data-prompt="${safePrompt}"
-                         onload="this.previousElementSibling.style.display='none'; this.style.opacity='1';" 
-                         onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div style=\\'display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#1f2937; padding:1rem; text-align:center;\\'><span style=\\'font-size:2rem; margin-bottom:0.5rem;\\'>⚠️</span><div style=\\'color:#f87171; font-weight:bold; font-size:1rem;\\'>Image Failed</div><div style=\\'color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;\\'>Server error</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();}; this.remove();" 
+                         onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage(this.dataset.prompt, this); }" 
                          class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10" loading="lazy" style="opacity: 0;">
                     <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div>
                 </div>
@@ -366,8 +404,8 @@
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v44_keysafe'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v44_keysafe';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v46_clean'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v46_clean';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -382,6 +420,492 @@
         let recognition = null;
         let isTempChat = false;
         let tempChatData = { messages: [] };
+
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
+        
+        const elPassOverlay = $('#password-overlay');
+        const elPassInput = $('#app-password-input');
+        const elPassSubmit = $('#submit-password-btn');
+        const elPassError = $('#password-error');
+        const elUserInput = $('#user-input');
+        const elSendBtn = $('#send-btn');
+        const elMicBtn = $('#mic-btn');
+        const elMessagesContainer = $('#messages-container');
+        const elWelcomeScreen = $('#welcome-screen');
+        const elAttachmentMenu = $('#attachment-menu');
+        const elAttachmentPreviewContainer = $('#attachment-preview-container');
+        const elScrollToBottomBtn = $('#scroll-to-bottom-btn');
+        const elPlusBtn = $('#plus-menu-btn');
+        const elCreateImgBtn = $('#menu-create-image-btn');
+
+        let confirmActionCallback = null;
+
+        window.showConfirmModal = function(title, text, callback) {
+            $('#confirm-modal-title').innerText = title;
+            $('#confirm-modal-text').innerText = text;
+            confirmActionCallback = callback;
+            $('#confirm-modal').classList.remove('hidden');
+        };
+
+        window.closeConfirmModal = function() {
+            $('#confirm-modal').classList.add('hidden');
+            confirmActionCallback = null;
+        };
+
+        $('#confirm-cancel-btn').addEventListener('click', window.closeConfirmModal);
+        $('#confirm-action-btn').addEventListener('click', () => {
+            if (confirmActionCallback) confirmActionCallback();
+            window.closeConfirmModal();
+        });
+
+        let deferredPrompt;
+        const installPromptEl = $('#install-prompt');
+        const installBtn = $('#install-app-btn');
+        const closeInstallBtn = $('#close-install-btn');
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (!isStandalone) {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault(); 
+                deferredPrompt = e;
+                setTimeout(() => { installPromptEl.classList.remove('translate-y-full'); }, 2000); 
+            });
+            installBtn.addEventListener('click', async () => {
+                installPromptEl.classList.add('translate-y-full'); 
+                if (deferredPrompt) {
+                    deferredPrompt.prompt(); 
+                    const { outcome } = await deferredPrompt.userChoice;
+                    deferredPrompt = null;
+                }
+            });
+            closeInstallBtn.addEventListener('click', () => { 
+                installPromptEl.classList.add('translate-y-full'); 
+            });
+            window.addEventListener('appinstalled', () => { 
+                deferredPrompt = null; 
+                installPromptEl.classList.add('translate-y-full'); 
+            });
+        }
+
+        $('#temp-chat-toggle-btn').addEventListener('click', () => {
+            if (isTempChat) {
+                disableTempMode();
+                state.currentChatId = null;
+                clearMessages();
+                showWelcome();
+                renderSidebar();
+            } else {
+                isTempChat = true; 
+                state.currentChatId = null; 
+                tempChatData.messages = []; 
+                clearMessages(); 
+                showWelcome();
+                
+                $('#temp-badge').classList.remove('hidden'); 
+                $('#temp-chat-toggle-btn').classList.add('text-purple-400'); 
+                $('#temp-chat-toggle-btn').classList.remove('text-gray-400');
+                
+                $$('#chat-history-list > div').forEach(div => { 
+                    div.classList.remove('bg-gray-800/80', 'text-white', 'shadow-sm'); 
+                    div.classList.add('text-gray-400'); 
+                });
+            }
+            if (window.innerWidth < 768) { 
+                $('#sidebar').classList.add('-translate-x-full'); 
+                $('#sidebar-overlay').classList.add('hidden'); 
+            }
+        });
+
+        function disableTempMode() {
+            isTempChat = false; 
+            $('#temp-badge').classList.add('hidden'); 
+            $('#temp-chat-toggle-btn').classList.remove('text-purple-400'); 
+            $('#temp-chat-toggle-btn').classList.add('text-gray-400');
+        }
+
+        elMessagesContainer.addEventListener('scroll', () => {
+            const distanceToBottom = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight;
+            isUserScrolledUp = distanceToBottom > 80; 
+            
+            if (isUserScrolledUp && window.isGenerating) { 
+                elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); 
+                elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); 
+            } else { 
+                elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); 
+                elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); 
+            }
+        });
+
+        elScrollToBottomBtn.addEventListener('click', () => { 
+            isUserScrolledUp = false; 
+            elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); 
+        });
+        
+        function scrollToBottom() { 
+            if (!isUserScrolledUp) { elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; } 
+        }
+
+        function triggerLockdownUI() {
+            elPassOverlay.classList.remove('hidden'); 
+            elPassInput.classList.add('hidden'); 
+            elPassSubmit.classList.add('hidden');
+            elPassError.classList.remove('hidden', 'text-red-400'); 
+            elPassError.classList.add('text-red-500', 'font-bold', 'text-lg', 'mt-0');
+            elPassError.innerHTML = "🚨 IP BANNED 🚨<br><span class='text-sm text-gray-400 font-normal mt-2 block'>Too many failed attempts. Your IP has been logged and blocked by the server.</span>";
+        }
+
+        async function verifyPassword(pwd, isSilent = false) {
+            if (!isSilent) { elPassSubmit.innerText = 'Verifying...'; elPassSubmit.disabled = true; }
+            try {
+                const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } });
+                if (res.ok) { 
+                    currentPassword = pwd; 
+                    localStorage.setItem(PWD_STORAGE_KEY, pwd); 
+                    elPassOverlay.classList.add('hidden'); 
+                    elPassError.classList.add('hidden'); 
+                } else if (res.status === 403) { triggerLockdownUI(); } 
+                else {
+                    const data = await res.json();
+                    if (isSilent) { 
+                        currentPassword = ''; 
+                        localStorage.removeItem(PWD_STORAGE_KEY); 
+                        elPassOverlay.classList.remove('hidden'); 
+                    } else { 
+                        elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; 
+                        elPassError.classList.remove('hidden'); 
+                        elPassInput.value = ''; 
+                        elPassInput.focus(); 
+                    }
+                }
+            } catch (err) { 
+                if (!isSilent) { elPassError.innerText = "Network error connecting to server."; elPassError.classList.remove('hidden'); } 
+            } finally { 
+                if (!isSilent) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; } 
+            }
+        }
+
+        if (currentPassword) { verifyPassword(currentPassword, true); } else { elPassOverlay.classList.remove('hidden'); }
+        function unlockApp() { const pwd = elPassInput.value.trim(); if (pwd) verifyPassword(pwd); }
+        elPassSubmit.addEventListener('click', unlockApp); 
+        elPassInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlockApp(); });
+
+        elPlusBtn.addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            elAttachmentMenu.classList.toggle('hidden'); 
+            elAttachmentMenu.classList.toggle('flex'); 
+            elPlusBtn.classList.toggle('rotate-45'); 
+        });
+        
+        document.addEventListener('click', (e) => { 
+            if (!elAttachmentMenu.contains(e.target) && e.target !== elPlusBtn) { 
+                elAttachmentMenu.classList.add('hidden'); 
+                elAttachmentMenu.classList.remove('flex'); 
+                elPlusBtn.classList.remove('rotate-45'); 
+            } 
+            if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) {
+                 $$('.chat-menu-dropdown').forEach(menu => menu.classList.add('hidden'));
+            }
+        });
+        
+        $('#menu-photo-btn').addEventListener('click', () => { $('#file-input').click(); closeMenu(); });
+        $('#menu-file-btn').addEventListener('click', () => { $('#general-file-input').click(); closeMenu(); });
+        
+        elCreateImgBtn.addEventListener('click', () => {
+            closeMenu(); 
+            elUserInput.value = "Generate an image of "; 
+            elUserInput.focus(); 
+            elSendBtn.disabled = false; 
+            elUserInput.dispatchEvent(new Event('input'));
+        });
+        
+        function closeMenu() { 
+            elAttachmentMenu.classList.add('hidden'); 
+            elAttachmentMenu.classList.remove('flex'); 
+            elPlusBtn.classList.remove('rotate-45'); 
+        }
+
+        $('#file-input').addEventListener('change', (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            resetAttachments();
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                currentBase64Image = event.target.result;
+                $('#image-preview').src = currentBase64Image; 
+                $('#image-preview').classList.remove('hidden'); 
+                $('#file-preview').classList.add('hidden');
+                elAttachmentPreviewContainer.classList.remove('hidden');
+                if (!window.isGenerating) elSendBtn.disabled = false; 
+            };
+            reader.readAsDataURL(file);
+        });
+
+        $('#general-file-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0]; if (!file) return;
+            resetAttachments();
+            $('#file-preview-name').innerText = file.name; 
+            $('#file-preview-status').innerText = "Extracting..."; 
+            $('#file-preview-status').classList.replace('text-gray-400', 'text-yellow-400');
+            $('#file-preview').classList.remove('hidden'); 
+            $('#image-preview').classList.add('hidden'); 
+            elAttachmentPreviewContainer.classList.remove('hidden');
+            
+            try {
+                let extractedText = "";
+                if (file.type === 'application/pdf') { 
+                    extractedText = await extractPdfText(file); 
+                } else { 
+                    extractedText = await extractTextFile(file); 
+                }
+                if (extractedText.trim() !== "") {
+                    currentFileAttachment = { name: file.name, text: extractedText };
+                    $('#file-preview-status').innerText = "Attached"; 
+                    $('#file-preview-status').classList.replace('text-yellow-400', 'text-green-400');
+                    if (!window.isGenerating) elSendBtn.disabled = false;
+                } else { throw new Error("File is empty."); }
+            } catch (error) { 
+                alert("Could not read file. Please ensure it is a valid document or PDF."); 
+                resetAttachments(); 
+            }
+        });
+
+        async function extractTextFile(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.onerror = (e) => reject(e); reader.readAsText(file); }); }
+        
+        async function extractPdfText(file) {
+            const arrayBuffer = await file.arrayBuffer(); 
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; 
+            let text = "";
+            for (let i = 1; i <= pdf.numPages; i++) { 
+                const page = await pdf.getPage(i); 
+                const content = await page.getTextContent(); 
+                text += content.items.map(item => item.str).join(' ') + "\n"; 
+            }
+            return text;
+        }
+
+        $('#remove-attachment-btn').addEventListener('click', resetAttachments);
+        function resetAttachments() {
+            currentBase64Image = null; 
+            currentFileAttachment = null; 
+            $('#file-input').value = ''; 
+            $('#general-file-input').value = '';
+            elAttachmentPreviewContainer.classList.add('hidden'); 
+            $('#file-preview-status').classList.remove('text-green-400', 'text-yellow-400'); 
+            $('#file-preview-status').classList.add('text-gray-400');
+            if (elUserInput.value.trim() === '' && !window.isGenerating) elSendBtn.disabled = true;
+        }
+
+        function setupSpeechRecognition() {
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US';
+                recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; };
+                recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; };
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    elUserInput.value += (elUserInput.value ? ' ' : '') + transcript; 
+                    elUserInput.dispatchEvent(new Event('input')); 
+                    elUserInput.focus();
+                };
+                recognition.onerror = (event) => { 
+                    console.error("Speech Error:", event.error); 
+                    elMicBtn.classList.remove('mic-active'); 
+                    elUserInput.placeholder = "Error listening."; 
+                    setTimeout(() => elUserInput.placeholder = "Message Anurag's GPT...", 2000); 
+                };
+            } else { elMicBtn.style.display = 'none'; }
+        }
+
+        elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } });
+
+        let currentUtterance = null;
+        window.toggleSpeech = (btn) => {
+            const textToSpeak = btn.getAttribute('data-content');
+            if (window.speechSynthesis.speaking) { 
+                window.speechSynthesis.cancel(); 
+                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
+                if (currentUtterance === textToSpeak) { currentUtterance = null; return; } 
+            }
+            currentUtterance = textToSpeak; 
+            const utterance = new SpeechSynthesisUtterance(textToSpeak); 
+            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; currentUtterance = null; };
+            btn.innerHTML = SPEAKER_OFF_ICON; 
+            window.speechSynthesis.speak(utterance);
+        };
+
+        function init() { 
+            setupSpeechRecognition(); 
+            loadSettings(); 
+            loadChats(); 
+            
+            if(window.location.hash && window.location.hash.startsWith('#share=')) {
+                 try {
+                     const base64Data = window.location.hash.substring(7);
+                     const decodedData = atob(base64Data);
+                     const sharedChat = JSON.parse(decodedData);
+                     disableTempMode();
+                     state.currentChatId = 'shared-' + Date.now();
+                     clearMessages();
+                     elWelcomeScreen.classList.add('hidden');
+                     const banner = document.createElement('div');
+                     banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50';
+                     banner.innerHTML = `Viewing shared chat: <strong>${window.escapeHtml(sharedChat.title)}</strong> (Read-only)`;
+                     elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer);
+
+                     sharedChat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content));
+                     scrollToBottom();
+                     
+                     elUserInput.disabled = true; elUserInput.placeholder = "This is a read-only shared chat.";
+                     elSendBtn.disabled = true; elMicBtn.style.display = 'none'; elPlusBtn.style.display = 'none';
+                 } catch(e) {
+                     alert("Error loading shared chat: Invalid link format.");
+                     window.location.hash = '';
+                     if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome();
+                 }
+            } else {
+                if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); 
+            }
+             renderSidebar();
+        }
+
+        function saveChats() { 
+            state.chats.sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                return b.id - a.id; 
+            });
+            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); 
+        }
+        function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
+        function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
+        function loadSettings() { 
+            const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); 
+            if (stored) settings = { ...settings, ...JSON.parse(stored) }; 
+            $('#system-prompt-input').value = settings.systemPrompt || ''; 
+        }
+
+        function getOrCreateChat(firstMessage) {
+            disableTempMode(); 
+            if (state.currentChatId) return state.chats.find(c => c.id === state.currentChatId);
+            const title = firstMessage ? (firstMessage.substring(0, 30) + (firstMessage.length > 30 ? '...' : '')) : "New Chat";
+            const newChat = { id: Date.now().toString(), title: title, messages: [], pinned: false };
+            state.chats.unshift(newChat); 
+            state.currentChatId = newChat.id; 
+            saveChats(); 
+            renderSidebar(); 
+            return newChat;
+        }
+
+        function clearMessages() { Array.from(elMessagesContainer.children).forEach(child => { if (child.id !== 'welcome-screen' && child.id !== 'scroll-to-bottom-btn') child.remove(); }); }
+        function showWelcome() { clearMessages(); elWelcomeScreen.classList.remove('hidden'); }
+        
+        function loadChat(id) { 
+            disableTempMode(); 
+            state.currentChatId = id; 
+            const chat = state.chats.find(c => c.id === id); 
+            clearMessages();
+            
+            if(elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) {
+                 elMessagesContainer.previousElementSibling.remove();
+                 elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT...";
+                 elMicBtn.style.display = ''; elPlusBtn.style.display = '';
+            }
+
+            if (chat && chat.messages.length > 0) { elWelcomeScreen.classList.add('hidden'); chat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); 
+            } else { elWelcomeScreen.classList.remove('hidden'); }
+            if (window.innerWidth < 768) { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); }
+            renderSidebar(); 
+        }
+        
+        function renderSidebar() { 
+            $('#chat-history-list').innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>';
+            
+            state.chats.sort((a, b) => {
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                 return b.id - a.id;
+            });
+
+            state.chats.forEach(chat => {
+                const isActive = chat.id === state.currentChatId && !isTempChat; 
+                const div = document.createElement('div');
+                div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-800/80 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'}`;
+                
+                div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { loadChat(chat.id); } };
+                const pinIconHtml = chat.pinned ? `<span class="text-blue-400 mr-2">${PIN_ICON}</span>` : '';
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden flex-1">
+                        ${pinIconHtml}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-400' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                        <span class="truncate font-medium">${window.escapeHtml(chat.title)}</span>
+                    </div>
+                    <button class="chat-menu-trigger text-white hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="window.toggleChatMenu(event, '${chat.id}')">
+                        ${THREE_DOTS_VERTICAL_ICON}
+                    </button>
+                    
+                    <div id="chat-menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1">
+                        <button onclick="window.togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">
+                             ${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span>
+                        </button>
+                         <button onclick="window.renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">
+                             ${EDIT_ICON} <span>Rename</span>
+                        </button>
+                         <button onclick="window.shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">
+                             ${SHARE_ICON} <span>Share</span>
+                        </button>
+                        <button onclick="window.deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-800">
+                             ${TRASH_ICON} <span>Delete</span>
+                        </button>
+                    </div>`;
+                $('#chat-history-list').appendChild(div);
+            });
+        }
+
+        window.toggleChatMenu = function(e, chatId) {
+            e.stopPropagation();
+            $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `chat-menu-${chatId}`) menu.classList.add('hidden'); });
+            document.getElementById(`chat-menu-${chatId}`).classList.toggle('hidden');
+        };
+
+        window.togglePinChat = function(e, chatId) {
+             e.stopPropagation();
+             const chat = state.chats.find(c => c.id === chatId);
+             if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); }
+        };
+
+        window.renameChat = function(e, chatId) {
+             e.stopPropagation();
+             const chat = state.chats.find(c => c.id === chatId);
+             if (chat) {
+                 const newTitle = prompt("Enter new name:", chat.title);
+                 if (newTitle !== null && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); }
+                 document.getElementById(`chat-menu-${chatId}`).classList.add('hidden');
+             }
+        };
+
+        window.shareChat = function(e, chatId) {
+             e.stopPropagation();
+             const chat = state.chats.find(c => c.id === chatId);
+             if (chat) {
+                 try {
+                     const chatDataStr = JSON.stringify(chat); const encodedData = btoa(chatDataStr);
+                     const shareUrl = `${window.location.origin}${window.location.pathname}#share=${encodedData}`;
+                     navigator.clipboard.writeText(shareUrl).then(() => { alert("Link copied to clipboard!\n\nNote: Long chats will create very long URLs.");
+                     }).catch(err => { console.error('Could not copy link: ', err); prompt("Copy this link to share:", shareUrl); });
+                 } catch (err) { alert("Could not generate share link. Chat history might be too large."); }
+                  document.getElementById(`chat-menu-${chatId}`).classList.add('hidden');
+             }
+        };
+
+        window.deleteChat = function(e, id) { 
+            e.stopPropagation(); 
+            document.getElementById(`chat-menu-${id}`).classList.add('hidden');
+            window.showConfirmModal("Delete Chat?", "This will permanently remove this entire conversation.", () => {
+                state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); 
+                if (state.currentChatId === id) { state.currentChatId = null; showWelcome(); } 
+            });
+        };
         
         window.formatText = function(text) { 
             if (!text) return "";
@@ -397,9 +921,10 @@
                     return `${space}![AI Image](${url})`;
                 });
             }
+
             return marked.parse(processedText); 
         };
-        
+
         window.appendMessageToDOM = function(role, content) {
             if(role === 'system') return;
             let displayContent = ""; let imageHtml = "";
@@ -412,14 +937,16 @@
             if (role === 'user' && displayContent.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = displayContent.split('\n\nUser Message: '); if (parts.length > 1) displayContent = parts.slice(1).join('\n\nUser Message: '); }
             if (role === 'user' && displayContent.includes('--- FILE CONTENT ---')) { displayContent = displayContent.split('--- END FILE CONTENT ---\n\n')[1] || displayContent; imageHtml = `<div class="flex items-center gap-2 mb-3 bg-gray-700 px-3 py-2 rounded-lg text-sm font-medium text-gray-200 border border-gray-600 w-fit"><svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Document Attached</div>`; }
 
-            const isUser = role === 'user'; const div = document.createElement('div'); div.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'} fade-in mb-2`;
+            const isUser = role === 'user'; 
+            const div = document.createElement('div'); 
+            div.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'} fade-in mb-2`;
             
             let actionButtons = '';
             if (!isUser) {
                 if (displayContent.includes('![') || displayContent.includes('pollinations.ai') || displayContent.includes('/api/image')) {
-                     actionButtons = `<div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><button onclick="downloadImageBtn(this)" class="bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="regenerateImageBtn(this)" data-prompt="AI Image" class="dynamic-regen-btn bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div>`;
+                     actionButtons = `<div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="AI Image" class="dynamic-regen-btn bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div>`;
                 } else {
-                     actionButtons = `<div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><button onclick="toggleSpeech(this)" data-content="${window.escapeHtml(displayContent)}" class="speaker-btn bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="copyToClipboard(this)" data-content="${window.escapeHtml(displayContent)}" class="bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Copy Full Message">${CLIPBOARD_ICON}</button></div>`; 
+                     actionButtons = `<div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"><button onclick="window.toggleSpeech(this)" data-content="${window.escapeHtml(displayContent)}" class="speaker-btn bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" data-content="${window.escapeHtml(displayContent)}" class="bg-gray-700 hover:bg-gray-600 text-gray-300 p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center border border-gray-600" title="Copy Full Message">${CLIPBOARD_ICON}</button></div>`; 
                 }
             }
 
