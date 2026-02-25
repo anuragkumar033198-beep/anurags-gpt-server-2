@@ -73,8 +73,7 @@
                 <span class="font-medium text-sm">New Chat</span>
             </button>
         </div>
-        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list">
-            </div>
+        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list"></div>
         <div class="p-4 border-t border-gray-800 bg-gray-900">
             <button id="open-settings-btn" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -180,7 +179,7 @@
                         
                         <textarea id="user-input" rows="1" class="w-full bg-transparent text-gray-100 placeholder-gray-500 pl-14 py-4 pr-24 rounded-3xl outline-none resize-none max-h-48 overflow-y-auto leading-relaxed" placeholder="Message Anurag's GPT..."></textarea>
                         
-                        <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800" title="Speak">
+                        <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-400 hover:text-white transition-all duration-300 rounded-full hover:bg-gray-800" title="Speak">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
                         </button>
 
@@ -210,7 +209,6 @@
                     <textarea id="system-prompt-input" rows="4" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-inner resize-none leading-relaxed" placeholder="e.g., You are a senior web developer. Always provide clean code..."></textarea>
                 </div>
             </div>
-
             <div class="p-5 border-t border-gray-800 bg-gray-900 shrink-0 flex justify-between items-center">
                 <button id="lock-app-btn" class="bg-red-900/30 border border-red-900/50 hover:bg-red-600 hover:border-red-500 text-red-400 hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm">Lock App</button>
                 <button id="save-settings-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95">Save Preferences</button>
@@ -255,24 +253,17 @@
             </div>`;
         };
         
-        // --- SECURE BACKEND IMAGE PROXY ---
+        // --- 100% BULLETPROOF SECURE BACKEND IMAGE PROXY ---
         renderer.image = function(arg1, arg2, arg3) {
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
              if (!rawHref) rawHref = '';
              let cleanHref = rawHref.replace(/&amp;/g, '&');
              
-             if (cleanHref.includes('pollinations.ai') || cleanHref.includes('/api/image')) {
-                 if (window.isGenerating) {
-                     return `
-                     <div class="my-4" style="width: 280px; height: 280px; min-width: 280px; min-height: 280px;">
-                        <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
-                            <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
-                        </div>
-                     </div>`;
-                 }
+             let safePrompt = "AI Image";
 
+             // Only parse Pollinations links
+             if (cleanHref.includes('pollinations.ai') || cleanHref.includes('/api/image')) {
                  try {
                      let promptPart = "";
                      if (cleanHref.includes('/api/image')) {
@@ -285,25 +276,41 @@
                      let decodedPrompt = promptPart;
                      try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {}
                      decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); 
-                     let safePrompt = encodeURIComponent(decodedPrompt);
-                     
-                     cleanHref = `/api/image?prompt=${safePrompt}&pwd=${encodeURIComponent(currentPassword)}`;
+                     safePrompt = encodeURIComponent(decodedPrompt);
                  } catch(e) {}
              } else {
-                 cleanHref = cleanHref.replace(/\s+/g, '%20');
+                 safePrompt = encodeURIComponent(cleanHref.replace(/\s+/g, '%20'));
              }
 
+             // HARDCODED INLINE CSS: Absolutely prevents the "Samsung Internet Squish"
+             const containerStyle = "width: 280px; height: 280px; min-width: 280px; min-height: 280px;";
+
+             // SPINNER: Hides the image while the AI is typing
+             if (window.isGenerating) {
+                 return `
+                 <div class="my-4" style="${containerStyle}">
+                    <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
+                        <span class="text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span>
+                    </div>
+                 </div>`;
+             }
+
+             // FETCH SCRIPT: Uses client-side JS to get the image from the secure backend proxy
+             // This lets us catch exact backend errors (like "Missing API Key") instead of a blind crash
              return `
-             <div class="my-4" style="width: 280px; height: 280px; min-width: 280px; min-height: 280px;">
+             <div class="my-4" style="${containerStyle}">
                 <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
+                    
                     <div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0">
                         <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                         <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span>
                     </div>
-                    <img src="${cleanHref}" alt="${escapeHtml(text || 'AI Image')}" 
-                         onload="this.previousElementSibling.style.display='none'; this.style.opacity='1';" 
-                         onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div style=\\'display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#1f2937; padding:1rem; text-align:center;\\'><span style=\\'font-size:2rem; margin-bottom:0.5rem;\\'>⚠️</span><div style=\\'color:#f87171; font-weight:bold; font-size:1rem;\\'>Backend Proxy Failed</div><div style=\\'color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;\\'>Check Server Logs</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();}; this.remove();" 
+
+                    <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" 
+                         data-prompt="${safePrompt}"
+                         onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage(this.dataset.prompt, this); }" 
                          class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10" loading="lazy" style="opacity: 0;">
+                    
                     <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div>
                 </div>
              </div>`;
@@ -311,8 +318,8 @@
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v39_final_polish'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v39_final_polish';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v40_master'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v40_master';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -322,7 +329,6 @@
         let currentFileAttachment = null; 
         
         window.isGenerating = false; 
-        
         let abortController = null;
         let isUserScrolledUp = false;
         let recognition = null;
@@ -361,25 +367,36 @@
         const elPlusBtn = $('#plus-menu-btn');
         const elCreateImgBtn = $('#menu-create-image-btn');
 
+        // --- NEW SECURE IMAGE FETCHER (Logs precise errors!) ---
+        window.fetchSecureImage = async function(prompt, imgEl) {
+            try {
+                const pwd = encodeURIComponent(currentPassword);
+                // Calls the NEW secure backend proxy
+                const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}`);
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error(errText || "Unknown Backend Error");
+                }
+                const blob = await res.blob();
+                imgEl.src = URL.createObjectURL(blob);
+                if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none';
+                imgEl.style.opacity = '1';
+            } catch (e) {
+                const container = imgEl.parentElement;
+                container.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#1f2937; padding:1rem; text-align:center;">
+                    <span style="font-size:2rem; margin-bottom:0.5rem;">⚠️</span>
+                    <div style="color:#f87171; font-weight:bold; font-size:1rem;">Image Failed</div>
+                    <div style="color:#9ca3af; font-size:0.7rem; margin-top:0.5rem; word-break: break-all;">${escapeHtml(e.message)}</div>
+                </div>`;
+            }
+        };
+
         let confirmActionCallback = null;
-
-        function showConfirmModal(title, text, callback) {
-            $('#confirm-modal-title').innerText = title;
-            $('#confirm-modal-text').innerText = text;
-            confirmActionCallback = callback;
-            $('#confirm-modal').classList.remove('hidden');
-        }
-
-        function closeConfirmModal() {
-            $('#confirm-modal').classList.add('hidden');
-            confirmActionCallback = null;
-        }
-
+        function showConfirmModal(title, text, callback) { $('#confirm-modal-title').innerText = title; $('#confirm-modal-text').innerText = text; confirmActionCallback = callback; $('#confirm-modal').classList.remove('hidden'); }
+        function closeConfirmModal() { $('#confirm-modal').classList.add('hidden'); confirmActionCallback = null; }
         $('#confirm-cancel-btn').addEventListener('click', closeConfirmModal);
-        $('#confirm-action-btn').addEventListener('click', () => {
-            if (confirmActionCallback) confirmActionCallback();
-            closeConfirmModal();
-        });
+        $('#confirm-action-btn').addEventListener('click', () => { if (confirmActionCallback) confirmActionCallback(); closeConfirmModal(); });
 
         let deferredPrompt;
         const installPromptEl = $('#install-prompt');
@@ -388,92 +405,37 @@
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
         if (!isStandalone) {
-            window.addEventListener('beforeinstallprompt', (e) => {
-                e.preventDefault(); 
-                deferredPrompt = e;
-                setTimeout(() => { installPromptEl.classList.remove('translate-y-full'); }, 2000); 
-            });
-            installBtn.addEventListener('click', async () => {
-                installPromptEl.classList.add('translate-y-full'); 
-                if (deferredPrompt) {
-                    deferredPrompt.prompt(); 
-                    const { outcome } = await deferredPrompt.userChoice;
-                    deferredPrompt = null;
-                }
-            });
-            closeInstallBtn.addEventListener('click', () => { 
-                installPromptEl.classList.add('translate-y-full'); 
-            });
-            window.addEventListener('appinstalled', () => { 
-                deferredPrompt = null; 
-                installPromptEl.classList.add('translate-y-full'); 
-            });
+            window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; setTimeout(() => { installPromptEl.classList.remove('translate-y-full'); }, 2000); });
+            installBtn.addEventListener('click', async () => { installPromptEl.classList.add('translate-y-full'); if (deferredPrompt) { deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; deferredPrompt = null; } });
+            closeInstallBtn.addEventListener('click', () => { installPromptEl.classList.add('translate-y-full'); });
+            window.addEventListener('appinstalled', () => { deferredPrompt = null; installPromptEl.classList.add('translate-y-full'); });
         }
 
         $('#temp-chat-toggle-btn').addEventListener('click', () => {
-            if (isTempChat) {
-                disableTempMode();
-                state.currentChatId = null;
-                clearMessages();
-                showWelcome();
-                renderSidebar();
-            } else {
-                isTempChat = true; 
-                state.currentChatId = null; 
-                tempChatData.messages = []; 
-                clearMessages(); 
-                showWelcome();
-                
-                $('#temp-badge').classList.remove('hidden'); 
-                $('#temp-chat-toggle-btn').classList.add('text-purple-400'); 
-                $('#temp-chat-toggle-btn').classList.remove('text-gray-400');
-                
-                $$('#chat-history-list > div').forEach(div => { 
-                    div.classList.remove('bg-gray-800/80', 'text-white', 'shadow-sm'); 
-                    div.classList.add('text-gray-400'); 
-                });
+            if (isTempChat) { disableTempMode(); state.currentChatId = null; clearMessages(); showWelcome(); renderSidebar(); } 
+            else {
+                isTempChat = true; state.currentChatId = null; tempChatData.messages = []; clearMessages(); showWelcome();
+                $('#temp-badge').classList.remove('hidden'); $('#temp-chat-toggle-btn').classList.add('text-purple-400'); $('#temp-chat-toggle-btn').classList.remove('text-gray-400');
+                $$('#chat-history-list > div').forEach(div => { div.classList.remove('bg-gray-800/80', 'text-white', 'shadow-sm'); div.classList.add('text-gray-400'); });
             }
-            if (window.innerWidth < 768) { 
-                $('#sidebar').classList.add('-translate-x-full'); 
-                $('#sidebar-overlay').classList.add('hidden'); 
-            }
+            if (window.innerWidth < 768) { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); }
         });
 
-        function disableTempMode() {
-            isTempChat = false; 
-            $('#temp-badge').classList.add('hidden'); 
-            $('#temp-chat-toggle-btn').classList.remove('text-purple-400'); 
-            $('#temp-chat-toggle-btn').classList.add('text-gray-400');
-        }
+        function disableTempMode() { isTempChat = false; $('#temp-badge').classList.add('hidden'); $('#temp-chat-toggle-btn').classList.remove('text-purple-400'); $('#temp-chat-toggle-btn').classList.add('text-gray-400'); }
 
         elMessagesContainer.addEventListener('scroll', () => {
             const distanceToBottom = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight;
             isUserScrolledUp = distanceToBottom > 80; 
-            
-            if (isUserScrolledUp && window.isGenerating) { 
-                elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); 
-                elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); 
-            } else { 
-                elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); 
-                elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); 
-            }
+            if (isUserScrolledUp && window.isGenerating) { elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); } 
+            else { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); }
         });
 
-        elScrollToBottomBtn.addEventListener('click', () => { 
-            isUserScrolledUp = false; 
-            elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); 
-        });
-        
-        function scrollToBottom() { 
-            if (!isUserScrolledUp) { elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; } 
-        }
+        elScrollToBottomBtn.addEventListener('click', () => { isUserScrolledUp = false; elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); });
+        function scrollToBottom() { if (!isUserScrolledUp) { elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; } }
 
         function triggerLockdownUI() {
-            elPassOverlay.classList.remove('hidden'); 
-            elPassInput.classList.add('hidden'); 
-            elPassSubmit.classList.add('hidden');
-            elPassError.classList.remove('hidden', 'text-red-400'); 
-            elPassError.classList.add('text-red-500', 'font-bold', 'text-lg', 'mt-0');
+            elPassOverlay.classList.remove('hidden'); elPassInput.classList.add('hidden'); elPassSubmit.classList.add('hidden');
+            elPassError.classList.remove('hidden', 'text-red-400'); elPassError.classList.add('text-red-500', 'font-bold', 'text-lg', 'mt-0');
             elPassError.innerHTML = "🚨 IP BANNED 🚨<br><span class='text-sm text-gray-400 font-normal mt-2 block'>Too many failed attempts. Your IP has been logged and blocked by the server.</span>";
         }
 
@@ -481,141 +443,56 @@
             if (!isSilent) { elPassSubmit.innerText = 'Verifying...'; elPassSubmit.disabled = true; }
             try {
                 const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } });
-                if (res.ok) { 
-                    currentPassword = pwd; 
-                    localStorage.setItem(PWD_STORAGE_KEY, pwd); 
-                    elPassOverlay.classList.add('hidden'); 
-                    elPassError.classList.add('hidden'); 
-                } else if (res.status === 403) { triggerLockdownUI(); } 
+                if (res.ok) { currentPassword = pwd; localStorage.setItem(PWD_STORAGE_KEY, pwd); elPassOverlay.classList.add('hidden'); elPassError.classList.add('hidden'); } 
+                else if (res.status === 403) { triggerLockdownUI(); } 
                 else {
                     const data = await res.json();
-                    if (isSilent) { 
-                        currentPassword = ''; 
-                        localStorage.removeItem(PWD_STORAGE_KEY); 
-                        elPassOverlay.classList.remove('hidden'); 
-                    } else { 
-                        elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; 
-                        elPassError.classList.remove('hidden'); 
-                        elPassInput.value = ''; 
-                        elPassInput.focus(); 
-                    }
+                    if (isSilent) { currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); elPassOverlay.classList.remove('hidden'); } 
+                    else { elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; elPassError.classList.remove('hidden'); elPassInput.value = ''; elPassInput.focus(); }
                 }
-            } catch (err) { 
-                if (!isSilent) { elPassError.innerText = "Network error connecting to server."; elPassError.classList.remove('hidden'); } 
-            } finally { 
-                if (!isSilent) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; } 
-            }
+            } catch (err) { if (!isSilent) { elPassError.innerText = "Network error connecting to server."; elPassError.classList.remove('hidden'); } } 
+            finally { if (!isSilent) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; } }
         }
 
         if (currentPassword) { verifyPassword(currentPassword, true); } else { elPassOverlay.classList.remove('hidden'); }
         function unlockApp() { const pwd = elPassInput.value.trim(); if (pwd) verifyPassword(pwd); }
-        elPassSubmit.addEventListener('click', unlockApp); 
-        elPassInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlockApp(); });
+        elPassSubmit.addEventListener('click', unlockApp); elPassInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') unlockApp(); });
 
-        elPlusBtn.addEventListener('click', (e) => { 
-            e.stopPropagation(); 
-            elAttachmentMenu.classList.toggle('hidden'); 
-            elAttachmentMenu.classList.toggle('flex'); 
-            elPlusBtn.classList.toggle('rotate-45'); 
-        });
+        elPlusBtn.addEventListener('click', (e) => { e.stopPropagation(); elAttachmentMenu.classList.toggle('hidden'); elAttachmentMenu.classList.toggle('flex'); elPlusBtn.classList.toggle('rotate-45'); });
         
         document.addEventListener('click', (e) => { 
-            if (!elAttachmentMenu.contains(e.target) && e.target !== elPlusBtn) { 
-                elAttachmentMenu.classList.add('hidden'); 
-                elAttachmentMenu.classList.remove('flex'); 
-                elPlusBtn.classList.remove('rotate-45'); 
-            } 
-            if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) {
-                 $$('.chat-menu-dropdown').forEach(menu => menu.classList.add('hidden'));
-            }
+            if (!elAttachmentMenu.contains(e.target) && e.target !== elPlusBtn) { elAttachmentMenu.classList.add('hidden'); elAttachmentMenu.classList.remove('flex'); elPlusBtn.classList.remove('rotate-45'); } 
+            if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { $$('.chat-menu-dropdown').forEach(menu => menu.classList.add('hidden')); }
         });
         
         $('#menu-photo-btn').addEventListener('click', () => { $('#file-input').click(); closeMenu(); });
         $('#menu-file-btn').addEventListener('click', () => { $('#general-file-input').click(); closeMenu(); });
-        
-        elCreateImgBtn.addEventListener('click', () => {
-            closeMenu(); 
-            elUserInput.value = "Generate an image of "; 
-            elUserInput.focus(); 
-            elSendBtn.disabled = false; 
-            elUserInput.dispatchEvent(new Event('input'));
-        });
-        
-        function closeMenu() { 
-            elAttachmentMenu.classList.add('hidden'); 
-            elAttachmentMenu.classList.remove('flex'); 
-            elPlusBtn.classList.remove('rotate-45'); 
-        }
+        elCreateImgBtn.addEventListener('click', () => { closeMenu(); elUserInput.value = "Generate an image of "; elUserInput.focus(); elSendBtn.disabled = false; elUserInput.dispatchEvent(new Event('input')); });
+        function closeMenu() { elAttachmentMenu.classList.add('hidden'); elAttachmentMenu.classList.remove('flex'); elPlusBtn.classList.remove('rotate-45'); }
 
         $('#file-input').addEventListener('change', (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            resetAttachments();
+            const file = e.target.files[0]; if (!file) return; resetAttachments();
             const reader = new FileReader();
-            reader.onload = (event) => {
-                currentBase64Image = event.target.result;
-                $('#image-preview').src = currentBase64Image; 
-                $('#image-preview').classList.remove('hidden'); 
-                $('#file-preview').classList.add('hidden');
-                elAttachmentPreviewContainer.classList.remove('hidden');
-                if (!window.isGenerating) elSendBtn.disabled = false; 
-            };
+            reader.onload = (event) => { currentBase64Image = event.target.result; $('#image-preview').src = currentBase64Image; $('#image-preview').classList.remove('hidden'); $('#file-preview').classList.add('hidden'); elAttachmentPreviewContainer.classList.remove('hidden'); if (!window.isGenerating) elSendBtn.disabled = false; };
             reader.readAsDataURL(file);
         });
 
         $('#general-file-input').addEventListener('change', async (e) => {
-            const file = e.target.files[0]; if (!file) return;
-            resetAttachments();
-            $('#file-preview-name').innerText = file.name; 
-            $('#file-preview-status').innerText = "Extracting..."; 
-            $('#file-preview-status').classList.replace('text-gray-400', 'text-yellow-400');
-            $('#file-preview').classList.remove('hidden'); 
-            $('#image-preview').classList.add('hidden'); 
-            elAttachmentPreviewContainer.classList.remove('hidden');
-            
+            const file = e.target.files[0]; if (!file) return; resetAttachments();
+            $('#file-preview-name').innerText = file.name; $('#file-preview-status').innerText = "Extracting..."; $('#file-preview-status').classList.replace('text-gray-400', 'text-yellow-400'); $('#file-preview').classList.remove('hidden'); $('#image-preview').classList.add('hidden'); elAttachmentPreviewContainer.classList.remove('hidden');
             try {
                 let extractedText = "";
-                if (file.type === 'application/pdf') { 
-                    extractedText = await extractPdfText(file); 
-                } else { 
-                    extractedText = await extractTextFile(file); 
-                }
-                if (extractedText.trim() !== "") {
-                    currentFileAttachment = { name: file.name, text: extractedText };
-                    $('#file-preview-status').innerText = "Attached"; 
-                    $('#file-preview-status').classList.replace('text-yellow-400', 'text-green-400');
-                    if (!window.isGenerating) elSendBtn.disabled = false;
+                if (file.type === 'application/pdf') { extractedText = await extractPdfText(file); } else { extractedText = await extractTextFile(file); }
+                if (extractedText.trim() !== "") { currentFileAttachment = { name: file.name, text: extractedText }; $('#file-preview-status').innerText = "Attached"; $('#file-preview-status').classList.replace('text-yellow-400', 'text-green-400'); if (!window.isGenerating) elSendBtn.disabled = false;
                 } else { throw new Error("File is empty."); }
-            } catch (error) { 
-                alert("Could not read file. Please ensure it is a valid document or PDF."); 
-                resetAttachments(); 
-            }
+            } catch (error) { alert("Could not read file. Please ensure it is a valid document or PDF."); resetAttachments(); }
         });
 
         async function extractTextFile(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.onerror = (e) => reject(e); reader.readAsText(file); }); }
-        
-        async function extractPdfText(file) {
-            const arrayBuffer = await file.arrayBuffer(); 
-            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; 
-            let text = "";
-            for (let i = 1; i <= pdf.numPages; i++) { 
-                const page = await pdf.getPage(i); 
-                const content = await page.getTextContent(); 
-                text += content.items.map(item => item.str).join(' ') + "\n"; 
-            }
-            return text;
-        }
+        async function extractPdfText(file) { const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; let text = ""; for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const content = await page.getTextContent(); text += content.items.map(item => item.str).join(' ') + "\n"; } return text; }
 
         $('#remove-attachment-btn').addEventListener('click', resetAttachments);
-        function resetAttachments() {
-            currentBase64Image = null; 
-            currentFileAttachment = null; 
-            $('#file-input').value = ''; 
-            $('#general-file-input').value = '';
-            elAttachmentPreviewContainer.classList.add('hidden'); 
-            $('#file-preview-status').classList.remove('text-green-400', 'text-yellow-400'); 
-            $('#file-preview-status').classList.add('text-gray-400');
-            if (elUserInput.value.trim() === '' && !window.isGenerating) elSendBtn.disabled = true;
-        }
+        function resetAttachments() { currentBase64Image = null; currentFileAttachment = null; $('#file-input').value = ''; $('#general-file-input').value = ''; elAttachmentPreviewContainer.classList.add('hidden'); $('#file-preview-status').classList.remove('text-green-400', 'text-yellow-400'); $('#file-preview-status').classList.add('text-gray-400'); if (elUserInput.value.trim() === '' && !window.isGenerating) elSendBtn.disabled = true; }
 
         function setupSpeechRecognition() {
             if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -623,18 +500,8 @@
                 recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US';
                 recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; };
                 recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; };
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    elUserInput.value += (elUserInput.value ? ' ' : '') + transcript; 
-                    elUserInput.dispatchEvent(new Event('input')); 
-                    elUserInput.focus();
-                };
-                recognition.onerror = (event) => { 
-                    console.error("Speech Error:", event.error); 
-                    elMicBtn.classList.remove('mic-active'); 
-                    elUserInput.placeholder = "Error listening."; 
-                    setTimeout(() => elUserInput.placeholder = "Message Anurag's GPT...", 2000); 
-                };
+                recognition.onresult = (event) => { const transcript = event.results[0][0].transcript; elUserInput.value += (elUserInput.value ? ' ' : '') + transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); };
+                recognition.onerror = (event) => { console.error("Speech Error:", event.error); elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Error listening."; setTimeout(() => elUserInput.placeholder = "Message Anurag's GPT...", 2000); };
             } else { elMicBtn.style.display = 'none'; }
         }
 
@@ -643,116 +510,52 @@
         let currentUtterance = null;
         window.toggleSpeech = (btn) => {
             const textToSpeak = btn.getAttribute('data-content');
-            if (window.speechSynthesis.speaking) { 
-                window.speechSynthesis.cancel(); 
-                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
-                if (currentUtterance === textToSpeak) { currentUtterance = null; return; } 
-            }
-            currentUtterance = textToSpeak; 
-            const utterance = new SpeechSynthesisUtterance(textToSpeak); 
-            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; currentUtterance = null; };
-            btn.innerHTML = SPEAKER_OFF_ICON; 
-            window.speechSynthesis.speak(utterance);
+            if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); if (currentUtterance === textToSpeak) { currentUtterance = null; return; } }
+            currentUtterance = textToSpeak; const utterance = new SpeechSynthesisUtterance(textToSpeak); utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; currentUtterance = null; };
+            btn.innerHTML = SPEAKER_OFF_ICON; window.speechSynthesis.speak(utterance);
         };
 
         function init() { 
-            setupSpeechRecognition(); 
-            loadSettings(); 
-            loadChats(); 
-            
+            setupSpeechRecognition(); loadSettings(); loadChats(); 
             if(window.location.hash && window.location.hash.startsWith('#share=')) {
                  try {
-                     const base64Data = window.location.hash.substring(7);
-                     const decodedData = atob(base64Data);
-                     const sharedChat = JSON.parse(decodedData);
-                     disableTempMode();
-                     state.currentChatId = 'shared-' + Date.now();
-                     clearMessages();
-                     elWelcomeScreen.classList.add('hidden');
-                     const banner = document.createElement('div');
-                     banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50';
-                     banner.innerHTML = `Viewing shared chat: <strong>${escapeHtml(sharedChat.title)}</strong> (Read-only)`;
-                     elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer);
-
-                     sharedChat.messages.forEach(msg => appendMessageToDOM(msg.role, msg.content));
-                     scrollToBottom();
-                     
-                     elUserInput.disabled = true; elUserInput.placeholder = "This is a read-only shared chat.";
-                     elSendBtn.disabled = true; elMicBtn.style.display = 'none'; elPlusBtn.style.display = 'none';
-                 } catch(e) {
-                     alert("Error loading shared chat: Invalid link format.");
-                     window.location.hash = '';
-                     if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome();
-                 }
-            } else {
-                if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); 
-            }
+                     const base64Data = window.location.hash.substring(7); const decodedData = atob(base64Data); const sharedChat = JSON.parse(decodedData); disableTempMode(); state.currentChatId = 'shared-' + Date.now(); clearMessages(); elWelcomeScreen.classList.add('hidden');
+                     const banner = document.createElement('div'); banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50'; banner.innerHTML = `Viewing shared chat: <strong>${escapeHtml(sharedChat.title)}</strong> (Read-only)`; elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer);
+                     sharedChat.messages.forEach(msg => appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); elUserInput.disabled = true; elUserInput.placeholder = "This is a read-only shared chat."; elSendBtn.disabled = true; elMicBtn.style.display = 'none'; elPlusBtn.style.display = 'none';
+                 } catch(e) { alert("Error loading shared chat: Invalid link format."); window.location.hash = ''; if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); }
+            } else { if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); }
              renderSidebar();
         }
 
-        function saveChats() { 
-            state.chats.sort((a, b) => {
-                if (a.pinned && !b.pinned) return -1;
-                if (!a.pinned && b.pinned) return 1;
-                return b.id - a.id; 
-            });
-            localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); 
-        }
+        function saveChats() { state.chats.sort((a, b) => { if (a.pinned && !b.pinned) return -1; if (!a.pinned && b.pinned) return 1; return b.id - a.id; }); localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); }
         function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
         function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
-        function loadSettings() { 
-            const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); 
-            if (stored) settings = { ...settings, ...JSON.parse(stored) }; 
-            $('#system-prompt-input').value = settings.systemPrompt || ''; 
-        }
+        function loadSettings() { const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); if (stored) settings = { ...settings, ...JSON.parse(stored) }; $('#system-prompt-input').value = settings.systemPrompt || ''; }
 
         function getOrCreateChat(firstMessage) {
-            disableTempMode(); 
-            if (state.currentChatId) return state.chats.find(c => c.id === state.currentChatId);
+            disableTempMode(); if (state.currentChatId) return state.chats.find(c => c.id === state.currentChatId);
             const title = firstMessage ? (firstMessage.substring(0, 30) + (firstMessage.length > 30 ? '...' : '')) : "New Chat";
             const newChat = { id: Date.now().toString(), title: title, messages: [], pinned: false };
-            state.chats.unshift(newChat); 
-            state.currentChatId = newChat.id; 
-            saveChats(); 
-            renderSidebar(); 
-            return newChat;
+            state.chats.unshift(newChat); state.currentChatId = newChat.id; saveChats(); renderSidebar(); return newChat;
         }
 
         function clearMessages() { Array.from(elMessagesContainer.children).forEach(child => { if (child.id !== 'welcome-screen' && child.id !== 'scroll-to-bottom-btn') child.remove(); }); }
         function showWelcome() { clearMessages(); elWelcomeScreen.classList.remove('hidden'); }
         
         function loadChat(id) { 
-            disableTempMode(); 
-            state.currentChatId = id; 
-            const chat = state.chats.find(c => c.id === id); 
-            clearMessages();
-            
-            if(elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) {
-                 elMessagesContainer.previousElementSibling.remove();
-                 elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT...";
-                 elMicBtn.style.display = ''; elPlusBtn.style.display = '';
-            }
-
-            if (chat && chat.messages.length > 0) { elWelcomeScreen.classList.add('hidden'); chat.messages.forEach(msg => appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); 
-            } else { elWelcomeScreen.classList.remove('hidden'); }
+            disableTempMode(); state.currentChatId = id; const chat = state.chats.find(c => c.id === id); clearMessages();
+            if(elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) { elMessagesContainer.previousElementSibling.remove(); elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; elMicBtn.style.display = ''; elPlusBtn.style.display = ''; }
+            if (chat && chat.messages.length > 0) { elWelcomeScreen.classList.add('hidden'); chat.messages.forEach(msg => appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); } else { elWelcomeScreen.classList.remove('hidden'); }
             if (window.innerWidth < 768) { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); }
             renderSidebar(); 
         }
         
         function renderSidebar() { 
             $('#chat-history-list').innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>';
-            
-            state.chats.sort((a, b) => {
-                if (a.pinned && !b.pinned) return -1;
-                if (!a.pinned && b.pinned) return 1;
-                 return b.id - a.id;
-            });
-
+            state.chats.sort((a, b) => { if (a.pinned && !b.pinned) return -1; if (!a.pinned && b.pinned) return 1; return b.id - a.id; });
             state.chats.forEach(chat => {
-                const isActive = chat.id === state.currentChatId && !isTempChat; 
-                const div = document.createElement('div');
+                const isActive = chat.id === state.currentChatId && !isTempChat; const div = document.createElement('div');
                 div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-800/80 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'}`;
-                
                 div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { loadChat(chat.id); } };
                 const pinIconHtml = chat.pinned ? `<span class="text-blue-400 mr-2">${PIN_ICON}</span>` : '';
 
@@ -762,73 +565,22 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-400' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                         <span class="truncate font-medium">${escapeHtml(chat.title)}</span>
                     </div>
-                    <button class="chat-menu-trigger text-white hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="toggleChatMenu(event, '${chat.id}')">
-                        ${THREE_DOTS_VERTICAL_ICON}
-                    </button>
-                    
+                    <button class="chat-menu-trigger text-white hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="toggleChatMenu(event, '${chat.id}')">${THREE_DOTS_VERTICAL_ICON}</button>
                     <div id="chat-menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1">
-                        <button onclick="togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">
-                             ${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span>
-                        </button>
-                         <button onclick="renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">
-                             ${EDIT_ICON} <span>Rename</span>
-                        </button>
-                         <button onclick="shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">
-                             ${SHARE_ICON} <span>Share</span>
-                        </button>
-                        <button onclick="deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-800">
-                             ${TRASH_ICON} <span>Delete</span>
-                        </button>
+                        <button onclick="togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span></button>
+                         <button onclick="renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${EDIT_ICON} <span>Rename</span></button>
+                         <button onclick="shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SHARE_ICON} <span>Share</span></button>
+                        <button onclick="deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-800">${TRASH_ICON} <span>Delete</span></button>
                     </div>`;
                 $('#chat-history-list').appendChild(div);
             });
         }
 
-        function toggleChatMenu(e, chatId) {
-            e.stopPropagation();
-            $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `chat-menu-${chatId}`) menu.classList.add('hidden'); });
-            document.getElementById(`chat-menu-${chatId}`).classList.toggle('hidden');
-        }
-
-        function togglePinChat(e, chatId) {
-             e.stopPropagation();
-             const chat = state.chats.find(c => c.id === chatId);
-             if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); }
-        }
-
-        function renameChat(e, chatId) {
-             e.stopPropagation();
-             const chat = state.chats.find(c => c.id === chatId);
-             if (chat) {
-                 const newTitle = prompt("Enter new name:", chat.title);
-                 if (newTitle !== null && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); }
-                 document.getElementById(`chat-menu-${chatId}`).classList.add('hidden');
-             }
-        }
-
-        function shareChat(e, chatId) {
-             e.stopPropagation();
-             const chat = state.chats.find(c => c.id === chatId);
-             if (chat) {
-                 try {
-                     const chatDataStr = JSON.stringify(chat); const encodedData = btoa(chatDataStr);
-                     const shareUrl = `${window.location.origin}${window.location.pathname}#share=${encodedData}`;
-                     navigator.clipboard.writeText(shareUrl).then(() => { alert("Link copied to clipboard!\n\nNote: Long chats will create very long URLs.");
-                     }).catch(err => { console.error('Could not copy link: ', err); prompt("Copy this link to share:", shareUrl); });
-                 } catch (err) { alert("Could not generate share link. Chat history might be too large."); }
-                  document.getElementById(`chat-menu-${chatId}`).classList.add('hidden');
-             }
-        }
-
-        function deleteChat(e, id) { 
-            e.stopPropagation(); 
-            document.getElementById(`chat-menu-${id}`).classList.add('hidden');
-            showConfirmModal("Delete Chat?", "This will permanently remove this entire conversation.", () => {
-                state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); 
-                if (state.currentChatId === id) { state.currentChatId = null; showWelcome(); } 
-            });
-        }
-        
+        function toggleChatMenu(e, chatId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `chat-menu-${chatId}`) menu.classList.add('hidden'); }); document.getElementById(`chat-menu-${chatId}`).classList.toggle('hidden'); }
+        function togglePinChat(e, chatId) { e.stopPropagation(); const chat = state.chats.find(c => c.id === chatId); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } }
+        function renameChat(e, chatId) { e.stopPropagation(); const chat = state.chats.find(c => c.id === chatId); if (chat) { const newTitle = prompt("Enter new name:", chat.title); if (newTitle !== null && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } document.getElementById(`chat-menu-${chatId}`).classList.add('hidden'); } }
+        function shareChat(e, chatId) { e.stopPropagation(); const chat = state.chats.find(c => c.id === chatId); if (chat) { try { const chatDataStr = JSON.stringify(chat); const encodedData = btoa(chatDataStr); const shareUrl = `${window.location.origin}${window.location.pathname}#share=${encodedData}`; navigator.clipboard.writeText(shareUrl).then(() => { alert("Link copied to clipboard!\n\nNote: Long chats will create very long URLs."); }).catch(err => { console.error('Could not copy link: ', err); prompt("Copy this link to share:", shareUrl); }); } catch (err) { alert("Could not generate share link. Chat history might be too large."); } document.getElementById(`chat-menu-${chatId}`).classList.add('hidden'); } }
+        function deleteChat(e, id) { e.stopPropagation(); document.getElementById(`chat-menu-${id}`).classList.add('hidden'); showConfirmModal("Delete Chat?", "This will permanently remove this entire conversation.", () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (state.currentChatId === id) { state.currentChatId = null; showWelcome(); } }); }
         function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
         
         // --- 100% BULLETPROOF PRE-PROCESSOR (ZERO LOOKBEHINDS FOR SAMSUNG INTERNET SUPPORT) ---
@@ -836,32 +588,19 @@
             if (!text) return "";
             let processedText = text;
 
-            // 1. HIDE URLs WHILE TYPING
             if (window.isGenerating) {
-                if (processedText.includes('![') || processedText.includes('pollinations.ai') || processedText.includes('/api/image')) {
-                     const lastIndex = Math.max(processedText.lastIndexOf('!['), processedText.lastIndexOf('http'), processedText.lastIndexOf('/api/'));
-                     if (lastIndex !== -1) {
-                         const partialStr = processedText.substring(lastIndex);
-                         if (partialStr.includes('pollinations') || partialStr.includes('image')) {
-                              processedText = processedText.substring(0, lastIndex) + `
-                              <div class="my-4" style="width: 280px; height: 280px; min-width: 280px; min-height: 280px; background: #0d1117; border: 1px solid #374151; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                  <span style="color: #3b82f6; font-size: 24px; animation: spin 1s linear infinite;">↻</span>
-                                  <span style="color: #60a5fa; font-size: 12px; margin-top: 8px; font-weight: bold;">DESIGNING IMAGE...</span>
-                              </div>`;
-                         }
-                     }
-                }
+                // Completely swallow incomplete markdown image links so they never display raw URLs
+                processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`);
+                
+                // Completely swallow naked Pollinations URLs
+                processedText = processedText.replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`);
+                processedText = processedText.replace(/\/api\/image\?prompt=[^\s]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`);
             } else {
-                // 2. AFTER TYPING: Convert any bare Pollinations links to Markdown safely
-                const parts = processedText.split(/(https:\/\/[^\s<]*pollinations\.ai[^\s<]+)/g);
-                for (let i = 1; i < parts.length; i += 2) {
-                    let url = parts[i];
-                    if (!parts[i-1].endsWith('](')) {
-                        if (url.endsWith(')')) url = url.slice(0, -1);
-                        parts[i] = `![AI Image](${url})`;
-                    }
-                }
-                processedText = parts.join('');
+                // If finished typing, force naked links into safe markdown
+                processedText = processedText.replace(/(^|\s)(https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s<]+)/g, function(match, space, url) {
+                    if (url.endsWith(')')) return match; 
+                    return `${space}![AI Image](${url})`;
+                });
             }
 
             return marked.parse(processedText); 
@@ -905,10 +644,10 @@
 
             window.isGenerating = true; abortController = new AbortController();
             
-            // 1. DISABLE MIC BUTTON
+            // 1. DISABLE MIC BUTTON VISUALLY AND FUNCTIONALLY
             elMicBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
             
-            // 2. CHECK INTENT & SET PLACEHOLDER
+            // 2. CHECK INTENT & SET PLACEHOLDER DYNAMICALLY
             const lowerText = text.toLowerCase();
             if (lowerText.includes('draw') || lowerText.includes('generate') || lowerText.includes('image') || lowerText.includes('picture')) {
                 elUserInput.placeholder = "Anurag's GPT is generating...";
@@ -967,6 +706,7 @@
                     }
                 }
                 
+                // CRITICAL: Set isGenerating to false BEFORE final render so the real image actually attempts to fetch!
                 window.isGenerating = false; 
                 
                 if (isFirstToken) { 

@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const https = require('https'); // Native streaming module
 const app = express();
 
 // --- GLOBAL MIDDLEWARE ---
@@ -16,29 +17,17 @@ app.get('/sw.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.send(`
         const CACHE_NAME = 'anurags-gpt-v1';
-        self.addEventListener('install', event => {
-            self.skipWaiting();
-            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/')));
-        });
-        self.addEventListener('activate', event => {
-            event.waitUntil(clients.claim());
-        });
-        self.addEventListener('fetch', event => {
-            event.respondWith(fetch(event.request).catch(() => caches.match('/')));
-        });
+        self.addEventListener('install', event => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/'))); });
+        self.addEventListener('activate', event => { event.waitUntil(clients.claim()); });
+        self.addEventListener('fetch', event => { event.respondWith(fetch(event.request).catch(() => caches.match('/'))); });
     `);
 });
 
 app.get('/manifest.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({
-      "name": "Anurag's GPT",
-      "short_name": "AnuragGPT",
-      "description": "Anurag's Custom AI Backend",
-      "start_url": "/",
-      "display": "standalone",
-      "background_color": "#0d1117",
-      "theme_color": "#0d1117",
+      "name": "Anurag's GPT", "short_name": "AnuragGPT", "description": "Anurag's Custom AI Backend",
+      "start_url": "/", "display": "standalone", "background_color": "#0d1117", "theme_color": "#0d1117",
       "orientation": "portrait",
       "icons": [
         { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
@@ -47,55 +36,32 @@ app.get('/manifest.json', (req, res) => {
     });
 });
 
-// --- DIGITAL ASSET LINK ---
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "app.vercel.anurags_gpt_server_2.twa",
-        "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"]
-      }
-    }]);
+    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] } }]);
 });
 
-// --- THE BULLETPROOF HTML ROUTER ---
 app.get('/', (req, res) => {
     const publicPath = path.join(__dirname, 'public', 'index.html');
     const rootPath = path.join(__dirname, 'index.html');
-    
-    if (fs.existsSync(publicPath)) {
-        return res.sendFile(publicPath);
-    } else if (fs.existsSync(rootPath)) {
-        return res.sendFile(rootPath);
-    } else {
-        return res.send(`<h1>✅ Server Online!</h1><p style="color:red;">❌ index.html missing.</p>`);
-    }
-});
-
-// A SECRET DEV ROUTE
-app.get('/ping', (req, res) => {
-    res.status(200).send("<h2>PONG! The backend is 100% alive.</h2>");
+    if (fs.existsSync(publicPath)) return res.sendFile(publicPath);
+    else if (fs.existsSync(rootPath)) return res.sendFile(rootPath);
+    else return res.send(`<h1>✅ Server Online!</h1><p style="color:red;">❌ index.html missing.</p>`);
 });
 
 // --- SECURITY SYSTEM ---
 const failedAttempts = new Map(); 
 const bannedIPs = new Set();      
 const MAX_ATTEMPTS = 5;
-
 const getIP = (req) => req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || "Unknown IP";
 
 app.use('/api', (req, res, next) => {
     if (req.path === '/unban') return next(); 
     const ip = getIP(req);
-    if (bannedIPs.has(ip)) {
-        return res.status(403).json({ error: "BANNED: Your IP has been blocked." });
-    }
+    if (bannedIPs.has(ip)) return res.status(403).json({ error: "BANNED: Your IP has been blocked." });
     next();
 });
 
-// 1. Password Verification
 app.post('/api/verify', async (req, res) => {
     const ip = getIP(req);
     const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
@@ -111,71 +77,43 @@ app.post('/api/verify', async (req, res) => {
     res.json({ success: true });
 });
 
-// 2. Secret Dev Unban Route
-app.get('/api/unban', (req, res) => {
-    const targetIp = req.query.ip;
-    const providedPwd = req.query.pwd;
+// --- THE SECURE IMAGE PROXY (ZERO MEMORY CRASH PIPELINE) ---
+app.get('/api/image', (req, res) => {
+    const userPassword = req.query.pwd;
     const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
+    if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
 
-    if (!correctPassword || providedPwd !== correctPassword) return res.status(401).send("Unauthorized");
-    if (targetIp) {
-        bannedIPs.delete(targetIp);
-        failedAttempts.delete(targetIp);
-        return res.send(`<h1 style='color:green;'>Unbanned!</h1><p>IP <b>${targetIp}</b> has been removed.</p>`);
-    }
-    res.send("<h1>Error</h1><p>No IP provided.</p>");
-});
+    const prompt = req.query.prompt;
+    if (!prompt) return res.status(400).send("Prompt is required");
 
-// 3. SECURE IMAGE PROXY ROUTE (NEW)
-app.get('/api/image', async (req, res) => {
-    try {
-        // Protect the image route with your app password
-        const userPassword = req.query.pwd;
-        const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
-        if (correctPassword && userPassword !== correctPassword) {
-            return res.status(401).send("Unauthorized");
+    const pollinationsKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY;
+    if (!pollinationsKey) return res.status(500).send("API Key missing in Vercel Variables");
+
+    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
+    
+    const options = { headers: { "Authorization": `Bearer ${pollinationsKey}` } };
+
+    // Streams directly to frontend - prevents Vercel timeout crashes!
+    https.get(url, options, (apiRes) => {
+        if (apiRes.statusCode !== 200) {
+            let errData = '';
+            apiRes.on('data', chunk => errData += chunk);
+            apiRes.on('end', () => res.status(apiRes.statusCode).send(`API Rejected: ${apiRes.statusCode}. Check Key.`));
+            return;
         }
-
-        const prompt = req.query.prompt;
-        if (!prompt) return res.status(400).send("Prompt is required");
-
-        // Grab API Key from Replit Secrets securely!
-        const pollinationsKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY;
-
-        // Use the new gen endpoint securely behind the scenes
-        const pollinationsUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
-        
-        const fetchOptions = {};
-        if (pollinationsKey) {
-            fetchOptions.headers = { "Authorization": `Bearer ${pollinationsKey}` };
-        }
-
-        const response = await fetch(pollinationsUrl, fetchOptions);
-        
-        if (!response.ok) {
-            throw new Error(`Pollinations API returned ${response.status}`);
-        }
-
-        // Pipe the binary image data directly to the frontend!
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 'public, max-age=31536000');
-        res.send(buffer);
-
-    } catch (error) {
-        console.error("Image Proxy Error:", error.message);
-        res.status(500).send("Image generation failed.");
-    }
+        apiRes.pipe(res);
+    }).on('error', (e) => {
+        res.status(500).send(`Server Connection Error: ${e.message}`);
+    });
 });
 
-
-// 4. The Main AI Chat Engine
+// --- MAIN AI ENGINE ---
 app.post('/api/chat', async (req, res) => {
     try {
         const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
         const userPassword = req.headers['x-app-password'];
-
         if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized: Invalid Password" });
 
         const { messages } = req.body;
@@ -184,16 +122,14 @@ app.post('/api/chat', async (req, res) => {
         const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY;
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. Never refer to yourself as Gemini, OpenAI, ChatGPT, LLaMA, or any other corporate entity. IMAGE GENERATION CAPABILITY: If the user asks you to generate, draw, or make an image, you MUST reply with this exact markdown format to display it: ![Image](https://image.pollinations.ai/prompt/detailed%20description%20of%20image). You MUST replace all spaces in the prompt with %20. Example: ![Cat](https://image.pollinations.ai/prompt/A%20fluffy%20cat%20in%20space). Do not put the image link inside a code block.";
+        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. Never refer to yourself as Gemini, OpenAI, ChatGPT, LLaMA, or any corporate entity. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, reply with this exact markdown format: ![Image](https://gen.pollinations.ai/prompt/detailed%20description%20of%20image). Replace spaces with %20. Do not put the image link inside a code block.";
         
         if (messages.length > 0) {
             if (typeof messages[0].content === 'string' && !messages[0].content.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
                 messages[0].content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${messages[0].content}`;
             } else if (Array.isArray(messages[0].content)) {
                 let textObj = messages[0].content.find(c => c.type === 'text');
-                if (textObj && !textObj.text.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
-                    textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
-                }
+                if (textObj && !textObj.text.includes("[STRICT SYSTEM INSTRUCTIONS:")) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
             }
         }
 
@@ -204,21 +140,11 @@ app.post('/api/chat', async (req, res) => {
         for (const currentModel of autoModels) {
             response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${apiKey}`,
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://anurags-gpt.vercel.app", 
-                    "X-Title": "Anurag's GPT"
-                },
+                headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://anurags-gpt.vercel.app", "X-Title": "Anurag's GPT" },
                 body: JSON.stringify({ model: currentModel, messages: messages, stream: true })
             });
-
             if (response.ok) break;
-            else {
-                let errText = `HTTP ${response.status}`;
-                try { errText = (await response.json()).error?.message || errText; } catch(e) {}
-                errorLogs.push(`${currentModel}: ${errText}`);
-            }
+            else { let errText = `HTTP ${response.status}`; try { errText = (await response.json()).error?.message || errText; } catch(e) {} errorLogs.push(`${currentModel}: ${errText}`); }
         }
 
         if (!response || !response.ok) return res.status(response ? response.status : 500).json({ error: "Auto-Routing Failed.\n\nDiagnostics:\n" + errorLogs.join("\n") });
@@ -226,7 +152,6 @@ app.post('/api/chat', async (req, res) => {
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache, no-transform');
         res.setHeader('Connection', 'keep-alive');
-        res.setHeader('X-Accel-Buffering', 'no'); 
         res.flushHeaders(); 
         
         const reader = response.body.getReader();
@@ -237,22 +162,12 @@ app.post('/api/chat', async (req, res) => {
             if (typeof res.flush === 'function') res.flush(); 
         }
         res.end();
-
     } catch (error) {
-        console.error("Chat API Error:", error.message);
-        if (!res.headersSent) res.status(500).json({ error: "Internal Server Error." });
-        else res.end();
+        if (!res.headersSent) res.status(500).json({ error: "Internal Server Error." }); else res.end();
     }
 });
 
-app.use((err, req, res, next) => {
-    console.error("Unhandled Server Error:", err.stack);
-    res.status(500).send('Something broke!');
-});
-
+app.use((err, req, res, next) => { res.status(500).send('Something broke!'); });
 const port = process.env.PORT || 3000;
-app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 Anurag's GPT Backend is running on port ${port}!`);
-});
-
+app.listen(port, '0.0.0.0', () => { console.log(`🚀 Anurag's GPT Backend is running on port ${port}!`); });
 module.exports = app;
