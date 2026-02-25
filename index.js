@@ -11,7 +11,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public'), { index: false })); 
 app.use(express.static(__dirname, { index: false })); 
 
-// --- DYNAMIC PWA GENERATORS (Fixes Vercel Static Block) ---
+// --- DYNAMIC PWA GENERATORS ---
 app.get('/sw.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.send(`
@@ -40,19 +40,14 @@ app.get('/manifest.json', (req, res) => {
       "background_color": "#0d1117",
       "theme_color": "#0d1117",
       "orientation": "portrait",
-      "categories": ["productivity", "education"],
       "icons": [
         { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
         { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-      ],
-      "screenshots": [
-        { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "form_factor": "narrow" },
-        { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "form_factor": "wide" }
       ]
     });
 });
 
-// --- DIGITAL ASSET LINK (For APK Full-Screen Native Mode) ---
+// --- DIGITAL ASSET LINK ---
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json([{
@@ -60,8 +55,7 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
       "target": {
         "namespace": "android_app",
         "package_name": "app.vercel.anurags_gpt_server_2.twa",
-        "sha256_cert_fingerprints": [
-          "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"]
+        "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"]
       }
     }]);
 });
@@ -76,12 +70,7 @@ app.get('/', (req, res) => {
     } else if (fs.existsSync(rootPath)) {
         return res.sendFile(rootPath);
     } else {
-        return res.send(`
-            <div style="font-family: sans-serif; text-align: center; margin-top: 50px; color: #333; background: white; padding: 20px;">
-                <h1>✅ The Server is Online!</h1>
-                <p style="color: red;">❌ But <b>index.html</b> is completely missing from the server.</p>
-            </div>
-        `);
+        return res.send(`<h1>✅ Server Online!</h1><p style="color:red;">❌ index.html missing.</p>`);
     }
 });
 
@@ -115,14 +104,9 @@ app.post('/api/verify', async (req, res) => {
     if (correctPassword && userPassword !== correctPassword) {
         let attempts = (failedAttempts.get(ip) || 0) + 1;
         failedAttempts.set(ip, attempts);
-        
-        if (attempts >= MAX_ATTEMPTS) {
-            bannedIPs.add(ip); 
-            return res.status(403).json({ error: "BANNED" });
-        }
+        if (attempts >= MAX_ATTEMPTS) { bannedIPs.add(ip); return res.status(403).json({ error: "BANNED" }); }
         return res.status(401).json({ error: "Incorrect Password", attemptsLeft: MAX_ATTEMPTS - attempts });
     }
-    
     failedAttempts.delete(ip);
     res.json({ success: true });
 });
@@ -133,9 +117,7 @@ app.get('/api/unban', (req, res) => {
     const providedPwd = req.query.pwd;
     const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
 
-    if (!correctPassword || providedPwd !== correctPassword) {
-        return res.status(401).send("<h1 style='color:red;'>Unauthorized</h1>");
-    }
+    if (!correctPassword || providedPwd !== correctPassword) return res.status(401).send("Unauthorized");
     if (targetIp) {
         bannedIPs.delete(targetIp);
         failedAttempts.delete(targetIp);
@@ -144,15 +126,57 @@ app.get('/api/unban', (req, res) => {
     res.send("<h1>Error</h1><p>No IP provided.</p>");
 });
 
-// 3. The Main AI Chat Engine
+// 3. SECURE IMAGE PROXY ROUTE (NEW)
+app.get('/api/image', async (req, res) => {
+    try {
+        // Protect the image route with your app password
+        const userPassword = req.query.pwd;
+        const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
+        if (correctPassword && userPassword !== correctPassword) {
+            return res.status(401).send("Unauthorized");
+        }
+
+        const prompt = req.query.prompt;
+        if (!prompt) return res.status(400).send("Prompt is required");
+
+        // Grab API Key from Replit Secrets securely!
+        const pollinationsKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY;
+
+        // Use the new gen endpoint securely behind the scenes
+        const pollinationsUrl = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
+        
+        const fetchOptions = {};
+        if (pollinationsKey) {
+            fetchOptions.headers = { "Authorization": `Bearer ${pollinationsKey}` };
+        }
+
+        const response = await fetch(pollinationsUrl, fetchOptions);
+        
+        if (!response.ok) {
+            throw new Error(`Pollinations API returned ${response.status}`);
+        }
+
+        // Pipe the binary image data directly to the frontend!
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        res.send(buffer);
+
+    } catch (error) {
+        console.error("Image Proxy Error:", error.message);
+        res.status(500).send("Image generation failed.");
+    }
+});
+
+
+// 4. The Main AI Chat Engine
 app.post('/api/chat', async (req, res) => {
     try {
         const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
         const userPassword = req.headers['x-app-password'];
 
-        if (correctPassword && userPassword !== correctPassword) {
-            return res.status(401).json({ error: "Unauthorized: Invalid Password" });
-        }
+        if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized: Invalid Password" });
 
         const { messages } = req.body;
         if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "Invalid message format." });
@@ -160,8 +184,7 @@ app.post('/api/chat', async (req, res) => {
         const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY;
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        // THE UPGRADED AI IDENTITY WITH IMAGE GENERATION CAPABILITIES
-        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. Never refer to yourself as Gemini, OpenAI, ChatGPT, LLaMA, or any other corporate entity. IMAGE GENERATION CAPABILITY: If the user asks you to generate, draw, or make an image, you MUST reply with this exact markdown format to display it: ![Image](https://image.pollinations.ai/prompt/detailed%20description%20of%20image?width=1024&height=1024&nologo=true). You MUST replace all spaces in the prompt with %20. Example: ![Cat](https://image.pollinations.ai/prompt/A%20fluffy%20cat%20in%20space?width=1024&height=1024&nologo=true). Do not put the image link inside a code block.";
+        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. Never refer to yourself as Gemini, OpenAI, ChatGPT, LLaMA, or any other corporate entity. IMAGE GENERATION CAPABILITY: If the user asks you to generate, draw, or make an image, you MUST reply with this exact markdown format to display it: ![Image](https://image.pollinations.ai/prompt/detailed%20description%20of%20image). You MUST replace all spaces in the prompt with %20. Example: ![Cat](https://image.pollinations.ai/prompt/A%20fluffy%20cat%20in%20space). Do not put the image link inside a code block.";
         
         if (messages.length > 0) {
             if (typeof messages[0].content === 'string' && !messages[0].content.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
@@ -198,9 +221,7 @@ app.post('/api/chat', async (req, res) => {
             }
         }
 
-        if (!response || !response.ok) {
-            return res.status(response ? response.status : 500).json({ error: "Auto-Routing Failed.\n\nDiagnostics:\n" + errorLogs.join("\n") });
-        }
+        if (!response || !response.ok) return res.status(response ? response.status : 500).json({ error: "Auto-Routing Failed.\n\nDiagnostics:\n" + errorLogs.join("\n") });
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -231,7 +252,7 @@ app.use((err, req, res, next) => {
 
 const port = process.env.PORT || 3000;
 app.listen(port, '0.0.0.0', () => {
-    console.log(`🚀 Anurag's GPT Backend is running!`);
+    console.log(`🚀 Anurag's GPT Backend is running on port ${port}!`);
 });
 
 module.exports = app;

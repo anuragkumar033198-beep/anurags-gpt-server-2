@@ -31,7 +31,6 @@
         .prose-content :not(pre) > code { background-color: #374151; padding: 0.2em 0.4em; border-radius: 0.3em; font-size: 0.9em; font-family: monospace; color: #e5e7eb; }
 
         .typing-dot { animation: typing 1.4s infinite ease-in-out both; } .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; } @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } .fade-in { animation: fadeIn 0.3s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .chat-menu-dropdown { transform-origin: top right; transition: all 0.2s ease-in-out; }
         .chat-menu-dropdown.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
     </style>
@@ -200,13 +199,17 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
+            
             <div class="p-6 space-y-5 overflow-y-auto">
-                <label class="block text-sm font-semibold text-gray-300 mb-1.5 flex justify-between items-center">
-                    System Prompt Override
-                    <span class="text-[10px] font-normal bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Optional</span>
-                </label>
-                <textarea id="system-prompt-input" rows="4" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-inner resize-none leading-relaxed" placeholder="e.g., You are a senior web developer. Always provide clean code and explain your logic simply..."></textarea>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-300 mb-1.5 flex justify-between items-center">
+                        System Prompt Override
+                        <span class="text-[10px] font-normal bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Optional</span>
+                    </label>
+                    <textarea id="system-prompt-input" rows="4" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors shadow-inner resize-none leading-relaxed" placeholder="e.g., You are a senior web developer. Always provide clean code..."></textarea>
+                </div>
             </div>
+
             <div class="p-5 border-t border-gray-800 bg-gray-900 shrink-0 flex justify-between items-center">
                 <button id="lock-app-btn" class="bg-red-900/30 border border-red-900/50 hover:bg-red-600 hover:border-red-500 text-red-400 hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm">Lock App</button>
                 <button id="save-settings-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95">Save Preferences</button>
@@ -251,55 +254,50 @@
             </div>`;
         };
         
-        // --- 100% BULLETPROOF IMAGE RENDERER ---
+        // --- SECURE BACKEND IMAGE PROXY (NO FRONTEND API KEYS) ---
         renderer.image = function(arg1, arg2, arg3) {
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1;
              const text = typeof arg1 === 'object' ? arg1.text : arg3;
              if (!rawHref) rawHref = '';
              let cleanHref = rawHref.replace(/&amp;/g, '&');
              
-             // WE ARE USING THE OFFICIAL, FREE, KEYLESS ENDPOINT: pollinations.ai/p/
-             if (cleanHref.includes('pollinations.ai')) {
+             // Check if it's a generated image link
+             if (cleanHref.includes('pollinations.ai') || cleanHref.includes('/api/image')) {
+                 
+                 // If the AI is currently typing, NEVER load the image! Just show the spinner. 
+                 if (window.isGenerating) {
+                     return `
+                     <div class="my-4" style="width: 280px; height: 280px; min-width: 280px; min-height: 280px;">
+                        <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
+                            <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
+                        </div>
+                     </div>`;
+                 }
+
+                 // Extract the prompt regardless of what Pollinations format the AI spat out
                  try {
-                     // Extract just the prompt part from the URL
-                     let promptPart = "beautiful image";
-                     let match = cleanHref.match(/\/(prompt|image|p)\/([^?&]+)/);
-                     if (match && match[2]) {
-                         promptPart = match[2];
+                     let promptPart = "";
+                     if (cleanHref.includes('/api/image')) {
+                         promptPart = cleanHref.split('prompt=')[1].split('&')[0];
+                     } else {
+                         let match = cleanHref.match(/\/(prompt|image|p)\/([^?&]+)/);
+                         promptPart = match && match[2] ? match[2] : "a beautiful image";
                      }
                      
                      let decodedPrompt = promptPart;
                      try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {}
                      decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); 
-                     
                      let safePrompt = encodeURIComponent(decodedPrompt);
                      
-                     // Create a fixed deterministic seed so it doesn't infinitely reload
-                     let seed = 0;
-                     for (let i = 0; i < safePrompt.length; i++) { seed = safePrompt.charCodeAt(i) + ((seed << 5) - seed); }
-                     seed = Math.abs(seed);
-                     
-                     cleanHref = `https://pollinations.ai/p/${safePrompt}?width=1024&height=1024&nologo=true&seed=${seed}`;
-                 } catch(e) {
-                     console.error("Image gen parsing error:", e);
-                 }
+                     // ROUTE THROUGH OUR BRAND NEW SECURE BACKEND PROXY
+                     cleanHref = `/api/image?prompt=${safePrompt}&pwd=${encodeURIComponent(currentPassword)}`;
+                 } catch(e) {}
+             } else {
+                 cleanHref = cleanHref.replace(/\s+/g, '%20');
              }
 
-             // SPINNER_HTML defined here for reuse
-             const SPINNER_HTML = `
-             <div class="my-4" style="width: 280px; height: 280px; min-width: 280px; min-height: 280px;">
-                <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
-                    <svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Designing Image...</span>
-                </div>
-             </div>`;
-
-             // HIDE IMAGE WHILE AI IS TYPING to prevent 20x second reload crashing
-             if (window.isGenerating) {
-                 return SPINNER_HTML;
-             }
-
-             // HARDCODED inline width/height to make it 100% immune to CSS squishing!
+             // Hardcoded CSS to prevent Samsung Internet flex-box squishing
              return `
              <div class="my-4" style="width: 280px; height: 280px; min-width: 280px; min-height: 280px;">
                 <div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg">
@@ -308,9 +306,8 @@
                         <span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span>
                     </div>
                     <img src="${cleanHref}" alt="${escapeHtml(text || 'AI Image')}" 
-                         referrerpolicy="no-referrer"
                          onload="this.previousElementSibling.style.display='none'; this.style.opacity='1';" 
-                         onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div style=\\'display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#1f2937; padding:1rem; text-align:center;\\'><span style=\\'font-size:2rem; margin-bottom:0.5rem;\\'>⚠️</span><div style=\\'color:#f87171; font-weight:bold; font-size:1rem;\\'>Image Failed</div><div style=\\'color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;\\'>Tap to retry</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();}; this.remove();" 
+                         onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div style=\\'display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#1f2937; padding:1rem; text-align:center;\\'><span style=\\'font-size:2rem; margin-bottom:0.5rem;\\'>⚠️</span><div style=\\'color:#f87171; font-weight:bold; font-size:1rem;\\'>Backend Proxy Failed</div><div style=\\'color:#9ca3af; font-size:0.75rem; margin-top:0.25rem;\\'>Check Server Logs</div></div>'; this.previousElementSibling.onclick=function(){window.location.reload();}; this.remove();" 
                          class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10" loading="lazy" style="opacity: 0;">
                     <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div>
                 </div>
@@ -319,8 +316,8 @@
         
         marked.setOptions({ renderer: renderer, breaks: true, gfm: true });
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v35_ultimate_fix'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v35_ultimate_fix';
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v37_secure'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v37_secure';
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
 
         let state = { chats: [], currentChatId: null };
@@ -329,7 +326,6 @@
         let currentBase64Image = null; 
         let currentFileAttachment = null; 
         
-        // EXPOSED GLOBAL VARIABLE FOR RENDERER
         window.isGenerating = false; 
         
         let abortController = null;
@@ -840,32 +836,43 @@
         
         function escapeHtml(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); }
         
-        // --- 100% BULLETPROOF PRE-PROCESSOR (ZERO LOOKBEHINDS FOR SAMSUNG INTERNET SUPPORT) ---
+        // --- SECURE BACKEND INTERCEPTOR (SAMSUNG INTERNET SAFE) ---
         function formatText(text) { 
             if (!text) return "";
             let processedText = text;
 
-            // 1. HIDE URLs WHILE TYPING: Safely catch incomplete image links without using crashing Regex
+            // 1. HIDE URLs WHILE TYPING: Safely catch incomplete image links WITHOUT lookbehinds
             if (window.isGenerating) {
-                // Hide Markdown links in progress
-                processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `
-                <div class="my-4" style="width: 280px; height: 280px; background: #0d1117; border: 1px solid #374151; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <span style="color: #3b82f6; font-size: 24px; animation: spin 1s linear infinite;">↻</span>
-                    <span style="color: #60a5fa; font-size: 12px; margin-top: 8px; font-weight: bold;">DESIGNING IMAGE...</span>
-                </div>`);
-                
-                // Hide naked Pollinations links in progress
-                processedText = processedText.replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*$/, `
-                <div class="my-4" style="width: 280px; height: 280px; background: #0d1117; border: 1px solid #374151; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                    <span style="color: #3b82f6; font-size: 24px; animation: spin 1s linear infinite;">↻</span>
-                    <span style="color: #60a5fa; font-size: 12px; margin-top: 8px; font-weight: bold;">DESIGNING IMAGE...</span>
-                </div>`);
+                // Check if there is an open bracket or pollinations domain
+                if (processedText.includes('![') || processedText.includes('pollinations.ai') || processedText.includes('/api/image')) {
+                     const lastIndex = Math.max(
+                         processedText.lastIndexOf('!['), 
+                         processedText.lastIndexOf('http'),
+                         processedText.lastIndexOf('/api/')
+                     );
+                     
+                     if (lastIndex !== -1) {
+                         const partialStr = processedText.substring(lastIndex);
+                         if (partialStr.includes('pollinations') || partialStr.includes('image')) {
+                              processedText = processedText.substring(0, lastIndex) + `
+                              <div class="my-4" style="width: 280px; height: 280px; background: #0d1117; border: 1px solid #374151; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                  <span style="color: #3b82f6; font-size: 24px; animation: spin 1s linear infinite;">↻</span>
+                                  <span style="color: #60a5fa; font-size: 12px; margin-top: 8px; font-weight: bold;">DESIGNING IMAGE...</span>
+                              </div>`;
+                         }
+                     }
+                }
             } else {
-                // 2. AUTO-FORMAT: If the AI forgot to wrap the Pollinations link in markdown ![], we do it for them safely
-                processedText = processedText.replace(/(^|\s)(https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s<]+)/g, function(match, space, url) {
-                    if (url.endsWith(')')) return match; 
-                    return `${space}![AI Image](${url})`;
-                });
+                // 2. AFTER TYPING: Convert any bare Pollinations links to Markdown safely
+                const parts = processedText.split(/(https:\/\/[^\s<]*pollinations\.ai[^\s<]+)/g);
+                for (let i = 1; i < parts.length; i += 2) {
+                    let url = parts[i];
+                    if (!parts[i-1].endsWith('](')) {
+                        if (url.endsWith(')')) url = url.slice(0, -1);
+                        parts[i] = `![AI Image](${url})`;
+                    }
+                }
+                processedText = parts.join('');
             }
 
             return marked.parse(processedText); 
