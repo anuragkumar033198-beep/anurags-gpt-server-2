@@ -6,7 +6,7 @@ const app = express();
 
 // --- GLOBAL MIDDLEWARE ---
 app.use(cors()); 
-app.use(express.json({ limit: '50mb' })); 
+app.use(express.json({ limit: '50mb' })); // Allows large image uploads
 
 app.use(express.static(path.join(__dirname, 'public'), { index: false })); 
 app.use(express.static(__dirname, { index: false })); 
@@ -35,11 +35,6 @@ app.get('/manifest.json', (req, res) => {
     });
 });
 
-app.get('/.well-known/assetlinks.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] } }]);
-});
-
 app.get('/', (req, res) => {
     const publicPath = path.join(__dirname, 'public', 'index.html');
     const rootPath = path.join(__dirname, 'index.html');
@@ -47,6 +42,17 @@ app.get('/', (req, res) => {
     else if (fs.existsSync(rootPath)) return res.sendFile(rootPath);
     else return res.send(`<h1>✅ Server Online!</h1><p style="color:red;">❌ index.html missing.</p>`);
 });
+
+// --- UNIVERSAL KEY SANITIZER ---
+// This guarantees keys work even if Replit removes underscores or adds invisible spaces/newlines
+function cleanApiKey(keyWithUnderscores, keyWithoutUnderscores) {
+    let raw = process.env[keyWithUnderscores] || process.env[keyWithoutUnderscores] || '';
+    let cleaned = raw.replace(/[\r\n\s]+/g, ''); // Destroys all spaces, tabs, and newlines
+    if (cleaned.toLowerCase().startsWith('bearer')) {
+        cleaned = cleaned.substring(6); // Chops off "bearer" if accidentally included
+    }
+    return cleaned;
+}
 
 // --- SECURITY SYSTEM ---
 const failedAttempts = new Map(); 
@@ -76,7 +82,7 @@ app.post('/api/verify', async (req, res) => {
     res.json({ success: true });
 });
 
-// --- THE FINAL SECURE IMAGE PROXY ---
+// --- 1. POLLINATIONS TEXT-TO-IMAGE PROXY ---
 app.get('/api/image', async (req, res) => {
     try {
         const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
@@ -84,54 +90,71 @@ app.get('/api/image', async (req, res) => {
         if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
 
         const prompt = req.query.prompt;
-        const seed = req.query.seed || Math.floor(Math.random() * 1000000); // Receive seed from frontend
+        const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
         if (!prompt) return res.status(400).send("Prompt is required");
 
-        // CLEAN THE API KEY
-        let rawKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY || '';
-        let cleanKey = rawKey.replace(/[\r\n\s]+/g, ''); 
-        if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
+        const cleanKey = cleanApiKey('POLLINATIONS_API_KEY', 'POLLINATIONSAPIKEY');
+        if (!cleanKey) return res.status(500).send("Pollinations API Key missing in Vercel Variables");
 
-        if (!cleanKey) return res.status(500).send("API Key missing in Vercel/Replit Variables");
-
-        // UPDATED URL STRUCTURE: Including model=flux and seed
         const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&seed=${seed}`;
         
-        // Use Node-native fetch for streaming
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: { 
+        const response = await fetch(url, { method: 'GET', headers: { "Authorization": `Bearer ${cleanKey}`, "User-Agent": "Anurags-GPT/1.0" }});
+        if (!response.ok) { const errText = await response.text(); return res.status(response.status).send(`Pollinations Error ${response.status}: ${errText.substring(0, 150)}`); }
+
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        
+        if (response.body && typeof response.body.pipe === 'function') { response.body.pipe(res); } 
+        else { const arrayBuffer = await response.arrayBuffer(); res.send(Buffer.from(arrayBuffer)); }
+    } catch (error) { res.status(500).send(`Server Error: ${error.message}`); }
+});
+
+// --- 2. GETIMG IMAGE-TO-IMAGE (PHOTO EDITING) PROXY ---
+app.post('/api/edit-image', async (req, res) => {
+    try {
+        const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
+        const userPassword = (req.headers['x-app-password'] || '').trim();
+        if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized" });
+
+        const { imageBase64, prompt } = req.body;
+        if (!imageBase64 || !prompt) return res.status(400).json({ error: "Image and prompt required." });
+
+        const cleanKey = cleanApiKey('GETIMG_API_KEY', 'GETIMGAPIKEY');
+        if (!cleanKey) return res.status(500).json({ error: "Getimg.ai API Key missing in Vercel Variables!" });
+
+        // Strip the HTML data prefix for the API
+        const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+
+        const response = await fetch("https://api.getimg.ai/v1/essential/image-to-image", {
+            method: "POST",
+            headers: {
                 "Authorization": `Bearer ${cleanKey}`,
-                "User-Agent": "Anurags-GPT/1.0"
-            }
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({
+                image: base64Data,
+                prompt: prompt,
+                output_format: "jpeg",
+                strength: 0.6 // 0.6 is the perfect balance for editing while keeping original structure
+            })
         });
 
         if (!response.ok) {
             const errText = await response.text();
-            console.error("Pollinations Error:", response.status, errText);
-            // Send exact error to frontend for debugging
-            return res.status(response.status).send(`Pollinations Error ${response.status}: ${errText.substring(0, 150)}`);
+            throw new Error(`Getimg API Error ${response.status}: ${errText.substring(0, 100)}`);
         }
 
-        // Pipe the image directly to the response
-        res.setHeader('Content-Type', 'image/jpeg');
-        res.setHeader('Cache-Control', 'public, max-age=31536000');
-        
-        if (response.body && typeof response.body.pipe === 'function') {
-            response.body.pipe(res);
-        } else {
-            // Fallback for environments where fetch body isn't a stream (rare but possible)
-            const arrayBuffer = await response.arrayBuffer();
-            res.send(Buffer.from(arrayBuffer));
-        }
+        const data = await response.json();
+        res.json({ success: true, image: `data:image/jpeg;base64,${data.image}` });
 
     } catch (error) {
-        console.error("Image Proxy Error:", error.message);
-        res.status(500).send(`Server Error: ${error.message}`);
+        console.error("Edit Image Error:", error.message);
+        res.status(500).json({ error: error.message });
     }
 });
 
-// --- MAIN AI ENGINE ---
+// --- 3. MAIN AI CHAT ENGINE (OPENROUTER) ---
 app.post('/api/chat', async (req, res) => {
     try {
         const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
@@ -141,8 +164,8 @@ app.post('/api/chat', async (req, res) => {
         const { messages } = req.body;
         if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "Invalid message format." });
 
-        const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY;
-        if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
+        const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
+        if (!cleanKey) return res.status(500).json({ error: "OpenRouter API Key missing!" });
 
         const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, reply with this exact markdown format: ![Image](https://gen.pollinations.ai/image/detailed%20description%20of%20image). Replace spaces with %20. Do not put the image link inside a code block.";
         
@@ -162,7 +185,7 @@ app.post('/api/chat', async (req, res) => {
         for (const currentModel of autoModels) {
             response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://anurags-gpt.vercel.app", "X-Title": "Anurag's GPT" },
+                headers: { "Authorization": `Bearer ${cleanKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://anurags-gpt.vercel.app", "X-Title": "Anurag's GPT" },
                 body: JSON.stringify({ model: currentModel, messages: messages, stream: true })
             });
             if (response.ok) break;
