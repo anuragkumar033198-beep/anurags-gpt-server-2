@@ -63,8 +63,9 @@ app.use('/api', (req, res, next) => {
 
 app.post('/api/verify', async (req, res) => {
     const ip = getIP(req);
-    const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
-    const userPassword = req.headers['x-app-password'];
+    // AGGRESSIVE PASSWORD CLEANING (Removes invisible trailing spaces)
+    const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
+    const userPassword = (req.headers['x-app-password'] || '').trim();
     
     if (correctPassword && userPassword !== correctPassword) {
         let attempts = (failedAttempts.get(ip) || 0) + 1;
@@ -79,24 +80,21 @@ app.post('/api/verify', async (req, res) => {
 // --- THE NEW BULLETPROOF IMAGE PROXY ---
 app.get('/api/image', async (req, res) => {
     try {
-        const userPassword = req.query.pwd;
-        const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
+        const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
+        const userPassword = (req.query.pwd || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
 
         const prompt = req.query.prompt;
         if (!prompt) return res.status(400).send("Prompt is required");
 
-        // 1. Get the key, regardless of Replit underscore removal
+        // AGGRESSIVE API KEY CLEANING (Handles Replit removing underscores and invisible spaces)
         let rawKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY || '';
-        
-        // 2. Aggressive Key Cleaning (Strips invisible newlines and "Bearer" text)
-        let cleanKey = rawKey.trim();
-        if (cleanKey.toLowerCase().startsWith('bearer ')) {
-            cleanKey = cleanKey.substring(7).trim();
+        let cleanKey = rawKey.replace(/[\r\n\s]+/g, ''); // Destroys all whitespace completely
+        if (cleanKey.toLowerCase().startsWith('bearer')) {
+            cleanKey = cleanKey.substring(6); // Removes accidental "Bearer" prefix
         }
-        cleanKey = cleanKey.replace(/[\r\n\s]+/g, ''); // Destroys all whitespace
 
-        if (!cleanKey) return res.status(500).send("API Key missing in Vercel Variables");
+        if (!cleanKey) return res.status(500).send("API Key missing in Vercel/Replit Variables");
 
         const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
         
@@ -130,8 +128,8 @@ app.get('/api/image', async (req, res) => {
 // --- MAIN AI ENGINE ---
 app.post('/api/chat', async (req, res) => {
     try {
-        const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
-        const userPassword = req.headers['x-app-password'];
+        const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
+        const userPassword = (req.headers['x-app-password'] || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized: Invalid Password" });
 
         const { messages } = req.body;
