@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-const https = require('https'); // Native streaming module
 const app = express();
 
 // --- GLOBAL MIDDLEWARE ---
@@ -77,36 +76,55 @@ app.post('/api/verify', async (req, res) => {
     res.json({ success: true });
 });
 
-// --- THE SECURE IMAGE PROXY (ZERO MEMORY CRASH PIPELINE) ---
-app.get('/api/image', (req, res) => {
-    const userPassword = req.query.pwd;
-    const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
-    if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
+// --- THE NEW BULLETPROOF IMAGE PROXY ---
+app.get('/api/image', async (req, res) => {
+    try {
+        const userPassword = req.query.pwd;
+        const correctPassword = process.env.APP_PASSWORD || process.env.APPPASSWORD;
+        if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
 
-    const prompt = req.query.prompt;
-    if (!prompt) return res.status(400).send("Prompt is required");
+        const prompt = req.query.prompt;
+        if (!prompt) return res.status(400).send("Prompt is required");
 
-    const pollinationsKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY;
-    if (!pollinationsKey) return res.status(500).send("API Key missing in Vercel Variables");
-
-    const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
-    
-    const options = { headers: { "Authorization": `Bearer ${pollinationsKey}` } };
-
-    // Streams directly to frontend - prevents Vercel timeout crashes!
-    https.get(url, options, (apiRes) => {
-        if (apiRes.statusCode !== 200) {
-            let errData = '';
-            apiRes.on('data', chunk => errData += chunk);
-            apiRes.on('end', () => res.status(apiRes.statusCode).send(`API Rejected: ${apiRes.statusCode}. Check Key.`));
-            return;
+        // 1. Get the key, regardless of Replit underscore removal
+        let rawKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY || '';
+        
+        // 2. Aggressive Key Cleaning (Strips invisible newlines and "Bearer" text)
+        let cleanKey = rawKey.trim();
+        if (cleanKey.toLowerCase().startsWith('bearer ')) {
+            cleanKey = cleanKey.substring(7).trim();
         }
+        cleanKey = cleanKey.replace(/[\r\n\s]+/g, ''); // Destroys all whitespace
+
+        if (!cleanKey) return res.status(500).send("API Key missing in Vercel Variables");
+
+        const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 
+                "Authorization": `Bearer ${cleanKey}`,
+                "User-Agent": "Anurags-GPT/1.0",
+                "Accept": "image/*"
+            }
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error("Pollinations Error:", response.status, errText);
+            return res.status(response.status).send(`API Error ${response.status}: ${errText.substring(0, 100)}`);
+        }
+
+        // Stream the image directly to the frontend safely
+        const arrayBuffer = await response.arrayBuffer();
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 'public, max-age=31536000');
-        apiRes.pipe(res);
-    }).on('error', (e) => {
-        res.status(500).send(`Server Connection Error: ${e.message}`);
-    });
+        res.send(Buffer.from(arrayBuffer));
+
+    } catch (error) {
+        console.error("Image Proxy Error:", error.message);
+        res.status(500).send(`Server Connection Error: ${error.message}`);
+    }
 });
 
 // --- MAIN AI ENGINE ---
