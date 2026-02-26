@@ -44,7 +44,6 @@ app.get('/', (req, res) => {
 });
 
 // --- UNIVERSAL KEY SANITIZER ---
-// Destroys all invisible spaces, tabs, newlines, and Replit's underscore removals
 function cleanApiKey(keyWithUnderscores, keyWithoutUnderscores) {
     let raw = process.env[keyWithUnderscores] || process.env[keyWithoutUnderscores] || '';
     let cleaned = raw.replace(/[\r\n\s]+/g, ''); 
@@ -58,36 +57,26 @@ const bannedIPs = new Set();
 const MAX_ATTEMPTS = 5;
 const getIP = (req) => req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || "Unknown IP";
 
-// The Webhook Engine
 async function notifyDiscord(ip, req) {
     const webhookUrl = cleanApiKey('DISCORD_WEBHOOK_URL', 'DISCORDWEBHOOKURL');
-    if (!webhookUrl) return; // Silent fail if no webhook is set
+    if (!webhookUrl) return; 
     
     const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
     const host = req.get('host');
     const protocol = req.headers['x-forwarded-proto'] || 'https';
-    
-    // Generates the magic 1-click unban link
     const unbanLink = `${protocol}://${host}/api/unban?ip=${ip}&pwd=${encodeURIComponent(correctPassword)}`;
 
     const payload = {
         embeds: [{
             title: "🚨 Security Alert: IP Banned",
             description: `Someone has triggered the security firewall on your Chatbot.\n\n**IP Address:** \`${ip}\`\n**Reason:** Exceeded ${MAX_ATTEMPTS} failed login attempts.\n\n👉 **[CLICK HERE TO UNBAN THIS IP](${unbanLink})**`,
-            color: 16711680, // Red
+            color: 16711680,
             timestamp: new Date().toISOString()
         }]
     };
 
-    try {
-        await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-    } catch (e) {
-        console.error("Discord Webhook Error:", e.message);
-    }
+    try { await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } 
+    catch (e) { console.error("Discord Webhook Error:", e.message); }
 }
 
 app.use('/api', (req, res, next) => {
@@ -106,58 +95,42 @@ app.post('/api/verify', async (req, res) => {
         let attempts = (failedAttempts.get(ip) || 0) + 1;
         failedAttempts.set(ip, attempts);
         
-        // Exactly on the max attempt, ban them and fire the Discord Webhook
         if (attempts === MAX_ATTEMPTS) { 
             bannedIPs.add(ip); 
             await notifyDiscord(ip, req);
             return res.status(403).json({ error: "BANNED" }); 
         }
         if (attempts > MAX_ATTEMPTS) return res.status(403).json({ error: "BANNED" });
-        
         return res.status(401).json({ error: "Incorrect Password", attemptsLeft: MAX_ATTEMPTS - attempts });
     }
     failedAttempts.delete(ip);
     res.json({ success: true });
 });
 
-// The 1-Click Discord Unban Route
 app.get('/api/unban', (req, res) => {
     const targetIp = req.query.ip;
     const providedPwd = req.query.pwd;
     const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
 
-    if (!correctPassword || providedPwd !== correctPassword) {
-        return res.status(401).send("<h1 style='color:red; font-family:sans-serif; text-align:center;'>🚨 Unauthorized Link</h1>");
-    }
-    
+    if (!correctPassword || providedPwd !== correctPassword) return res.status(401).send("<h1 style='color:red; text-align:center;'>🚨 Unauthorized Link</h1>");
     if (targetIp) {
-        bannedIPs.delete(targetIp);
-        failedAttempts.delete(targetIp);
-        return res.send(`
-            <div style="font-family:sans-serif; text-align:center; padding: 50px; background:#111827; color:white; height:100vh;">
-                <h1 style='color:#34d399; font-size:3rem;'>✅ IP Unbanned</h1>
-                <p style="color:#9ca3af; font-size:1.2rem;">The IP <b>${targetIp}</b> has been removed from the blacklist.</p>
-                <p style="color:#9ca3af; font-size:1.2rem;">They can now access the chatbot again.</p>
-            </div>
-        `);
+        bannedIPs.delete(targetIp); failedAttempts.delete(targetIp);
+        return res.send(`<div style="text-align:center; padding: 50px; background:#111827; color:white; height:100vh;"><h1 style='color:#34d399;'>✅ IP Unbanned</h1><p>The IP <b>${targetIp}</b> has been removed from the blacklist.</p></div>`);
     }
     res.send("<h1>Error</h1><p>No IP provided.</p>");
 });
 
-// --- 1. POLLINATIONS PROXY (FIXED IMAGE GENERATION) ---
+// --- 1. POLLINATIONS PROXY ---
 app.get('/api/image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
         const userPassword = (req.query.pwd || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized");
         
-        const prompt = req.query.prompt; 
-        const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
+        const prompt = req.query.prompt; const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
         if (!prompt) return res.status(400).send("Prompt required");
         
         const cleanKey = cleanApiKey('POLLINATIONS_API_KEY', 'POLLINATIONSAPIKEY');
-        
-        // FIXED URL: Uses the ultra-stable image.pollinations endpoint to prevent "Invalid Parameters"
         const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
         
         const options = { method: 'GET', headers: { "User-Agent": "Anurags-GPT/1.0" }};
@@ -207,7 +180,6 @@ app.post('/api/chat', async (req, res) => {
         const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
         if (!cleanKey) return res.status(500).json({ error: "OpenRouter API Key missing!" });
 
-        // INSTRUCT AI TO USE THE PROXY FOR IMAGES
         const myCustomIdentity = `You are Anurag's GPT, a professional, highly intelligent AI assistant. 
 Formatting Rules:
 1. EMOJIS: Use relevant emojis at the start of major section headings.
