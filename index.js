@@ -169,26 +169,45 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- GETIMG PROXY (PHOTO EDITING) ---
+// --- GETIMG PROXY (PHOTO EDITING) - FIXED ENDPOINT ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
         const userPassword = (req.headers['x-app-password'] || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized" });
+        
         const { imageBase64, prompt } = req.body;
         if (!imageBase64 || !prompt) return res.status(400).json({ error: "Data missing." });
+        
         const cleanKey = cleanApiKey('GETIMG_API_KEY', 'GETIMGAPIKEY');
-        if (!cleanKey) return res.status(500).json({ error: "Getimg API Key missing!" });
+        if (!cleanKey) return res.status(500).json({ error: "Getimg API Key missing in Variables!" });
+        
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
-        const response = await fetch("https://api.getimg.ai/v1/essential/image-to-image", {
+        
+        // Uses reliable stable-diffusion endpoint required for basic editing
+        const response = await fetch("https://api.getimg.ai/v1/stable-diffusion/image-to-image", {
             method: "POST",
             headers: { "Authorization": `Bearer ${cleanKey}`, "Content-Type": "application/json", "Accept": "application/json" },
-            body: JSON.stringify({ image: base64Data, prompt: prompt, output_format: "jpeg", strength: 0.6 })
+            body: JSON.stringify({ 
+                model: "realistic-vision-v5-1",
+                image: base64Data, 
+                prompt: prompt, 
+                output_format: "jpeg", 
+                strength: 0.6 
+            })
         });
-        if (!response.ok) { const errText = await response.text(); throw new Error(`API Error ${response.status}: ${errText.substring(0, 100)}`); }
+        
+        if (!response.ok) { 
+            const errData = await response.json().catch(() => ({ error: { message: "Unknown GetImg Error" }})); 
+            throw new Error(`GetImg API Error: ${errData.error?.message || response.statusText}`); 
+        }
+        
         const data = await response.json();
         res.json({ success: true, image: `data:image/jpeg;base64,${data.image}` });
-    } catch (error) { console.error("Edit Error:", error.message); res.status(500).json({ error: error.message }); }
+    } catch (error) { 
+        console.error("Edit Error:", error.message); 
+        res.status(500).json({ error: error.message }); 
+    }
 });
 
 // --- MAIN AI ENGINE ---
@@ -204,12 +223,12 @@ app.post('/api/chat', async (req, res) => {
         const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
         if (!cleanKey) return res.status(500).json({ error: "API Key missing!" });
 
-        // AGGRESSIVE IMAGE GENERATION PROMPT
-        const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag.
+        // AGGRESSIVE SYSTEM PROMPT FOR MATH & IMAGES
+        const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
 Formatting Rules:
-1. EMOJIS: Use relevant emojis at the start of major section headings.
-2. MATH: For all mathematical expressions, equations, and symbols, you MUST use LaTeX formatting enclosed in dollar signs. Use single dollar signs for inline math (e.g., "$x^2$") and double dollar signs for block equations. Do NOT use plain text like "^2".
-3. AUTOMATIC IMAGES: Whenever you explain ANY topic, concept, or provide a guide (e.g., "Explain Quantum Computing"), you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use this EXACT markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description). Replace spaces in the URL with %20. Do NOT put the image link inside a code block.`;
+1. MATH NOTATION (CRITICAL): You MUST wrap EVERY mathematical equation, variable, or symbol in LaTeX dollar signs. Example inline: "$x^2$", "$E=mc^2$". Block equations: "$$ y = mx + c $$". NEVER use raw text for math like "^2" or "x^2" without the "$" wrappers.
+2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description%20with%20%20spaces). Do NOT put the image link inside a code block.
+3. EMOJIS: Use emojis at the start of major section headings.`;
         
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
