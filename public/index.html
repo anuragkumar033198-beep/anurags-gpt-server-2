@@ -30,22 +30,34 @@
         .prose-content ul, .prose-content ol { margin-left: 1.5rem; margin-bottom: 1rem; padding-left: 1rem; }
         .prose-content ul { list-style-type: disc; } .prose-content ol { list-style-type: decimal; } .prose-content li { margin-bottom: 0.5rem; }
         .prose-content strong { color: white; font-weight: 700; } .prose-content em { font-style: italic; } .prose-content a { color: #60a5fa; text-decoration: underline; }
-        .prose-content pre { margin-top: 1em; margin-bottom: 1em; overflow-x: auto;}
-        .prose-content :not(pre) > code { background-color: #374151; padding: 0.2em 0.4em; border-radius: 0.3em; font-size: 0.9em; font-family: monospace; color: #e5e7eb; word-break: break-all; }
+        .prose-content pre { margin-top: 1em; margin-bottom: 1em; overflow-x: auto; }
+        .prose-content :not(pre) > code { background-color: #374151; padding: 0.2em 0.4em; border-radius: 0.3em; font-size: 0.9em; font-family: monospace; color: #e5e7eb; word-break: break-all;}
         .katex { font-size: 1.1em; } .katex-display { margin: 1em 0; overflow-x: auto; overflow-y: hidden; padding-top: 0.5em; padding-bottom: 0.5em;}
 
         .typing-dot { animation: typing 1.4s infinite ease-in-out both; } .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; } @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } .fade-in { animation: fadeIn 0.3s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .chat-menu-dropdown { transform-origin: top right; transition: all 0.2s ease-in-out; }
         .chat-menu-dropdown.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
-        .user-menu-trigger { opacity: 0; transition: opacity 0.2s; } .group:hover .user-menu-trigger { opacity: 1; }
+        .user-menu-trigger { opacity: 0; transition: opacity 0.2s; }
+        .group:hover .user-menu-trigger { opacity: 1; }
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
 
     <div id="install-prompt" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-4 md:p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[150] transform translate-y-full transition-transform duration-500 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-t-3xl">
-        <div class="flex items-center gap-4 w-full sm:w-auto"><div class="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center shrink-0 shadow-lg border border-gray-700"><img src="/icon.png" alt="App Icon" class="w-8 h-8 rounded-lg object-contain"></div><div><h3 class="text-white font-bold text-sm">Install Anurag's GPT</h3><p class="text-gray-400 text-xs">Add to your home screen.</p></div></div>
-        <div class="flex items-center gap-3 w-full sm:w-auto"><button id="close-install-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors">Later</button><button id="install-app-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95">Install App</button></div>
+        <div class="flex items-center gap-4 w-full sm:w-auto">
+            <div class="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center shrink-0 shadow-lg border border-gray-700">
+                <img src="/icon.png" alt="App Icon" class="w-8 h-8 rounded-lg object-contain">
+            </div>
+            <div>
+                <h3 class="text-white font-bold text-sm">Install Anurag's GPT</h3>
+                <p class="text-gray-400 text-xs">Add to your home screen for the full-screen native experience.</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+            <button id="close-install-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors">Later</button>
+            <button id="install-app-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95">Install App</button>
+        </div>
     </div>
 
     <div id="password-overlay" class="fixed inset-0 bg-gray-950 z-[100] flex items-center justify-center p-4">
@@ -62,9 +74,13 @@
     </div>
 
     <aside id="sidebar" class="w-72 bg-gray-900 border-r border-gray-800 flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative z-40 h-full">
-        <div class="p-4"><button id="new-chat-btn" class="w-full flex items-center gap-3 bg-gray-800 hover:bg-gray-700 text-gray-200 py-3 px-4 rounded-full transition-all duration-200 border border-gray-700 shadow-sm"><span class="font-medium text-sm">New Chat</span></button></div>
-        <div class="flex-1 overflow-y-auto px-2 pb-2" id="chat-history-list"></div>
-        <div class="p-4 border-t border-gray-800 bg-gray-900">
+        <div class="p-4">
+            <button id="new-chat-btn" class="w-full flex items-center gap-3 bg-gray-800 hover:bg-gray-700 text-gray-200 py-3 px-4 rounded-full transition-all duration-200 border border-gray-700 shadow-sm">
+                <span class="font-medium text-sm">New Chat</span>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto px-2 pb-10" id="chat-history-list"></div>
+        <div class="p-4 border-t border-gray-800 bg-gray-900 mt-auto">
             <button id="open-settings-btn" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -164,8 +180,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        // --- CACHE & STATE ---
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v65_pro'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v65_pro'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v68_final_sync'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v68_final_sync'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] };
@@ -197,36 +212,48 @@
         const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
         const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
 
-        // --- BUTTON LOGIC ---
+        // --- MENU FUNCTIONS (WITH CUSTOM TOAST FIX) ---
         window.toggleUserMenu = function(e, msgId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${msgId}`) menu.classList.add('hidden'); }); document.getElementById(`menu-${msgId}`).classList.toggle('hidden'); };
-        window.copyUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').getAttribute('data-raw-content'); navigator.clipboard.writeText(text); document.getElementById(`menu-${msgId}`).classList.add('hidden'); alert("Copied to clipboard!");};
+        
+        window.copyUserMessage = function(msgId) { 
+            const text = document.getElementById(msgId).querySelector('.message-text').getAttribute('data-raw-content'); 
+            navigator.clipboard.writeText(text); 
+            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
+            
+            // Custom Toast instead of alert()
+            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
+            const toast = document.createElement('div'); toast.id = 'custom-toast';
+            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
+            toast.innerHTML = `<span>Prompt copied.</span><button onclick="document.getElementById('new-chat-btn').click(); this.parentElement.remove();" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors">Start new chat</button>`;
+            document.body.appendChild(toast);
+            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 5000);
+        };
+        
         window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId).querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(node); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`).classList.add('hidden');};
         window.editUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').getAttribute('data-raw-content'); elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); document.getElementById(`menu-${msgId}`).classList.add('hidden'); };
         window.shareUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').getAttribute('data-raw-content'); if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`).classList.add('hidden');};
 
-        window.downloadImageBtn = async function(btn) { 
-            try { 
-                const imgContainer = btn.closest('.relative.group\\/imgbox') || btn.parentElement.parentElement; 
-                const imgTag = imgContainer.querySelector('img[data-prompt]'); 
-                if (!imgTag || !imgTag.src) throw new Error("Image source not found."); 
-                
-                const response = await fetch(imgTag.src); 
-                const blob = await response.blob(); 
-                const blobUrl = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a'); 
-                a.href = blobUrl; 
-                a.download = `AnuragsGPT-Image-${Date.now()}.jpg`; 
-                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
-                
-                const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); 
-            } catch (error) { alert("Failed to download image."); }
-        };
+        // --- IMAGE & AI FUNCTIONS (REGENERATE FIX) ---
+        window.downloadImageBtn = async function(btn) { try { const imgContainer = btn.closest('.relative.group\\/imgbox') || btn.parentElement.parentElement; const imgTag = imgContainer.querySelector('img[data-prompt]'); if (!imgTag || !imgTag.src) throw new Error("Image source not found."); const response = await fetch(imgTag.src); const blob = await response.blob(); const blobUrl = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = blobUrl; a.download = `AnuragsGPT-Image-${Date.now()}.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl); const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); } catch (error) { alert("Failed to download image."); }};
         
         window.regenerateImageBtn = function(btn) { 
-            let prompt = decodeURIComponent(btn.getAttribute('data-prompt')).replace(/["')\]}]+$/, '').trim(); 
-            if (btn.hasAttribute('data-is-edit') && btn.getAttribute('data-is-edit') === 'true') { elUserInput.value = prompt; } 
-            else { elUserInput.value = "Generate an image of " + prompt; } 
+            if (window.isGenerating) return;
+            if (btn.hasAttribute('data-is-edit') && btn.getAttribute('data-is-edit') === 'true') { 
+                let prompt = decodeURIComponent(btn.getAttribute('data-prompt')).replace(/["')\]}]+$/, '').trim();
+                elUserInput.value = prompt; 
+            } else { 
+                // FETCH THE EXACT ORIGINAL USER PROMPT (Not the detailed AI prompt)
+                const textContainers = elMessagesContainer.querySelectorAll('.message-text'); 
+                let lastUserText = ""; 
+                for (let i = textContainers.length - 1; i >= 0; i--) { 
+                    if (textContainers[i].closest('.justify-end')) { lastUserText = textContainers[i].getAttribute('data-raw-content'); break; } 
+                } 
+                if (lastUserText) { elUserInput.value = lastUserText; } 
+                else { 
+                    let prompt = decodeURIComponent(btn.getAttribute('data-prompt')).replace(/["')\]}]+$/, '').trim();
+                    elUserInput.value = "Generate an image of " + prompt; 
+                }
+            } 
             elUserInput.style.height = 'auto'; elUserInput.style.height = (elUserInput.scrollHeight) + 'px'; 
             elSendBtn.disabled = false; elSendBtn.click();
         };
@@ -235,7 +262,6 @@
             if (window.isGenerating) return; 
             let chat = isTempChat ? tempChatData : state.chats.find(c => c.id === state.currentChatId);
             if (!chat || chat.messages.length < 2) return;
-            
             if (chat.messages[chat.messages.length - 1].role === 'assistant' && chat.messages[chat.messages.length - 2].role === 'user') {
                 const userContent = chat.messages[chat.messages.length - 2].content;
                 let lastUserText = typeof userContent === 'string' ? userContent : userContent[0].text;
@@ -243,59 +269,30 @@
                      const parts = lastUserText.split('\n\nUser Message: '); 
                      if (parts.length > 1) lastUserText = parts.slice(1).join('\n\nUser Message: '); 
                 }
-                
                 chat.messages.pop(); chat.messages.pop();
                 if (!isTempChat) saveChats();
                 loadChat(chat.id || null);
-                
                 elUserInput.value = lastUserText; 
                 elUserInput.style.height = 'auto'; elUserInput.style.height = (elUserInput.scrollHeight) + 'px'; 
                 elSendBtn.disabled = false; elSendBtn.click();
             }
         };
 
-        // --- RENDERERS & LOCALSTORAGE CACHING ---
+        // --- RENDERERS ---
         renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
         
+        // YOUR EXACT ORIGINAL WORKING IMAGE RENDERER & PROXY CALL
         window.fetchSecureImage = async function(prompt, imgEl) { 
             try { 
-                const cacheKey = 'img_cache_' + prompt;
-                const cachedBase64 = localStorage.getItem(cacheKey);
-                
-                // IF IMAGE IS CACHED IN LOCALSTORAGE, LOAD IT INSTANTLY
-                if (cachedBase64) {
-                    imgEl.src = cachedBase64;
-                    if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none'; 
-                    imgEl.style.opacity = '1'; 
-                    return;
-                }
-
-                // OTHERWISE, FETCH IT SECURELY
-                const pwd = encodeURIComponent(currentPassword); const seed = Math.floor(Math.random() * 1000000); 
-                const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}&seed=${seed}`); 
-                if (!res.ok) throw new Error("Backend Error"); 
+                const pwd = encodeURIComponent(currentPassword); 
+                const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}`); 
+                if (!res.ok) throw new Error("Unknown Backend Error"); 
                 const blob = await res.blob(); 
-                
                 imgEl.src = URL.createObjectURL(blob); 
                 if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none'; 
                 imgEl.style.opacity = '1'; 
-                
-                // CONVERT TO BASE64 AND SAVE TO CACHE FOR NEXT TIME
-                const reader = new FileReader();
-                reader.onloadend = function() {
-                    try { localStorage.setItem(cacheKey, reader.result); } 
-                    catch(e) { 
-                        // If LocalStorage is full, clear old images to make room
-                        for (let i = 0; i < localStorage.length; i++) {
-                            if (localStorage.key(i).startsWith('img_cache_')) { localStorage.removeItem(localStorage.key(i)); }
-                        }
-                        try { localStorage.setItem(cacheKey, reader.result); } catch(err) {}
-                    }
-                };
-                reader.readAsDataURL(blob);
-
             } catch (e) { 
-                imgEl.parentElement.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#1f2937;padding:1rem;text-align:center;"><span style="font-size:2rem;margin-bottom:0.5rem;">⚠️</span><div style="color:#f87171;font-weight:bold;font-size:1rem;">Image Failed</div></div>`; 
+                imgEl.parentElement.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#1f2937;padding:1rem;text-align:center;"><span style="font-size:2rem;margin-bottom:0.5rem;">⚠️</span><div style="color:#f87171;font-weight:bold;font-size:1rem;">Image Failed</div><div style="color:#9ca3af;font-size:0.7rem;margin-top:0.5rem;word-break:break-all;">${window.escapeHtml(e.message)}</div></div>`; 
             }
         };
 
@@ -304,15 +301,18 @@
              if (!rawHref) rawHref = ''; let cleanHref = rawHref.replace(/&amp;/g, '&'); 
              let safePrompt = "AI Image"; let isBase64 = cleanHref.startsWith('data:image'); 
              
-             if (isBase64) { 
-                 safePrompt = "Edited Image"; 
-             } else { 
+             if (isBase64) { safePrompt = "Edited Image"; } 
+             else if (cleanHref.includes('pollinations.ai') || cleanHref.includes('/api/image')) { 
                  try { 
-                     let promptMatch = cleanHref.match(/\/image\/([^?]+)/); 
-                     if (promptMatch) { safePrompt = decodeURIComponent(promptMatch[1]).replace(/["')\]}]+$/, '').trim(); }
+                     let promptPart = "";
+                     if (cleanHref.includes('/api/image')) { promptPart = cleanHref.split('prompt=')[1].split('&')[0]; } 
+                     else { let match = cleanHref.match(/\/(prompt|image|p)\/([^?&]+)/); promptPart = match && match[2] ? match[2] : "a beautiful image"; }
+                     let decodedPrompt = promptPart;
+                     try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {}
+                     decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); 
+                     safePrompt = encodeURIComponent(decodedPrompt);
                  } catch(e) {} 
-                 safePrompt = encodeURIComponent(safePrompt);
-             } 
+             } else { safePrompt = encodeURIComponent(cleanHref.replace(/\s+/g, '%20')); } 
              
              const containerStyle = "width: 280px; height: 280px; min-width: 280px; min-height: 280px;"; 
              
@@ -345,8 +345,10 @@
             
             let actionButtons = '';
             if (!isUser) {
-                // ASSISTANT TEXT BUTTONS (Only visible if there is actual text)
-                actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; 
+                const textWithoutImages = displayContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim();
+                if (textWithoutImages.length > 0) {
+                     actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; 
+                }
             } else {
                  actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-500 hover:text-gray-300 p-1.5 rounded-lg transition-colors bg-gray-900 border border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`;
             }
@@ -374,6 +376,20 @@
 
         function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-800 shadow-sm"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; elMessagesContainer.appendChild(div); scrollToBottom(); }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
+
+        // --- FIXED SAVE CHATS TO PREVENT CRASH ---
+        function saveChats() { 
+            state.chats.sort((a, b) => (a.pinned === b.pinned) ? b.id - a.id : b.pinned ? -1 : 1); 
+            try { 
+                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); 
+            } catch (e) { 
+                const toast = document.createElement('div'); 
+                toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-xl shadow-2xl z-[200] fade-in text-xs font-bold'; 
+                toast.innerText = "⚠️ Device storage full. Image not saved."; 
+                document.body.appendChild(toast); 
+                setTimeout(() => toast.remove(), 4000); 
+            } 
+        }
 
         async function sendMessage() {
             if (window.isGenerating) { if (abortController) abortController.abort(); return; }
@@ -480,6 +496,8 @@
         $('#mobile-menu-btn').addEventListener('click', () => { $('#sidebar').classList.remove('-translate-x-full'); $('#sidebar-overlay').classList.remove('hidden'); });
         $('#sidebar-overlay').addEventListener('click', () => { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); });
         $$('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { elUserInput.value = btn.innerText.replace(/"/g, '').trim(); elSendBtn.disabled = false; sendMessage(); }); });
+        window.copyToClipboard = (btn) => { const txt = document.createElement('textarea'); txt.innerHTML = btn.getAttribute('data-content'); navigator.clipboard.writeText(txt.value).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); }); };
+        window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span>Copied!</span>`; btn.classList.replace('text-gray-400', 'text-green-400'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-400', 'text-gray-400'); }, 2000); }); };
 
         let confirmActionCallback = null; window.showConfirmModal = function(title, text, callback) { $('#confirm-modal-title').innerText = title; $('#confirm-modal-text').innerText = text; confirmActionCallback = callback; $('#confirm-modal').classList.remove('hidden'); }; window.closeConfirmModal = function() { $('#confirm-modal').classList.add('hidden'); confirmActionCallback = null; }; $('#confirm-cancel-btn').addEventListener('click', window.closeConfirmModal); $('#confirm-action-btn').addEventListener('click', () => { if (confirmActionCallback) confirmActionCallback(); window.closeConfirmModal(); });
         let deferredPrompt; const installPromptEl = $('#install-prompt'); const installBtn = $('#install-app-btn'); const closeInstallBtn = $('#close-install-btn');
@@ -547,7 +565,6 @@
         window.toggleSpeech = (btn) => { const text = btn.getAttribute('data-content'); if (window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); } const utterance = new SpeechSynthesisUtterance(text); window.speechSynthesis.speak(utterance); };
         
         function init() { setupSpeechRecognition(); loadSettings(); loadChats(); if(window.location.hash && window.location.hash.startsWith('#share=')) { try { const base64Data = window.location.hash.substring(7); const sharedChat = JSON.parse(atob(base64Data)); disableTempMode(); state.currentChatId = 'shared-' + Date.now(); clearMessages(); elWelcomeScreen.classList.add('hidden'); const banner = document.createElement('div'); banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50'; banner.innerHTML = `Viewing shared chat: <strong>${window.escapeHtml(sharedChat.title)}</strong> (Read-only)`; elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer); sharedChat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); elUserInput.disabled = true; elUserInput.placeholder = "Read-only shared chat."; elSendBtn.disabled = true; elMicBtn.style.display = 'none'; $('#plus-menu-btn').style.display = 'none'; } catch(e) { window.location.hash = ''; showWelcome(); } } else { if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); } renderSidebar(); }
-        function saveChats() { state.chats.sort((a, b) => (a.pinned === b.pinned) ? b.id - a.id : b.pinned ? -1 : 1); localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); }
         function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
         function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
         function loadSettings() { const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); if (stored) settings = { ...settings, ...JSON.parse(stored) }; $('#system-prompt-input').value = settings.systemPrompt || ''; }

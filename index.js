@@ -76,7 +76,7 @@ app.post('/api/verify', async (req, res) => {
     res.json({ success: true });
 });
 
-// --- THE SECURE IMAGE PROXY (UNTOUCHED WORKING CODE) ---
+// --- THE FINAL SECURE IMAGE PROXY ---
 app.get('/api/image', async (req, res) => {
     try {
         const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
@@ -84,20 +84,17 @@ app.get('/api/image', async (req, res) => {
         if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
 
         const prompt = req.query.prompt;
-        const seed = req.query.seed || Math.floor(Math.random() * 1000000); // Receive seed from frontend
+        const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
         if (!prompt) return res.status(400).send("Prompt is required");
 
-        // CLEAN THE API KEY
         let rawKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY || '';
         let cleanKey = rawKey.replace(/[\r\n\s]+/g, ''); 
         if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
 
         if (!cleanKey) return res.status(500).send("API Key missing in Vercel/Replit Variables");
 
-        // UPDATED URL STRUCTURE: Including model=flux and seed
         const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&seed=${seed}`;
         
-        // Use Node-native fetch for streaming
         const response = await fetch(url, {
             method: 'GET',
             headers: { 
@@ -109,18 +106,15 @@ app.get('/api/image', async (req, res) => {
         if (!response.ok) {
             const errText = await response.text();
             console.error("Pollinations Error:", response.status, errText);
-            // Send exact error to frontend for debugging
             return res.status(response.status).send(`Pollinations Error ${response.status}: ${errText.substring(0, 150)}`);
         }
 
-        // Pipe the image directly to the response
         res.setHeader('Content-Type', 'image/jpeg');
         res.setHeader('Cache-Control', 'public, max-age=31536000');
         
         if (response.body && typeof response.body.pipe === 'function') {
             response.body.pipe(res);
         } else {
-            // Fallback for environments where fetch body isn't a stream (rare but possible)
             const arrayBuffer = await response.arrayBuffer();
             res.send(Buffer.from(arrayBuffer));
         }
@@ -144,12 +138,7 @@ app.post('/api/chat', async (req, res) => {
         const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY;
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        // UPDATED SYSTEM PROMPT: Forces Math, Emojis, and Auto-Image Generation formatting
-        const myCustomIdentity = `You are Anurag's GPT, a professional, highly intelligent senior web developer AI assistant created by Anurag.
-Formatting Rules:
-1. EMOJIS: Use relevant emojis at the start of major section headings to be visually engaging.
-2. MATH: For all mathematical expressions, equations, and symbols, you MUST use LaTeX formatting enclosed in dollar signs. Use single dollar signs for inline math (e.g., "$x^2$") and double dollar signs for block equations. Do NOT use plain text like "^2".
-3. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, OR if you are explaining a visual/complex topic (like Quantum Computing), you MUST generate an image to illustrate it. Use this EXACT markdown format: ![Image](https://gen.pollinations.ai/image/detailed%20visual%20description). Replace spaces in the URL with %20. Do NOT put the image link inside a code block.`;
+        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, reply with this exact markdown format: ![Image](https://gen.pollinations.ai/image/detailed%20description%20of%20image). Replace spaces with %20. Do not put the image link inside a code block.";
         
         if (messages.length > 0) {
             if (typeof messages[0].content === 'string' && !messages[0].content.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
