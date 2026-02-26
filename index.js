@@ -121,7 +121,6 @@ app.get('/api/unban', (req, res) => {
 });
 
 // --- GETIMG PROXY (PHOTO EDITING) ---
-// Note: This still uses backend because Getimg requires a secret API key.
 app.post('/api/edit-image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -156,7 +155,6 @@ app.post('/api/chat', async (req, res) => {
         const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
         if (!cleanKey) return res.status(500).json({ error: "OpenRouter API Key missing!" });
 
-        // INSTRUCT AI TO USE NATIVE POLLINATIONS LINKS
         const myCustomIdentity = `You are Anurag's GPT, a professional, highly intelligent AI assistant. 
 Formatting Rules:
 1. EMOJIS: Use relevant emojis at the start of major section headings.
