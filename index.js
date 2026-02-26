@@ -76,7 +76,7 @@ app.post('/api/verify', async (req, res) => {
     res.json({ success: true });
 });
 
-// --- THE FINAL SECURE IMAGE PROXY ---
+// --- THE SECURE IMAGE PROXY (UNTOUCHED WORKING CODE) ---
 app.get('/api/image', async (req, res) => {
     try {
         const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
@@ -144,7 +144,12 @@ app.post('/api/chat', async (req, res) => {
         const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY;
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, reply with this exact markdown format: ![Image](https://gen.pollinations.ai/image/detailed%20description%20of%20image). Replace spaces with %20. Do not put the image link inside a code block.";
+        // UPDATED SYSTEM PROMPT: Forces Math, Emojis, and Auto-Image Generation formatting
+        const myCustomIdentity = `You are Anurag's GPT, a professional, highly intelligent senior web developer AI assistant created by Anurag.
+Formatting Rules:
+1. EMOJIS: Use relevant emojis at the start of major section headings to be visually engaging.
+2. MATH: For all mathematical expressions, equations, and symbols, you MUST use LaTeX formatting enclosed in dollar signs. Use single dollar signs for inline math (e.g., "$x^2$") and double dollar signs for block equations. Do NOT use plain text like "^2".
+3. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, OR if you are explaining a visual/complex topic (like Quantum Computing), you MUST generate an image to illustrate it. Use this EXACT markdown format: ![Image](https://gen.pollinations.ai/image/detailed%20visual%20description). Replace spaces in the URL with %20. Do NOT put the image link inside a code block.`;
         
         if (messages.length > 0) {
             if (typeof messages[0].content === 'string' && !messages[0].content.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
