@@ -15,7 +15,7 @@ app.use(express.static(__dirname, { index: false }));
 app.get('/sw.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.send(`
-        const CACHE_NAME = 'anurags-gpt-v2-pro';
+        const CACHE_NAME = 'anurags-gpt-v3-pro';
         self.addEventListener('install', event => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/'))); });
         self.addEventListener('activate', event => { event.waitUntil(clients.claim()); });
         self.addEventListener('fetch', event => { event.respondWith(fetch(event.request).catch(() => caches.match('/'))); });
@@ -115,37 +115,13 @@ app.get('/api/unban', (req, res) => {
     if (!correctPassword || providedPwd !== correctPassword) return res.status(401).send("<h1 style='color:red; text-align:center;'>🚨 Unauthorized Link</h1>");
     if (targetIp) {
         bannedIPs.delete(targetIp); failedAttempts.delete(targetIp);
-        return res.send(`<div style="text-align:center; padding: 50px; background:#111827; color:white; height:100vh;"><h1 style='color:#34d399;'>✅ IP Unbanned</h1><p>The IP <b>${targetIp}</b> has been removed from the blacklist.</p></div>`);
+        return res.send(`<div style="text-align:center; padding: 50px; background:#111827; color:white; height:100vh; font-family:sans-serif;"><h1 style='color:#34d399;'>✅ IP Unbanned</h1><p>The IP <b>${targetIp}</b> has been removed from the blacklist.</p></div>`);
     }
     res.send("<h1>Error</h1><p>No IP provided.</p>");
 });
 
-// --- 1. POLLINATIONS PROXY ---
-app.get('/api/image', async (req, res) => {
-    try {
-        const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
-        const userPassword = (req.query.pwd || '').trim();
-        if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized");
-        
-        const prompt = req.query.prompt; const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
-        if (!prompt) return res.status(400).send("Prompt required");
-        
-        const cleanKey = cleanApiKey('POLLINATIONS_API_KEY', 'POLLINATIONSAPIKEY');
-        const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true&seed=${seed}`;
-        
-        const options = { method: 'GET', headers: { "User-Agent": "Anurags-GPT/1.0" }};
-        if (cleanKey) options.headers["Authorization"] = `Bearer ${cleanKey}`;
-
-        const response = await fetch(url, options);
-        if (!response.ok) { const errText = await response.text(); return res.status(response.status).send(`Error: ${errText.substring(0, 100)}`); }
-        
-        res.setHeader('Content-Type', 'image/jpeg'); res.setHeader('Cache-Control', 'public, max-age=31536000');
-        if (response.body && typeof response.body.pipe === 'function') { response.body.pipe(res); } 
-        else { const arrayBuffer = await response.arrayBuffer(); res.send(Buffer.from(arrayBuffer)); }
-    } catch (error) { res.status(500).send(`Error: ${error.message}`); }
-});
-
-// --- 2. GETIMG PROXY (PHOTO EDITING) ---
+// --- GETIMG PROXY (PHOTO EDITING) ---
+// Note: This still uses backend because Getimg requires a secret API key.
 app.post('/api/edit-image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -167,7 +143,7 @@ app.post('/api/edit-image', async (req, res) => {
     } catch (error) { console.error("Edit Error:", error.message); res.status(500).json({ error: error.message }); }
 });
 
-// --- 3. MAIN CHAT ENGINE ---
+// --- MAIN CHAT ENGINE ---
 app.post('/api/chat', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -180,11 +156,12 @@ app.post('/api/chat', async (req, res) => {
         const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
         if (!cleanKey) return res.status(500).json({ error: "OpenRouter API Key missing!" });
 
+        // INSTRUCT AI TO USE NATIVE POLLINATIONS LINKS
         const myCustomIdentity = `You are Anurag's GPT, a professional, highly intelligent AI assistant. 
 Formatting Rules:
 1. EMOJIS: Use relevant emojis at the start of major section headings.
 2. MATH: For mathematical expressions, you MUST use LaTeX formatting enclosed in dollar signs.
-3. IMAGES: If asked to generate an image, use this EXACT format: ![Image](/api/image?prompt=detailed%20description%20with%20spaces). Do NOT put it in a code block.`;
+3. IMAGES: If asked to generate an image, use this EXACT markdown format: ![Image](https://image.pollinations.ai/prompt/detailed%20description%20with%20spaces). Do NOT put it in a code block.`;
         
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
