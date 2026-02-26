@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover, interactive-widget=resizes-content">
-    <title>Anurag's GPT Pro</title>
+    <title>Anurag's GPT</title>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icon.png">
@@ -59,7 +59,7 @@
             <p class="text-gray-400 text-sm mb-6">Enter the password to access Anurag's GPT.</p>
             <input type="password" id="app-password-input" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center transition-colors" placeholder="Enter Password">
             <button id="submit-password-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-md active:scale-95">Unlock App</button>
-            <p id="password-error" class="text-red-400 text-sm mt-4 hidden fade-in font-medium"></p>
+            <p id="password-error" class="text-red-400 text-sm mt-4 hidden fade-in font-medium">Incorrect password.</p>
         </div>
     </div>
 
@@ -148,7 +148,6 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
-        // --- 1. DEFINE DOM ELEMENTS ---
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
         
@@ -157,32 +156,17 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        // --- 2. STATE VARIABLES ---
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v63_final_polish'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v63_final_polish'; 
-        const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
-        let state = { chats: [], currentChatId: null }; 
-        let settings = { systemPrompt: '' }; 
-        let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
-        let currentBase64Image = null; 
-        let currentFileAttachment = null; 
-        window.isGenerating = false; 
-        let abortController = null;
-        let isUserScrolledUp = false; 
-        let recognition = null; 
-        let isTempChat = false; 
-        let tempChatData = { messages: [] };
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v64_ultimate'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v64_ultimate'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
+        let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
+        let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] };
 
         const renderer = new marked.Renderer();
-        
-        // --- HELPER FUNCTIONS ---
         window.escapeHtml = function(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); };
         
         function applyKaTeX(element) {
              if (typeof renderMathInElement === 'function') {
-                 renderMathInElement(element, {
-                     delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true} ], throwOnError: false
-                 });
+                 renderMathInElement(element, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true} ], throwOnError: false });
              }
         }
         
@@ -218,7 +202,6 @@
                 const imgTag = imgContainer.querySelector('img[data-prompt]'); 
                 if (!imgTag || !imgTag.src) throw new Error("Image source not found."); 
                 
-                // Fetch the image to trigger a direct download on mobile
                 const response = await fetch(imgTag.src); 
                 const blob = await response.blob(); 
                 const blobUrl = URL.createObjectURL(blob);
@@ -226,10 +209,7 @@
                 const a = document.createElement('a'); 
                 a.href = blobUrl; 
                 a.download = `AnuragsGPT-Image-${Date.now()}.jpg`; 
-                document.body.appendChild(a); 
-                a.click(); 
-                document.body.removeChild(a); 
-                URL.revokeObjectURL(blobUrl);
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
                 
                 const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); 
             } catch (error) { alert("Failed to download image."); }
@@ -243,44 +223,78 @@
             elSendBtn.disabled = false; elSendBtn.click();
         };
         
+        // BULLETPROOF REGENERATE LOGIC
         window.regenerateResponse = function(btn) { 
             if (window.isGenerating) return; 
-            const msgDiv = btn.closest('.relative.group'); 
-            const textContainers = elMessagesContainer.querySelectorAll('.message-text'); 
-            let lastUserText = ""; 
-            for (let i = textContainers.length - 1; i >= 0; i--) { if (textContainers[i].closest('.justify-end')) { lastUserText = textContainers[i].getAttribute('data-raw-content'); break; } } 
-            if (lastUserText) { msgDiv.remove(); elUserInput.value = lastUserText; sendMessage(); }
+            let chat = isTempChat ? tempChatData : state.chats.find(c => c.id === state.currentChatId);
+            if (!chat || chat.messages.length < 2) return;
+            
+            if (chat.messages[chat.messages.length - 1].role === 'assistant' && chat.messages[chat.messages.length - 2].role === 'user') {
+                const userContent = chat.messages[chat.messages.length - 2].content;
+                let lastUserText = typeof userContent === 'string' ? userContent : userContent[0].text;
+                if (lastUserText.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { 
+                     const parts = lastUserText.split('\n\nUser Message: '); 
+                     if (parts.length > 1) lastUserText = parts.slice(1).join('\n\nUser Message: '); 
+                }
+                
+                chat.messages.pop(); chat.messages.pop();
+                if (!isTempChat) saveChats();
+                loadChat(chat.id || null);
+                
+                elUserInput.value = lastUserText; 
+                elUserInput.style.height = 'auto'; elUserInput.style.height = (elUserInput.scrollHeight) + 'px'; 
+                elSendBtn.disabled = false; elSendBtn.click();
+            }
         };
 
-        // --- CUSTOM MARKED.JS RENDERERS ---
+        // --- CUSTOM RENDERERS ---
         renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
         
+        // FIXED WORKING IMAGE RENDERER
+        window.fetchSecureImage = async function(prompt, imgEl) { 
+            try { 
+                const pwd = encodeURIComponent(currentPassword); const seed = Math.floor(Math.random() * 1000000); 
+                const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}&seed=${seed}`); 
+                if (!res.ok) throw new Error("Backend Error"); 
+                const blob = await res.blob(); imgEl.src = URL.createObjectURL(blob); 
+                if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none'; imgEl.style.opacity = '1'; 
+            } catch (e) { 
+                imgEl.parentElement.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#1f2937;padding:1rem;text-align:center;"><span style="font-size:2rem;margin-bottom:0.5rem;">⚠️</span><div style="color:#f87171;font-weight:bold;font-size:1rem;">Image Failed</div></div>`; 
+            }
+        };
+
         renderer.image = function(arg1, arg2, arg3) { 
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1; const text = typeof arg1 === 'object' ? arg1.text : arg3;
              if (!rawHref) rawHref = ''; let cleanHref = rawHref.replace(/&amp;/g, '&'); 
              let safePrompt = "AI Image"; let isBase64 = cleanHref.startsWith('data:image'); 
              
-             if (isBase64) { 
-                 safePrompt = "Edited Image"; 
-             } else { 
-                 try { const match = cleanHref.match(/\/prompt\/([^?]+)/); if (match) safePrompt = decodeURIComponent(match[1]).replace(/["')\]}]+$/, '').trim(); } catch(e) {}
-                 
-                 // FIXED: Use direct Pollinations URL with NO "nologo=true" parameter to fix the 400 Bad Request error.
-                 cleanHref = `https://image.pollinations.ai/prompt/${encodeURIComponent(safePrompt)}?width=1024&height=1024&model=flux&seed=${Math.floor(Math.random() * 1000000)}`; 
-             } 
+             if (isBase64) { safePrompt = "Edited Image"; } 
+             else if (cleanHref.includes('pollinations.ai') || cleanHref.includes('/api/image')) { 
+                 try { 
+                     let promptPart = "";
+                     if (cleanHref.includes('/api/image')) { promptPart = cleanHref.split('prompt=')[1].split('&')[0]; } 
+                     else { let match = cleanHref.match(/\/(prompt|image|p)\/([^?&]+)/); promptPart = match && match[2] ? match[2] : "a beautiful image"; }
+                     safePrompt = encodeURIComponent(decodeURIComponent(promptPart).replace(/["')\]}]+$/, '').trim()); 
+                 } catch(e) {} 
+             } else { safePrompt = encodeURIComponent(cleanHref.replace(/\s+/g, '%20')); } 
              
              const containerStyle = "width: 280px; height: 280px; min-width: 280px; min-height: 280px;"; 
-             
              if (window.isGenerating && !isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><span class="text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span></div></div>`; } 
              
-             if (isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${encodeURIComponent(safePrompt)}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${encodeURIComponent(safePrompt)}" data-is-edit="true" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
+             if (isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
              
-             return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="${cleanHref}" alt="${window.escapeHtml(text || 'AI Image')}" data-prompt="${encodeURIComponent(safePrompt)}" onload="this.previousElementSibling.style.display='none'; this.style.opacity='1';" onerror="this.onerror=null; this.previousElementSibling.innerHTML='<div style=\\'display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; height:100%; background:#1f2937; padding:1rem; text-align:center;\\'><span style=\\'font-size:2rem; margin-bottom:0.5rem;\\'>⚠️</span><div style=\\'color:#f87171; font-weight:bold; font-size:1rem;\\'>Image Failed</div></div>';" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${encodeURIComponent(safePrompt)}" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
+             return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage(this.dataset.prompt, this); }" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
         };
         
         window.formatText = function(text) { 
             if (!text) return ""; let processedText = text;
-            if (window.isGenerating) { processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`); }
+            if (window.isGenerating) { 
+                processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`); 
+                processedText = processedText.replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`);
+                processedText = processedText.replace(/\/api\/image\?prompt=[^\s]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`);
+            } else {
+                processedText = processedText.replace(/(^|\s)(https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s<]+)/g, function(match, space, url) { if (url.endsWith(')')) return match; return `${space}![AI Image](${url})`; });
+            }
             return marked.parse(processedText, { renderer: renderer, breaks: true, gfm: true }); 
         };
 
@@ -291,7 +305,7 @@
                 let textObj = content.find(c => c.type === 'text'); displayContent = textObj ? textObj.text : "";
                 let imgObj = content.find(c => c.type === 'image_url'); if (imgObj) imageHtml = `<div class="mb-3 max-w-[200px] max-h-[200px] rounded-xl overflow-hidden border border-gray-700 shadow-md"><img src="${imgObj.image_url.url}" class="w-full h-full object-cover"></div>`;
             } else { displayContent = content; }
-            if (role === 'user' && displayContent.startsWith('[SYSTEM INSTRUCTIONS:')) { const parts = displayContent.split('\n\nUSER REQUEST: '); if (parts.length > 1) displayContent = parts.slice(1).join('\n\nUSER REQUEST: '); }
+            if (role === 'user' && displayContent.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = displayContent.split('\n\nUser Message: '); if (parts.length > 1) displayContent = parts.slice(1).join('\n\nUser Message: '); }
             if (role === 'user' && displayContent.includes('--- FILE CONTENT ---')) { displayContent = displayContent.split('--- END FILE CONTENT ---\n\n')[1] || displayContent; imageHtml = `<div class="flex items-center gap-2 mb-3 bg-gray-700 px-3 py-2 rounded-lg text-sm font-medium text-gray-200 border border-gray-600 w-fit"><svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Document Attached</div>`; }
 
             const isUser = role === 'user'; 
@@ -300,8 +314,8 @@
             
             let actionButtons = '';
             if (!isUser) {
-                // FIXED: Only show text buttons if there is actual text content (not just an image)
-                const textWithoutImages = displayContent.replace(/!\[.*?\]\([^)]+\)/g, '').trim();
+                // FIXED: Check if text actually exists alongside the image
+                const textWithoutImages = displayContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim();
                 if (textWithoutImages.length > 0) {
                      actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10"><button onclick="window.toggleSpeech(this)" data-content="${window.escapeHtml(textWithoutImages)}" class="speaker-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" data-content="${window.escapeHtml(textWithoutImages)}" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; 
                 }
@@ -350,12 +364,11 @@
             try {
                 let payloadMessages = chat.messages.map(m => ({ role: m.role, content: m.content }));
                 if (settings.systemPrompt && settings.systemPrompt.trim() !== '') {
-                    if (typeof payloadMessages[0].content === 'string') { payloadMessages[0].content = `[SYSTEM INSTRUCTIONS: ${settings.systemPrompt.trim()}]\n\nUSER REQUEST: ${payloadMessages[0].content}`; } 
-                    else if (Array.isArray(payloadMessages[0].content)) { let textObj = payloadMessages[0].content.find(c => c.type === 'text'); if (textObj) textObj.text = `[SYSTEM INSTRUCTIONS: ${settings.systemPrompt.trim()}]\n\nUSER REQUEST: ${textObj.text}`; }
+                    if (typeof payloadMessages[0].content === 'string') { payloadMessages[0].content = `[STRICT SYSTEM INSTRUCTIONS: ${settings.systemPrompt.trim()}]\n\nUser Message: ${payloadMessages[0].content}`; } 
+                    else if (Array.isArray(payloadMessages[0].content)) { let textObj = payloadMessages[0].content.find(c => c.type === 'text'); if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${settings.systemPrompt.trim()}]\n\nUser Message: ${textObj.text}`; }
                 }
                 let response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "x-app-password": currentPassword }, body: JSON.stringify({ messages: payloadMessages }), signal: abortController.signal });
                 
-                // FIXED: PROPERLY PARSE ATTEMPTS LEFT FROM BACKEND
                 if (response.status === 401) { 
                     const errData = await response.json().catch(() => ({ attemptsLeft: 0 }));
                     currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); 
@@ -397,7 +410,6 @@
                 if (lastTextContainer) { lastTextContainer.innerHTML = window.formatText(aiContent); applyKaTeX(lastTextContainer); scrollToBottom(); }
                 chat.messages.push({ role: 'assistant', content: aiContent }); if (!isTempChat) saveChats();
                 
-                // RESTORE TEXT BUTTONS ONLY IF THERE IS TEXT
                 if(lastActionButtons) { 
                     const textWithoutImages = aiContent.replace(/!\[.*?\]\([^)]+\)/g, '').trim();
                     if(textWithoutImages.length > 0) {
@@ -426,8 +438,6 @@
         $('#mobile-menu-btn').addEventListener('click', () => { $('#sidebar').classList.remove('-translate-x-full'); $('#sidebar-overlay').classList.remove('hidden'); });
         $('#sidebar-overlay').addEventListener('click', () => { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); });
         $$('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { elUserInput.value = btn.innerText.replace(/"/g, '').trim(); elSendBtn.disabled = false; sendMessage(); }); });
-        window.copyToClipboard = (btn) => { const txt = document.createElement('textarea'); txt.innerHTML = btn.getAttribute('data-content'); navigator.clipboard.writeText(txt.value).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); }); };
-        window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span>Copied!</span>`; btn.classList.replace('text-gray-400', 'text-green-400'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-400', 'text-gray-400'); }, 2000); }); };
 
         let confirmActionCallback = null; window.showConfirmModal = function(title, text, callback) { $('#confirm-modal-title').innerText = title; $('#confirm-modal-text').innerText = text; confirmActionCallback = callback; $('#confirm-modal').classList.remove('hidden'); }; window.closeConfirmModal = function() { $('#confirm-modal').classList.add('hidden'); confirmActionCallback = null; }; $('#confirm-cancel-btn').addEventListener('click', window.closeConfirmModal); $('#confirm-action-btn').addEventListener('click', () => { if (confirmActionCallback) confirmActionCallback(); window.closeConfirmModal(); });
         let deferredPrompt; const installPromptEl = $('#install-prompt'); const installBtn = $('#install-app-btn'); const closeInstallBtn = $('#close-install-btn');
@@ -440,7 +450,6 @@
         
         function triggerLockdownUI() { $('#password-overlay').classList.remove('hidden'); $('#app-password-input').classList.add('hidden'); $('#submit-password-btn').classList.add('hidden'); $('#password-error').classList.remove('hidden'); $('#password-error').innerHTML = "🚨 IP BANNED 🚨<br>Too many failed attempts."; }
         
-        // --- FIXED PASSWORD VERIFICATION ---
         async function verifyPassword(pwd) { 
             try { 
                 const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } }); 

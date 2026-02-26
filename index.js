@@ -15,7 +15,7 @@ app.use(express.static(__dirname, { index: false }));
 app.get('/sw.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.send(`
-        const CACHE_NAME = 'anurags-gpt-v3-pro';
+        const CACHE_NAME = 'anurags-gpt-v1';
         self.addEventListener('install', event => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/'))); });
         self.addEventListener('activate', event => { event.waitUntil(clients.claim()); });
         self.addEventListener('fetch', event => { event.respondWith(fetch(event.request).catch(() => caches.match('/'))); });
@@ -25,7 +25,7 @@ app.get('/sw.js', (req, res) => {
 app.get('/manifest.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({
-      "name": "Anurag's GPT", "short_name": "AnuragGPT", "description": "Anurag's Pro AI Assistant",
+      "name": "Anurag's GPT", "short_name": "AnuragGPT", "description": "Anurag's Custom AI Backend",
       "start_url": "/", "display": "standalone", "background_color": "#0d1117", "theme_color": "#0d1117",
       "orientation": "portrait",
       "icons": [
@@ -120,6 +120,50 @@ app.get('/api/unban', (req, res) => {
     res.send("<h1>Error</h1><p>No IP provided.</p>");
 });
 
+// --- RESTORED WORKING IMAGE PROXY ---
+app.get('/api/image', async (req, res) => {
+    try {
+        const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
+        const userPassword = (req.query.pwd || '').trim();
+        if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
+
+        const prompt = req.query.prompt;
+        const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
+        if (!prompt) return res.status(400).send("Prompt is required");
+
+        const cleanKey = cleanApiKey('POLLINATIONS_API_KEY', 'POLLINATIONSAPIKEY');
+        if (!cleanKey) return res.status(500).send("API Key missing in Vercel/Replit Variables");
+
+        const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&seed=${seed}`;
+        
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: { 
+                "Authorization": `Bearer ${cleanKey}`,
+                "User-Agent": "Anurags-GPT/1.0"
+            }
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            return res.status(response.status).send(`Pollinations Error ${response.status}: ${errText.substring(0, 150)}`);
+        }
+
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        
+        if (response.body && typeof response.body.pipe === 'function') {
+            response.body.pipe(res);
+        } else {
+            const arrayBuffer = await response.arrayBuffer();
+            res.send(Buffer.from(arrayBuffer));
+        }
+
+    } catch (error) {
+        res.status(500).send(`Server Error: ${error.message}`);
+    }
+});
+
 // --- GETIMG PROXY (PHOTO EDITING) ---
 app.post('/api/edit-image', async (req, res) => {
     try {
@@ -142,39 +186,42 @@ app.post('/api/edit-image', async (req, res) => {
     } catch (error) { console.error("Edit Error:", error.message); res.status(500).json({ error: error.message }); }
 });
 
-// --- MAIN CHAT ENGINE ---
+// --- MAIN AI ENGINE ---
 app.post('/api/chat', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
         const userPassword = (req.headers['x-app-password'] || '').trim();
-        if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized" });
+        if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized: Invalid Password" });
 
         const { messages } = req.body;
-        if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "Invalid format." });
+        if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "Invalid message format." });
 
         const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
-        if (!cleanKey) return res.status(500).json({ error: "OpenRouter API Key missing!" });
+        if (!cleanKey) return res.status(500).json({ error: "API Key missing!" });
 
-        const myCustomIdentity = `You are Anurag's GPT, a professional, highly intelligent AI assistant. 
+        // RESTORED WORKING PROMPT EXACTLY AS YOU PROVIDED
+        const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag.
 Formatting Rules:
-1. EMOJIS: Use relevant emojis at the start of major section headings.
-2. MATH: For mathematical expressions, you MUST use LaTeX formatting enclosed in dollar signs.
-3. IMAGES: If asked to generate an image, use this EXACT markdown format: ![Image](https://image.pollinations.ai/prompt/detailed%20description%20with%20spaces). Do NOT put it in a code block.`;
+1. EMOJIS: Use relevant emojis at the start of major section headings to be visually engaging.
+2. MATH: For all mathematical expressions, equations, and symbols, you MUST use LaTeX formatting enclosed in dollar signs. Use single dollar signs for inline math (e.g., "$x^2$") and double dollar signs for block equations (e.g., "$$ x^2 + y^2 = z^2 $$"). Do NOT use plain text like "^2".
+3. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, reply with this exact markdown format: ![Image](https://gen.pollinations.ai/image/detailed%20description%20of%20image). Replace spaces with %20. Do not put the image link inside a code block.`;
         
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
             if (messages[lastMessageIndex].role === 'user') {
                  if (typeof messages[lastMessageIndex].content === 'string') {
-                    messages[lastMessageIndex].content = `[SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUSER REQUEST: ${messages[lastMessageIndex].content}`;
+                    messages[lastMessageIndex].content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${messages[lastMessageIndex].content}`;
                  } else if (Array.isArray(messages[lastMessageIndex].content)) {
                      let textObj = messages[lastMessageIndex].content.find(c => c.type === 'text');
-                     if (textObj) textObj.text = `[SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUSER REQUEST: ${textObj.text}`;
+                     if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
                  }
             }
         }
 
         const autoModels = ["openrouter/auto", "openrouter/free"];
-        let response = null; let errorLogs = [];
+        let response = null;
+        let errorLogs = [];
+
         for (const currentModel of autoModels) {
             response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
@@ -185,9 +232,13 @@ Formatting Rules:
             else { let errText = `HTTP ${response.status}`; try { errText = (await response.json()).error?.message || errText; } catch(e) {} errorLogs.push(`${currentModel}: ${errText}`); }
         }
 
-        if (!response || !response.ok) return res.status(response ? response.status : 500).json({ error: "Routing Failed.\n" + errorLogs.join("\n") });
+        if (!response || !response.ok) return res.status(response ? response.status : 500).json({ error: "Auto-Routing Failed.\n\nDiagnostics:\n" + errorLogs.join("\n") });
 
-        res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Connection', 'keep-alive'); res.flushHeaders(); 
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache, no-transform');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders(); 
+        
         const reader = response.body.getReader();
         while (true) {
             const { done, value } = await reader.read();
@@ -196,10 +247,12 @@ Formatting Rules:
             if (typeof res.flush === 'function') res.flush(); 
         }
         res.end();
-    } catch (error) { if (!res.headersSent) res.status(500).json({ error: "Server Error." }); else res.end(); }
+    } catch (error) {
+        if (!res.headersSent) res.status(500).json({ error: "Internal Server Error." }); else res.end();
+    }
 });
 
-app.use((err, req, res, next) => { res.status(500).send('Broken!'); });
+app.use((err, req, res, next) => { res.status(500).send('Something broke!'); });
 const port = process.env.PORT || 3000;
-app.listen(port, '0.0.0.0', () => { console.log(`🚀 Server running on port ${port}!`); });
+app.listen(port, '0.0.0.0', () => { console.log(`🚀 Anurag's GPT Backend is running on port ${port}!`); });
 module.exports = app;
