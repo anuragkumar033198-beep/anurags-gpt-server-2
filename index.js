@@ -48,7 +48,7 @@ app.get('/', (req, res) => {
     else return res.send(`<h1>✅ Server Online!</h1><p style="color:red;">❌ index.html missing.</p>`);
 });
 
-// --- UNIVERSAL KEY SANITIZER (This safely handles underscores and spaces!) ---
+// --- UNIVERSAL KEY SANITIZER ---
 function cleanApiKey(keyWithUnderscores, keyWithoutUnderscores) {
     let raw = process.env[keyWithUnderscores] || process.env[keyWithoutUnderscores] || '';
     let cleaned = raw.replace(/[\r\n\s]+/g, ''); 
@@ -169,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- HUGGING FACE PROXY (PHOTO EDITING) - FIXED JSON & HTML STRIPPER ---
+// --- GETIMG PROXY (PHOTO EDITING) - RESTORED ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -180,67 +180,34 @@ app.post('/api/edit-image', async (req, res) => {
         const { imageBase64, prompt } = req.body;
         if (!imageBase64 || !prompt) return res.status(400).json({ error: "Data missing." });
         
-        let rawHFKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACEAPIKEY || '';
-        let cleanKey = rawHFKey.replace(/[\r\n\s]+/g, ''); 
-        if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
-
-        if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables!" });
+        const cleanKey = cleanApiKey('GETIMG_API_KEY', 'GETIMGAPIKEY');
+        if (!cleanKey) return res.status(500).json({ error: "Getimg API Key missing in Variables!" });
         
-        // Strip the standard data URI prefix so Hugging Face gets pure binary data
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         
-        // FIXED: Using standard JSON. 410 Error happened because HF disabled form-data.
-        // We use RunwayML as it natively supports Image-to-Image via JSON payloads.
-        const modelsToTry = [
-            "runwayml/stable-diffusion-v1-5",
-            "SG161222/Realistic_Vision_V5.1_noVAE",
-            "stabilityai/stable-diffusion-2-1"
-        ];
-
-        let response = null;
-        let lastError = "";
-        let success = false;
-
-        for (const model of modelsToTry) {
-            response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
-                method: "POST",
-                headers: { 
-                    "Authorization": `Bearer ${cleanKey}`, 
-                    "Content-Type": "application/json",
-                    "X-Wait-For-Model": "true" // This forces HuggingFace to wait and wake up the AI instead of crashing!
-                },
-                body: JSON.stringify({ 
-                    inputs: base64Data, 
-                    parameters: { prompt: prompt, strength: 0.65 }
-                })
-            });
-            
-            if (response.ok) {
-                success = true;
-                break;
-            }
-            
-            lastError = await response.text();
+        const response = await fetch("https://api.getimg.ai/v1/stable-diffusion/image-to-image", {
+            method: "POST",
+            headers: { 
+                "Authorization": `Bearer ${cleanKey}`, 
+                "Content-Type": "application/json", 
+                "Accept": "application/json" 
+            },
+            body: JSON.stringify({ 
+                model: "realistic-vision-v5-1",
+                image: base64Data, 
+                prompt: prompt, 
+                output_format: "jpeg", 
+                strength: 0.6 
+            })
+        });
+        
+        if (!response.ok) { 
+            const errData = await response.json().catch(() => ({ error: { message: "Unknown GetImg Error" }})); 
+            throw new Error(`GetImg API Error: ${errData.error?.message || response.statusText}`); 
         }
         
-        // FIXED: Strips HTML out of the error message so the frontend doesn't draw an empty code box!
-        if (!success || !response || !response.ok) { 
-            let cleanErr = lastError.replace(/<[^>]*>?/gm, '').trim().substring(0, 150);
-            try { 
-                const parsed = JSON.parse(lastError);
-                cleanErr = parsed.error || parsed.message || cleanErr;
-            } catch(e) {}
-            
-            if (cleanErr.includes('410') || response.status === 410) {
-                throw new Error("Hugging Face disabled this free endpoint (410 Gone). Please try a different prompt.");
-            }
-            throw new Error(`HF Models Failed (${response ? response.status : 'N/A'}): ${cleanErr}`); 
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const outputBase64 = Buffer.from(arrayBuffer).toString('base64');
-        
-        res.json({ success: true, image: `data:image/jpeg;base64,${outputBase64}` });
+        const data = await response.json();
+        res.json({ success: true, image: `data:image/jpeg;base64,${data.image}` });
     } catch (error) { 
         console.error("Edit Error:", error.message); 
         res.status(500).json({ error: error.message }); 
