@@ -48,41 +48,11 @@ app.get('/', (req, res) => {
     else return res.send(`<h1>✅ Server Online!</h1><p style="color:red;">❌ index.html missing.</p>`);
 });
 
-// --- UNIVERSAL KEY SANITIZER ---
-function cleanApiKey(keyWithUnderscores, keyWithoutUnderscores) {
-    let raw = process.env[keyWithUnderscores] || process.env[keyWithoutUnderscores] || '';
-    let cleaned = raw.replace(/[\r\n\s]+/g, ''); 
-    if (cleaned.toLowerCase().startsWith('bearer')) { cleaned = cleaned.substring(6); }
-    return cleaned;
-}
-
-// --- SECURITY SYSTEM & DISCORD WEBHOOK ---
+// --- SECURITY SYSTEM ---
 const failedAttempts = new Map(); 
 const bannedIPs = new Set();      
 const MAX_ATTEMPTS = 5;
 const getIP = (req) => req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || "Unknown IP";
-
-async function notifyDiscord(ip, req) {
-    const webhookUrl = cleanApiKey('DISCORD_WEBHOOK_URL', 'DISCORDWEBHOOKURL');
-    if (!webhookUrl) return; 
-    
-    const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
-    const host = req.get('host');
-    const protocol = req.headers['x-forwarded-proto'] || 'https';
-    const unbanLink = `${protocol}://${host}/api/unban?ip=${ip}&pwd=${encodeURIComponent(correctPassword)}`;
-
-    const payload = {
-        embeds: [{
-            title: "🚨 Security Alert: IP Banned",
-            description: `Someone has triggered the security firewall on your Chatbot.\n\n**IP Address:** \`${ip}\`\n**Reason:** Exceeded ${MAX_ATTEMPTS} failed login attempts.\n\n👉 **[CLICK HERE TO UNBAN THIS IP](${unbanLink})**`,
-            color: 16711680,
-            timestamp: new Date().toISOString()
-        }]
-    };
-
-    try { await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } 
-    catch (e) { console.error("Discord Webhook Error:", e.message); }
-}
 
 app.use('/api', (req, res, next) => {
     if (req.path === '/unban') return next(); 
@@ -93,42 +63,23 @@ app.use('/api', (req, res, next) => {
 
 app.post('/api/verify', async (req, res) => {
     const ip = getIP(req);
-    const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
+    const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
     const userPassword = (req.headers['x-app-password'] || '').trim();
     
     if (correctPassword && userPassword !== correctPassword) {
         let attempts = (failedAttempts.get(ip) || 0) + 1;
         failedAttempts.set(ip, attempts);
-        
-        if (attempts === MAX_ATTEMPTS) { 
-            bannedIPs.add(ip); 
-            await notifyDiscord(ip, req);
-            return res.status(403).json({ error: "BANNED" }); 
-        }
-        if (attempts > MAX_ATTEMPTS) return res.status(403).json({ error: "BANNED" });
+        if (attempts >= MAX_ATTEMPTS) { bannedIPs.add(ip); return res.status(403).json({ error: "BANNED" }); }
         return res.status(401).json({ error: "Incorrect Password", attemptsLeft: MAX_ATTEMPTS - attempts });
     }
     failedAttempts.delete(ip);
     res.json({ success: true });
 });
 
-app.get('/api/unban', (req, res) => {
-    const targetIp = req.query.ip;
-    const providedPwd = req.query.pwd;
-    const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
-
-    if (!correctPassword || providedPwd !== correctPassword) return res.status(401).send("<h1 style='color:red; text-align:center;'>🚨 Unauthorized Link</h1>");
-    if (targetIp) {
-        bannedIPs.delete(targetIp); failedAttempts.delete(targetIp);
-        return res.send(`<div style="text-align:center; padding: 50px; background:#111827; color:white; height:100vh; font-family:sans-serif;"><h1 style='color:#34d399;'>✅ IP Unbanned</h1><p>The IP <b>${targetIp}</b> has been removed from the blacklist.</p></div>`);
-    }
-    res.send("<h1>Error</h1><p>No IP provided.</p>");
-});
-
-// --- RESTORED WORKING IMAGE PROXY ---
+// --- THE SECURE IMAGE PROXY (UNTOUCHED) ---
 app.get('/api/image', async (req, res) => {
     try {
-        const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
+        const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
         const userPassword = (req.query.pwd || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
 
@@ -136,7 +87,10 @@ app.get('/api/image', async (req, res) => {
         const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
         if (!prompt) return res.status(400).send("Prompt is required");
 
-        const cleanKey = cleanApiKey('POLLINATIONS_API_KEY', 'POLLINATIONSAPIKEY');
+        let rawKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY || '';
+        let cleanKey = rawKey.replace(/[\r\n\s]+/g, ''); 
+        if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
+
         if (!cleanKey) return res.status(500).send("API Key missing in Vercel/Replit Variables");
 
         const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&seed=${seed}`;
@@ -151,6 +105,7 @@ app.get('/api/image', async (req, res) => {
 
         if (!response.ok) {
             const errText = await response.text();
+            console.error("Pollinations Error:", response.status, errText);
             return res.status(response.status).send(`Pollinations Error ${response.status}: ${errText.substring(0, 150)}`);
         }
 
@@ -165,28 +120,32 @@ app.get('/api/image', async (req, res) => {
         }
 
     } catch (error) {
+        console.error("Image Proxy Error:", error.message);
         res.status(500).send(`Server Error: ${error.message}`);
     }
 });
 
-// --- HUGGING FACE PROXY (PHOTO EDITING) ---
+// --- HUGGING FACE PROXY (PHOTO EDITING) - FIXED ENDPOINT ---
 app.post('/api/edit-image', async (req, res) => {
     try {
-        const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
+        let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
+        const correctPassword = rawAppKey.replace(/[\r\n\s]+/g, '');
         const userPassword = (req.headers['x-app-password'] || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized" });
         
         const { imageBase64, prompt } = req.body;
         if (!imageBase64 || !prompt) return res.status(400).json({ error: "Data missing." });
         
-        // CHECK FOR NEW HUGGING FACE KEY
-        const cleanKey = cleanApiKey('HUGGINGFACE_API_KEY', 'HUGGINGFACEAPIKEY');
+        let rawHFKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACEAPIKEY || '';
+        let cleanKey = rawHFKey.replace(/[\r\n\s]+/g, ''); 
+        if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
+
         if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables! Please add HUGGINGFACE_API_KEY to Vercel." });
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         
-        // Call Hugging Face Inference API
-        const response = await fetch("https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5", {
+        // --- FIXED: Updated to Hugging Face's brand new Router endpoint ---
+        const response = await fetch("https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5", {
             method: "POST",
             headers: { 
                 "Authorization": `Bearer ${cleanKey}`, 
@@ -203,14 +162,12 @@ app.post('/api/edit-image', async (req, res) => {
         
         if (!response.ok) { 
             const errData = await response.json().catch(() => ({ error: "Unknown Hugging Face Error" })); 
-            // Handle the famous Hugging Face "Cold Start" model loading error gracefully
             if (response.status === 503) {
                 throw new Error(`The free AI model is waking up from sleep. Please wait ${Math.round(errData.estimated_time || 20)} seconds and try again!`);
             }
             throw new Error(`Hugging Face Error: ${errData.error || response.statusText}`); 
         }
         
-        // Hugging Face returns raw binary image data, so we convert it to base64 for the frontend
         const arrayBuffer = await response.arrayBuffer();
         const outputBase64 = Buffer.from(arrayBuffer).toString('base64');
         
@@ -221,35 +178,31 @@ app.post('/api/edit-image', async (req, res) => {
     }
 });
 
-// --- MAIN CHAT ENGINE ---
+// --- MAIN AI ENGINE ---
 app.post('/api/chat', async (req, res) => {
     try {
-        const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
+        let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
+        const correctPassword = rawAppKey.replace(/[\r\n\s]+/g, '');
         const userPassword = (req.headers['x-app-password'] || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized: Invalid Password" });
 
         const { messages } = req.body;
         if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "Invalid message format." });
 
-        const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
-        if (!cleanKey) return res.status(500).json({ error: "API Key missing!" });
+        let rawOpenRouter = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY || '';
+        let apiKey = rawOpenRouter.replace(/[\r\n\s]+/g, ''); 
+        if (apiKey.toLowerCase().startsWith('bearer')) apiKey = apiKey.substring(6);
 
-        const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
-Formatting Rules:
-1. MATH NOTATION (CRITICAL): You MUST wrap EVERY mathematical equation, variable, or symbol in LaTeX dollar signs. Example inline: "$x^2$", "$E=mc^2$". Block equations: "$$ y = mx + c $$". NEVER use raw text for math like "^2" or "x^2" without the "$" wrappers.
-2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description). Do NOT put the image link inside a code block.
-3. EMOJIS: Use emojis at the start of major section headings.
-4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue circular icon with a white lightning bolt in the middle, DO NOT say it is Discord or a thunderbolt. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.`;
+        if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
+
+        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, reply with this exact markdown format: ![Image](https://gen.pollinations.ai/image/detailed%20description%20of%20image). Replace spaces with %20. Do not put the image link inside a code block.";
         
         if (messages.length > 0) {
-            const lastMessageIndex = messages.length - 1;
-            if (messages[lastMessageIndex].role === 'user') {
-                 if (typeof messages[lastMessageIndex].content === 'string') {
-                    messages[lastMessageIndex].content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${messages[lastMessageIndex].content}`;
-                 } else if (Array.isArray(messages[lastMessageIndex].content)) {
-                     let textObj = messages[lastMessageIndex].content.find(c => c.type === 'text');
-                     if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
-                 }
+            if (typeof messages[0].content === 'string' && !messages[0].content.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
+                messages[0].content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${messages[0].content}`;
+            } else if (Array.isArray(messages[0].content)) {
+                let textObj = messages[0].content.find(c => c.type === 'text');
+                if (textObj && !textObj.text.includes("[STRICT SYSTEM INSTRUCTIONS:")) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
             }
         }
 
@@ -260,7 +213,7 @@ Formatting Rules:
         for (const currentModel of autoModels) {
             response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${cleanKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://anurags-gpt.vercel.app", "X-Title": "Anurag's GPT" },
+                headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://anurags-gpt.vercel.app", "X-Title": "Anurag's GPT" },
                 body: JSON.stringify({ model: currentModel, messages: messages, stream: true })
             });
             if (response.ok) break;
