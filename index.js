@@ -169,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- HUGGING FACE PROXY (PHOTO EDITING) - BULLETPROOF FALLBACK SYSTEM ---
+// --- HUGGING FACE PROXY (PHOTO EDITING) - BULLETPROOF MULTIPART FALLBACK ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -187,49 +187,65 @@ app.post('/api/edit-image', async (req, res) => {
         if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables!" });
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+        const imageBuffer = Buffer.from(base64Data, 'base64');
         
-        // FIXED: Hugging Face frequently deletes or restricts free models (causing 404s).
-        // This array ensures if one model is 404, it instantly falls back to the next working one!
+        // FIXED: HF Router requires strict multipart/form-data for Image-to-Image tasks to prevent 404 routing errors!
+        const boundary = '----AnuragGPTFormBoundary' + Math.random().toString(16).slice(2);
+        const bodyBuffer = Buffer.concat([
+            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="prompt"\r\n\r\n${prompt}\r\n`),
+            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="upload.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
+            imageBuffer,
+            Buffer.from(`\r\n--${boundary}--\r\n`)
+        ]);
+
+        // The Auto-Fallback Engine
         const modelsToTry = [
-            "stabilityai/stable-diffusion-xl-base-1.0",
-            "stabilityai/stable-diffusion-2-1",
-            "runwayml/stable-diffusion-v1-5",
-            "prompthero/openjourney"
+            "timbrooks/instruct-pix2pix",
+            "black-forest-labs/FLUX.1-schnell",
+            "stabilityai/stable-diffusion-xl-refiner-1.0",
+            "runwayml/stable-diffusion-v1-5"
         ];
         
+        const endpointsToTry = [
+            "https://router.huggingface.co/hf-inference/models/",
+            "https://api-inference.huggingface.co/models/"
+        ];
+
         let response = null;
         let lastError = "";
+        let success = false;
 
         for (const model of modelsToTry) {
-            response = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
-                method: "POST",
-                headers: { 
-                    "Authorization": `Bearer ${cleanKey}`, 
-                    "Content-Type": "application/json" 
-                },
-                body: JSON.stringify({ 
-                    inputs: base64Data, 
-                    parameters: { prompt: prompt, strength: 0.65 }
-                })
-            });
-            
-            if (response.ok) {
-                break; // Model worked perfectly, exit the loop!
+            for (const baseEndpoint of endpointsToTry) {
+                response = await fetch(`${baseEndpoint}${model}`, {
+                    method: "POST",
+                    headers: { 
+                        "Authorization": `Bearer ${cleanKey}`, 
+                        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+                        "X-Use-Cache": "false"
+                    },
+                    body: bodyBuffer
+                });
+                
+                if (response.ok) {
+                    success = true;
+                    break;
+                }
+                
+                let errText = await response.text();
+                lastError = errText;
+                
+                // If the model is offline sleeping, pause and alert the user immediately.
+                if (response.status === 503) {
+                    let waitTime = 20;
+                    try { waitTime = Math.round(JSON.parse(errText).estimated_time || 20); } catch(e) {}
+                    throw new Error(`The free AI model is waking up from sleep. Please wait ${waitTime} seconds and try again!`);
+                }
             }
-            
-            let errText = await response.text();
-            lastError = errText;
-            
-            // If the model is just sleeping (503), don't fallback to a different model. Tell the user to wait.
-            if (response.status === 503) {
-                let waitTime = 20;
-                try { waitTime = Math.round(JSON.parse(errText).estimated_time || 20); } catch(e) {}
-                throw new Error(`The free AI model is waking up from sleep. Please wait ${waitTime} seconds and try again!`);
-            }
+            if (success) break;
         }
         
-        // If ALL models in the array failed (e.g. 404s), throw the final error cleanly
-        if (!response || !response.ok) { 
+        if (!success || !response || !response.ok) { 
             let parsedErr = lastError.substring(0, 100);
             try { parsedErr = JSON.parse(lastError).error || parsedErr; } catch(e) {}
             throw new Error(`HF Models Failed (${response ? response.status : 'N/A'}): ${parsedErr}`); 
