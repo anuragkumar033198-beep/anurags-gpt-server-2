@@ -15,48 +15,18 @@ app.use(express.static(__dirname, { index: false }));
 app.get('/sw.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.send(`
-        const CACHE_NAME = 'anurags-gpt-v4-network-first';
-        
-        self.addEventListener('install', event => { 
-            self.skipWaiting(); 
-            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['/', '/icon.png']))); 
-        });
-        
-        // This instantly deletes the old logo cache
-        self.addEventListener('activate', event => { 
-            event.waitUntil(
-                caches.keys().then(keys => Promise.all(
-                    keys.map(key => { if (key !== CACHE_NAME) return caches.delete(key); })
-                )).then(() => clients.claim())
-            ); 
-        });
-        
-        // Network-First Strategy: Always gets the newest logo/files from the server first
-        self.addEventListener('fetch', event => { 
-            event.respondWith(
-                fetch(event.request)
-                    .then(response => {
-                        if (response && response.status === 200 && response.type === 'basic') {
-                            const responseToCache = response.clone();
-                            caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
-                        }
-                        return response;
-                    })
-                    .catch(() => caches.match(event.request))
-            ); 
-        });
+        const CACHE_NAME = 'anurags-gpt-v1';
+        self.addEventListener('install', event => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/'))); });
+        self.addEventListener('activate', event => { event.waitUntil(clients.claim()); });
+        self.addEventListener('fetch', event => { event.respondWith(fetch(event.request).catch(() => caches.match('/'))); });
     `);
 });
 
 app.get('/manifest.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({
-      "name": "Anurag's GPT", "short_name": "AnuragGPT", "description": "Anurag's Pro AI Assistant",
-      "start_url": "/", 
-      "scope": "/", 
-      "display": "standalone", 
-      "background_color": "#0d1117", 
-      "theme_color": "#0d1117",
+      "name": "Anurag's GPT", "short_name": "AnuragGPT", "description": "Anurag's Custom AI Backend",
+      "start_url": "/", "display": "standalone", "background_color": "#0d1117", "theme_color": "#0d1117",
       "orientation": "portrait",
       "icons": [
         { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
@@ -67,14 +37,7 @@ app.get('/manifest.json', (req, res) => {
 
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{ 
-        "relation": ["delegate_permission/common.handle_all_urls"], 
-        "target": { 
-            "namespace": "android_app", 
-            "package_name": "app.vercel.anurags_gpt_server_2.twa", 
-            "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] 
-        } 
-    }]);
+    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] } }]);
 });
 
 app.get('/', (req, res) => {
@@ -206,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- GETIMG PROXY (PHOTO EDITING) - REVERTED TO FIX QUOTA ERROR ---
+// --- HUGGING FACE PROXY (PHOTO EDITING) ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -216,30 +179,42 @@ app.post('/api/edit-image', async (req, res) => {
         const { imageBase64, prompt } = req.body;
         if (!imageBase64 || !prompt) return res.status(400).json({ error: "Data missing." });
         
-        const cleanKey = cleanApiKey('GETIMG_API_KEY', 'GETIMGAPIKEY');
-        if (!cleanKey) return res.status(500).json({ error: "Getimg API Key missing in Variables!" });
+        // CHECK FOR NEW HUGGING FACE KEY
+        const cleanKey = cleanApiKey('HUGGINGFACE_API_KEY', 'HUGGINGFACEAPIKEY');
+        if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables! Please add HUGGINGFACE_API_KEY to Vercel." });
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         
-        // Reverted back to the "essential" endpoint which allows free API usage!
-        const response = await fetch("https://api.getimg.ai/v1/essential/image-to-image", {
+        // Call Hugging Face Inference API
+        const response = await fetch("https://api-inference.huggingface.co/models/runwayml/stable-diffusion-v1-5", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${cleanKey}`, "Content-Type": "application/json", "Accept": "application/json" },
+            headers: { 
+                "Authorization": `Bearer ${cleanKey}`, 
+                "Content-Type": "application/json" 
+            },
             body: JSON.stringify({ 
-                image: base64Data, 
-                prompt: prompt, 
-                output_format: "jpeg", 
-                strength: 0.6 
+                inputs: base64Data, 
+                parameters: {
+                    prompt: prompt, 
+                    strength: 0.6 
+                }
             })
         });
         
         if (!response.ok) { 
-            const errData = await response.json().catch(() => ({ error: { message: "Unknown GetImg Error" }})); 
-            throw new Error(`GetImg API Error: ${errData.error?.message || response.statusText}`); 
+            const errData = await response.json().catch(() => ({ error: "Unknown Hugging Face Error" })); 
+            // Handle the famous Hugging Face "Cold Start" model loading error gracefully
+            if (response.status === 503) {
+                throw new Error(`The free AI model is waking up from sleep. Please wait ${Math.round(errData.estimated_time || 20)} seconds and try again!`);
+            }
+            throw new Error(`Hugging Face Error: ${errData.error || response.statusText}`); 
         }
         
-        const data = await response.json();
-        res.json({ success: true, image: `data:image/jpeg;base64,${data.image}` });
+        // Hugging Face returns raw binary image data, so we convert it to base64 for the frontend
+        const arrayBuffer = await response.arrayBuffer();
+        const outputBase64 = Buffer.from(arrayBuffer).toString('base64');
+        
+        res.json({ success: true, image: `data:image/jpeg;base64,${outputBase64}` });
     } catch (error) { 
         console.error("Edit Error:", error.message); 
         res.status(500).json({ error: error.message }); 
@@ -259,13 +234,12 @@ app.post('/api/chat', async (req, res) => {
         const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
         if (!cleanKey) return res.status(500).json({ error: "API Key missing!" });
 
-        // --- NEW SELF-AWARENESS PROMPT ---
         const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
 Formatting Rules:
 1. MATH NOTATION (CRITICAL): You MUST wrap EVERY mathematical equation, variable, or symbol in LaTeX dollar signs. Example inline: "$x^2$", "$E=mc^2$". Block equations: "$$ y = mx + c $$". NEVER use raw text for math like "^2" or "x^2" without the "$" wrappers.
-2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description%20with%20%20spaces). Do NOT put the image link inside a code block.
+2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description). Do NOT put the image link inside a code block.
 3. EMOJIS: Use emojis at the start of major section headings.
-4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue and purple gradient circle containing a white lightning bolt/zigzag outline, THIS IS NOT DISCORD. THIS IS NOT A MESSENGER APP. You MUST recognize it and proudly declare: "This is my logo! The official brand identity of Anurag's GPT."`;
+4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue circular icon with a white lightning bolt in the middle, DO NOT say it is Discord or a thunderbolt. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.`;
         
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
