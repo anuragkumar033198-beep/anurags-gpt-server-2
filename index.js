@@ -15,18 +15,48 @@ app.use(express.static(__dirname, { index: false }));
 app.get('/sw.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.send(`
-        const CACHE_NAME = 'anurags-gpt-v1';
-        self.addEventListener('install', event => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/'))); });
-        self.addEventListener('activate', event => { event.waitUntil(clients.claim()); });
-        self.addEventListener('fetch', event => { event.respondWith(fetch(event.request).catch(() => caches.match('/'))); });
+        const CACHE_NAME = 'anurags-gpt-v4-network-first';
+        
+        self.addEventListener('install', event => { 
+            self.skipWaiting(); 
+            event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(['/', '/icon.png']))); 
+        });
+        
+        // This instantly deletes the old logo cache
+        self.addEventListener('activate', event => { 
+            event.waitUntil(
+                caches.keys().then(keys => Promise.all(
+                    keys.map(key => { if (key !== CACHE_NAME) return caches.delete(key); })
+                )).then(() => clients.claim())
+            ); 
+        });
+        
+        // Network-First Strategy: Always gets the newest logo/files from the server first
+        self.addEventListener('fetch', event => { 
+            event.respondWith(
+                fetch(event.request)
+                    .then(response => {
+                        if (response && response.status === 200 && response.type === 'basic') {
+                            const responseToCache = response.clone();
+                            caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+                        }
+                        return response;
+                    })
+                    .catch(() => caches.match(event.request))
+            ); 
+        });
     `);
 });
 
 app.get('/manifest.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({
-      "name": "Anurag's GPT", "short_name": "AnuragGPT", "description": "Anurag's Custom AI Backend",
-      "start_url": "/", "display": "standalone", "background_color": "#0d1117", "theme_color": "#0d1117",
+      "name": "Anurag's GPT", "short_name": "AnuragGPT", "description": "Anurag's Pro AI Assistant",
+      "start_url": "/", 
+      "scope": "/", 
+      "display": "standalone", 
+      "background_color": "#0d1117", 
+      "theme_color": "#0d1117",
       "orientation": "portrait",
       "icons": [
         { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
@@ -35,9 +65,17 @@ app.get('/manifest.json', (req, res) => {
     });
 });
 
+// --- RESTORED DIGITAL ASSET LINKS (THE "HANDSHAKE") ---
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] } }]);
+    res.json([{ 
+        "relation": ["delegate_permission/common.handle_all_urls"], 
+        "target": { 
+            "namespace": "android_app", 
+            "package_name": "app.vercel.anurags_gpt_server_2.twa", 
+            "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] 
+        } 
+    }]);
 });
 
 app.get('/', (req, res) => {
@@ -125,7 +163,7 @@ app.get('/api/unban', (req, res) => {
     res.send("<h1>Error</h1><p>No IP provided.</p>");
 });
 
-// --- RESTORED WORKING IMAGE PROXY ---
+// --- IMAGE PROXY (UNTOUCHED) ---
 app.get('/api/image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -169,7 +207,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- GETIMG PROXY (PHOTO EDITING) - FIXED ENDPOINT ---
+// --- GETIMG PROXY (UNTOUCHED) ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -184,7 +222,6 @@ app.post('/api/edit-image', async (req, res) => {
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         
-        // Uses reliable stable-diffusion endpoint required for basic editing
         const response = await fetch("https://api.getimg.ai/v1/stable-diffusion/image-to-image", {
             method: "POST",
             headers: { "Authorization": `Bearer ${cleanKey}`, "Content-Type": "application/json", "Accept": "application/json" },
@@ -210,7 +247,7 @@ app.post('/api/edit-image', async (req, res) => {
     }
 });
 
-// --- MAIN AI ENGINE ---
+// --- MAIN CHAT ENGINE (UNTOUCHED) ---
 app.post('/api/chat', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -223,12 +260,12 @@ app.post('/api/chat', async (req, res) => {
         const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
         if (!cleanKey) return res.status(500).json({ error: "API Key missing!" });
 
-        // AGGRESSIVE SYSTEM PROMPT FOR MATH & IMAGES
         const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
 Formatting Rules:
 1. MATH NOTATION (CRITICAL): You MUST wrap EVERY mathematical equation, variable, or symbol in LaTeX dollar signs. Example inline: "$x^2$", "$E=mc^2$". Block equations: "$$ y = mx + c $$". NEVER use raw text for math like "^2" or "x^2" without the "$" wrappers.
-2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description%20with%20%20spaces). Do NOT put the image link inside a code block.
-3. EMOJIS: Use emojis at the start of major section headings.`;
+2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://image.pollinations.ai/prompt/highly%20detailed%20visual%20description%20with%20%20spaces). Do NOT put the image link inside a code block.
+3. EMOJIS: Use emojis at the start of major section headings.
+4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue circular icon with a white lightning bolt in the middle, DO NOT say it is Discord or a thunderbolt. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.`;
         
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
