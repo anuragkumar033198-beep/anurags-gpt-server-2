@@ -48,7 +48,7 @@ app.get('/', (req, res) => {
     else return res.send(`<h1>✅ Server Online!</h1><p style="color:red;">❌ index.html missing.</p>`);
 });
 
-// --- UNIVERSAL KEY SANITIZER ---
+// --- UNIVERSAL KEY SANITIZER (This safely handles underscores and spaces!) ---
 function cleanApiKey(keyWithUnderscores, keyWithoutUnderscores) {
     let raw = process.env[keyWithUnderscores] || process.env[keyWithoutUnderscores] || '';
     let cleaned = raw.replace(/[\r\n\s]+/g, ''); 
@@ -169,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- HUGGING FACE PROXY (PHOTO EDITING) - BULLETPROOF MULTIPART FALLBACK ---
+// --- HUGGING FACE PROXY (PHOTO EDITING) - FIXED JSON & HTML STRIPPER ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -186,29 +186,15 @@ app.post('/api/edit-image', async (req, res) => {
 
         if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables!" });
         
+        // Strip the standard data URI prefix so Hugging Face gets pure binary data
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
-        const imageBuffer = Buffer.from(base64Data, 'base64');
         
-        // FIXED: HF Router requires strict multipart/form-data for Image-to-Image tasks to prevent 404 routing errors!
-        const boundary = '----AnuragGPTFormBoundary' + Math.random().toString(16).slice(2);
-        const bodyBuffer = Buffer.concat([
-            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="prompt"\r\n\r\n${prompt}\r\n`),
-            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="upload.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
-            imageBuffer,
-            Buffer.from(`\r\n--${boundary}--\r\n`)
-        ]);
-
-        // The Auto-Fallback Engine
+        // FIXED: Using standard JSON. 410 Error happened because HF disabled form-data.
+        // We use RunwayML as it natively supports Image-to-Image via JSON payloads.
         const modelsToTry = [
-            "timbrooks/instruct-pix2pix",
-            "black-forest-labs/FLUX.1-schnell",
-            "stabilityai/stable-diffusion-xl-refiner-1.0",
-            "runwayml/stable-diffusion-v1-5"
-        ];
-        
-        const endpointsToTry = [
-            "https://router.huggingface.co/hf-inference/models/",
-            "https://api-inference.huggingface.co/models/"
+            "runwayml/stable-diffusion-v1-5",
+            "SG161222/Realistic_Vision_V5.1_noVAE",
+            "stabilityai/stable-diffusion-2-1"
         ];
 
         let response = null;
@@ -216,39 +202,39 @@ app.post('/api/edit-image', async (req, res) => {
         let success = false;
 
         for (const model of modelsToTry) {
-            for (const baseEndpoint of endpointsToTry) {
-                response = await fetch(`${baseEndpoint}${model}`, {
-                    method: "POST",
-                    headers: { 
-                        "Authorization": `Bearer ${cleanKey}`, 
-                        "Content-Type": `multipart/form-data; boundary=${boundary}`,
-                        "X-Use-Cache": "false"
-                    },
-                    body: bodyBuffer
-                });
-                
-                if (response.ok) {
-                    success = true;
-                    break;
-                }
-                
-                let errText = await response.text();
-                lastError = errText;
-                
-                // If the model is offline sleeping, pause and alert the user immediately.
-                if (response.status === 503) {
-                    let waitTime = 20;
-                    try { waitTime = Math.round(JSON.parse(errText).estimated_time || 20); } catch(e) {}
-                    throw new Error(`The free AI model is waking up from sleep. Please wait ${waitTime} seconds and try again!`);
-                }
+            response = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+                method: "POST",
+                headers: { 
+                    "Authorization": `Bearer ${cleanKey}`, 
+                    "Content-Type": "application/json",
+                    "X-Wait-For-Model": "true" // This forces HuggingFace to wait and wake up the AI instead of crashing!
+                },
+                body: JSON.stringify({ 
+                    inputs: base64Data, 
+                    parameters: { prompt: prompt, strength: 0.65 }
+                })
+            });
+            
+            if (response.ok) {
+                success = true;
+                break;
             }
-            if (success) break;
+            
+            lastError = await response.text();
         }
         
+        // FIXED: Strips HTML out of the error message so the frontend doesn't draw an empty code box!
         if (!success || !response || !response.ok) { 
-            let parsedErr = lastError.substring(0, 100);
-            try { parsedErr = JSON.parse(lastError).error || parsedErr; } catch(e) {}
-            throw new Error(`HF Models Failed (${response ? response.status : 'N/A'}): ${parsedErr}`); 
+            let cleanErr = lastError.replace(/<[^>]*>?/gm, '').trim().substring(0, 150);
+            try { 
+                const parsed = JSON.parse(lastError);
+                cleanErr = parsed.error || parsed.message || cleanErr;
+            } catch(e) {}
+            
+            if (cleanErr.includes('410') || response.status === 410) {
+                throw new Error("Hugging Face disabled this free endpoint (410 Gone). Please try a different prompt.");
+            }
+            throw new Error(`HF Models Failed (${response ? response.status : 'N/A'}): ${cleanErr}`); 
         }
         
         const arrayBuffer = await response.arrayBuffer();
