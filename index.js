@@ -65,7 +65,6 @@ app.get('/manifest.json', (req, res) => {
     });
 });
 
-// --- RESTORED DIGITAL ASSET LINKS (THE "HANDSHAKE") ---
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json([{ 
@@ -73,7 +72,7 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
         "target": { 
             "namespace": "android_app", 
             "package_name": "app.vercel.anurags_gpt_server_2.twa", 
-            "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] 
+            "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] 
         } 
     }]);
 });
@@ -163,7 +162,7 @@ app.get('/api/unban', (req, res) => {
     res.send("<h1>Error</h1><p>No IP provided.</p>");
 });
 
-// --- IMAGE PROXY (UNTOUCHED) ---
+// --- RESTORED WORKING IMAGE PROXY ---
 app.get('/api/image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -207,7 +206,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- GETIMG PROXY (UNTOUCHED) ---
+// --- GETIMG PROXY (PHOTO EDITING) - REVERTED TO FIX QUOTA ERROR ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -222,11 +221,11 @@ app.post('/api/edit-image', async (req, res) => {
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         
-        const response = await fetch("https://api.getimg.ai/v1/stable-diffusion/image-to-image", {
+        // Reverted back to the "essential" endpoint which allows free API usage!
+        const response = await fetch("https://api.getimg.ai/v1/essential/image-to-image", {
             method: "POST",
             headers: { "Authorization": `Bearer ${cleanKey}`, "Content-Type": "application/json", "Accept": "application/json" },
             body: JSON.stringify({ 
-                model: "realistic-vision-v5-1",
                 image: base64Data, 
                 prompt: prompt, 
                 output_format: "jpeg", 
@@ -247,7 +246,7 @@ app.post('/api/edit-image', async (req, res) => {
     }
 });
 
-// --- MAIN CHAT ENGINE (UNTOUCHED) ---
+// --- MAIN CHAT ENGINE ---
 app.post('/api/chat', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -260,12 +259,13 @@ app.post('/api/chat', async (req, res) => {
         const cleanKey = cleanApiKey('OPENROUTER_API_KEY', 'OPENROUTERAPIKEY');
         if (!cleanKey) return res.status(500).json({ error: "API Key missing!" });
 
+        // --- NEW SELF-AWARENESS PROMPT ---
         const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
 Formatting Rules:
 1. MATH NOTATION (CRITICAL): You MUST wrap EVERY mathematical equation, variable, or symbol in LaTeX dollar signs. Example inline: "$x^2$", "$E=mc^2$". Block equations: "$$ y = mx + c $$". NEVER use raw text for math like "^2" or "x^2" without the "$" wrappers.
-2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://image.pollinations.ai/prompt/highly%20detailed%20visual%20description%20with%20%20spaces). Do NOT put the image link inside a code block.
+2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description%20with%20%20spaces). Do NOT put the image link inside a code block.
 3. EMOJIS: Use emojis at the start of major section headings.
-4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue circular icon with a white lightning bolt in the middle, DO NOT say it is Discord or a thunderbolt. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.`;
+4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue and purple gradient circle containing a white lightning bolt/zigzag outline, THIS IS NOT DISCORD. THIS IS NOT A MESSENGER APP. You MUST recognize it and proudly declare: "This is my logo! The official brand identity of Anurag's GPT."`;
         
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
