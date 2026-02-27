@@ -37,7 +37,7 @@ app.get('/manifest.json', (req, res) => {
 
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
+    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] } }]);
 });
 
 app.get('/', (req, res) => {
@@ -169,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- HUGGING FACE PROXY (FIXED MODEL & ERROR PARSER) ---
+// --- HUGGING FACE PROXY (FIXED ENDPOINT & MODEL) ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -188,8 +188,8 @@ app.post('/api/edit-image', async (req, res) => {
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         
-        // FIXED: Switched to instruct-pix2pix! This model expects base64 + instructional prompts.
-        const response = await fetch("https://router.huggingface.co/hf-inference/models/timbrooks/instruct-pix2pix", {
+        // FIXED: Switched back to runwayml/stable-diffusion-v1-5 on the new router endpoint
+        const response = await fetch("https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5", {
             method: "POST",
             headers: { 
                 "Authorization": `Bearer ${cleanKey}`, 
@@ -198,12 +198,13 @@ app.post('/api/edit-image', async (req, res) => {
             body: JSON.stringify({ 
                 inputs: base64Data, 
                 parameters: {
-                    prompt: prompt
+                    prompt: prompt,
+                    strength: 0.6
                 }
             })
         });
         
-        // FIXED: Bulletproof Error Parser. Never returns "Unknown Error" again.
+        // FIXED: Bulletproof Error Parser to catch exactly why Hugging Face fails
         if (!response.ok) { 
             let errText = await response.text();
             let errMsg = "";
@@ -214,7 +215,7 @@ app.post('/api/edit-image', async (req, res) => {
                     throw new Error(`The free AI model is waking up from sleep. Please wait ${Math.round(errData.estimated_time || 20)} seconds and try again!`);
                 }
             } catch (e) {
-                if (e.message.includes('waking up')) throw e; // Pass up the 503
+                if (e.message.includes('waking up')) throw e; 
                 errMsg = errText.substring(0, 150);
             }
             throw new Error(`HF Error (${response.status}): ${errMsg}`); 
@@ -247,14 +248,22 @@ app.post('/api/chat', async (req, res) => {
 
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        const myCustomIdentity = "You are Anurag's GPT, a highly intelligent senior web developer AI assistant created by Anurag. IMAGE GENERATION: If the user asks you to generate, draw, or make an image, reply with this exact markdown format: ![Image](https://gen.pollinations.ai/image/detailed%20description%20of%20image). Replace spaces with %20. Do not put the image link inside a code block.";
+        const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
+Formatting Rules:
+1. MATH NOTATION (CRITICAL): You MUST wrap EVERY mathematical equation, variable, or symbol in LaTeX dollar signs. Example inline: "$x^2$", "$E=mc^2$". Block equations: "$$ y = mx + c $$". NEVER use raw text for math like "^2" or "x^2" without the "$" wrappers.
+2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description). Do NOT put the image link inside a code block.
+3. EMOJIS: Use emojis at the start of major section headings.
+4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue circular icon with a white lightning bolt in the middle, DO NOT say it is Discord or a thunderbolt. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.`;
         
         if (messages.length > 0) {
-            if (typeof messages[0].content === 'string' && !messages[0].content.includes("[STRICT SYSTEM INSTRUCTIONS:")) {
-                messages[0].content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${messages[0].content}`;
-            } else if (Array.isArray(messages[0].content)) {
-                let textObj = messages[0].content.find(c => c.type === 'text');
-                if (textObj && !textObj.text.includes("[STRICT SYSTEM INSTRUCTIONS:")) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
+            const lastMessageIndex = messages.length - 1;
+            if (messages[lastMessageIndex].role === 'user') {
+                 if (typeof messages[lastMessageIndex].content === 'string') {
+                    messages[lastMessageIndex].content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${messages[lastMessageIndex].content}`;
+                 } else if (Array.isArray(messages[lastMessageIndex].content)) {
+                     let textObj = messages[lastMessageIndex].content.find(c => c.type === 'text');
+                     if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
+                 }
             }
         }
 
