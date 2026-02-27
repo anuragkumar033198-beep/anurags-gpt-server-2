@@ -169,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- HUGGING FACE PROXY (FIXED ENDPOINT & MODEL) ---
+// --- HUGGING FACE PROXY (PHOTO EDITING) - BULLETPROOF FALLBACK SYSTEM ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -188,37 +188,51 @@ app.post('/api/edit-image', async (req, res) => {
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         
-        // FIXED: Switched back to runwayml/stable-diffusion-v1-5 on the new router endpoint
-        const response = await fetch("https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5", {
-            method: "POST",
-            headers: { 
-                "Authorization": `Bearer ${cleanKey}`, 
-                "Content-Type": "application/json" 
-            },
-            body: JSON.stringify({ 
-                inputs: base64Data, 
-                parameters: {
-                    prompt: prompt,
-                    strength: 0.6
-                }
-            })
-        });
+        // FIXED: Hugging Face frequently deletes or restricts free models (causing 404s).
+        // This array ensures if one model is 404, it instantly falls back to the next working one!
+        const modelsToTry = [
+            "stabilityai/stable-diffusion-xl-base-1.0",
+            "stabilityai/stable-diffusion-2-1",
+            "runwayml/stable-diffusion-v1-5",
+            "prompthero/openjourney"
+        ];
         
-        // FIXED: Bulletproof Error Parser to catch exactly why Hugging Face fails
-        if (!response.ok) { 
-            let errText = await response.text();
-            let errMsg = "";
-            try {
-                const errData = JSON.parse(errText);
-                errMsg = errData.error || errData.message || errText.substring(0, 100);
-                if (response.status === 503) {
-                    throw new Error(`The free AI model is waking up from sleep. Please wait ${Math.round(errData.estimated_time || 20)} seconds and try again!`);
-                }
-            } catch (e) {
-                if (e.message.includes('waking up')) throw e; 
-                errMsg = errText.substring(0, 150);
+        let response = null;
+        let lastError = "";
+
+        for (const model of modelsToTry) {
+            response = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
+                method: "POST",
+                headers: { 
+                    "Authorization": `Bearer ${cleanKey}`, 
+                    "Content-Type": "application/json" 
+                },
+                body: JSON.stringify({ 
+                    inputs: base64Data, 
+                    parameters: { prompt: prompt, strength: 0.65 }
+                })
+            });
+            
+            if (response.ok) {
+                break; // Model worked perfectly, exit the loop!
             }
-            throw new Error(`HF Error (${response.status}): ${errMsg}`); 
+            
+            let errText = await response.text();
+            lastError = errText;
+            
+            // If the model is just sleeping (503), don't fallback to a different model. Tell the user to wait.
+            if (response.status === 503) {
+                let waitTime = 20;
+                try { waitTime = Math.round(JSON.parse(errText).estimated_time || 20); } catch(e) {}
+                throw new Error(`The free AI model is waking up from sleep. Please wait ${waitTime} seconds and try again!`);
+            }
+        }
+        
+        // If ALL models in the array failed (e.g. 404s), throw the final error cleanly
+        if (!response || !response.ok) { 
+            let parsedErr = lastError.substring(0, 100);
+            try { parsedErr = JSON.parse(lastError).error || parsedErr; } catch(e) {}
+            throw new Error(`HF Models Failed (${response ? response.status : 'N/A'}): ${parsedErr}`); 
         }
         
         const arrayBuffer = await response.arrayBuffer();
