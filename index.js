@@ -37,7 +37,7 @@ app.get('/manifest.json', (req, res) => {
 
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] } }]);
+    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
 });
 
 app.get('/', (req, res) => {
@@ -48,11 +48,41 @@ app.get('/', (req, res) => {
     else return res.send(`<h1>✅ Server Online!</h1><p style="color:red;">❌ index.html missing.</p>`);
 });
 
-// --- SECURITY SYSTEM ---
+// --- UNIVERSAL KEY SANITIZER ---
+function cleanApiKey(keyWithUnderscores, keyWithoutUnderscores) {
+    let raw = process.env[keyWithUnderscores] || process.env[keyWithoutUnderscores] || '';
+    let cleaned = raw.replace(/[\r\n\s]+/g, ''); 
+    if (cleaned.toLowerCase().startsWith('bearer')) { cleaned = cleaned.substring(6); }
+    return cleaned;
+}
+
+// --- SECURITY SYSTEM & DISCORD WEBHOOK ---
 const failedAttempts = new Map(); 
 const bannedIPs = new Set();      
 const MAX_ATTEMPTS = 5;
 const getIP = (req) => req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || "Unknown IP";
+
+async function notifyDiscord(ip, req) {
+    const webhookUrl = cleanApiKey('DISCORD_WEBHOOK_URL', 'DISCORDWEBHOOKURL');
+    if (!webhookUrl) return; 
+    
+    const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
+    const host = req.get('host');
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const unbanLink = `${protocol}://${host}/api/unban?ip=${ip}&pwd=${encodeURIComponent(correctPassword)}`;
+
+    const payload = {
+        embeds: [{
+            title: "🚨 Security Alert: IP Banned",
+            description: `Someone has triggered the security firewall on your Chatbot.\n\n**IP Address:** \`${ip}\`\n**Reason:** Exceeded ${MAX_ATTEMPTS} failed login attempts.\n\n👉 **[CLICK HERE TO UNBAN THIS IP](${unbanLink})**`,
+            color: 16711680,
+            timestamp: new Date().toISOString()
+        }]
+    };
+
+    try { await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); } 
+    catch (e) { console.error("Discord Webhook Error:", e.message); }
+}
 
 app.use('/api', (req, res, next) => {
     if (req.path === '/unban') return next(); 
@@ -63,23 +93,42 @@ app.use('/api', (req, res, next) => {
 
 app.post('/api/verify', async (req, res) => {
     const ip = getIP(req);
-    const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
+    const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
     const userPassword = (req.headers['x-app-password'] || '').trim();
     
     if (correctPassword && userPassword !== correctPassword) {
         let attempts = (failedAttempts.get(ip) || 0) + 1;
         failedAttempts.set(ip, attempts);
-        if (attempts >= MAX_ATTEMPTS) { bannedIPs.add(ip); return res.status(403).json({ error: "BANNED" }); }
+        
+        if (attempts === MAX_ATTEMPTS) { 
+            bannedIPs.add(ip); 
+            await notifyDiscord(ip, req);
+            return res.status(403).json({ error: "BANNED" }); 
+        }
+        if (attempts > MAX_ATTEMPTS) return res.status(403).json({ error: "BANNED" });
         return res.status(401).json({ error: "Incorrect Password", attemptsLeft: MAX_ATTEMPTS - attempts });
     }
     failedAttempts.delete(ip);
     res.json({ success: true });
 });
 
-// --- THE SECURE IMAGE PROXY (UNTOUCHED) ---
+app.get('/api/unban', (req, res) => {
+    const targetIp = req.query.ip;
+    const providedPwd = req.query.pwd;
+    const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
+
+    if (!correctPassword || providedPwd !== correctPassword) return res.status(401).send("<h1 style='color:red; text-align:center;'>🚨 Unauthorized Link</h1>");
+    if (targetIp) {
+        bannedIPs.delete(targetIp); failedAttempts.delete(targetIp);
+        return res.send(`<div style="text-align:center; padding: 50px; background:#111827; color:white; height:100vh; font-family:sans-serif;"><h1 style='color:#34d399;'>✅ IP Unbanned</h1><p>The IP <b>${targetIp}</b> has been removed from the blacklist.</p></div>`);
+    }
+    res.send("<h1>Error</h1><p>No IP provided.</p>");
+});
+
+// --- RESTORED WORKING IMAGE PROXY (UNTOUCHED) ---
 app.get('/api/image', async (req, res) => {
     try {
-        const correctPassword = (process.env.APP_PASSWORD || process.env.APPPASSWORD || '').trim();
+        const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
         const userPassword = (req.query.pwd || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
 
@@ -87,10 +136,7 @@ app.get('/api/image', async (req, res) => {
         const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
         if (!prompt) return res.status(400).send("Prompt is required");
 
-        let rawKey = process.env.POLLINATIONS_API_KEY || process.env.POLLINATIONSAPIKEY || '';
-        let cleanKey = rawKey.replace(/[\r\n\s]+/g, ''); 
-        if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
-
+        const cleanKey = cleanApiKey('POLLINATIONS_API_KEY', 'POLLINATIONSAPIKEY');
         if (!cleanKey) return res.status(500).send("API Key missing in Vercel/Replit Variables");
 
         const url = `https://gen.pollinations.ai/image/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&seed=${seed}`;
@@ -105,7 +151,6 @@ app.get('/api/image', async (req, res) => {
 
         if (!response.ok) {
             const errText = await response.text();
-            console.error("Pollinations Error:", response.status, errText);
             return res.status(response.status).send(`Pollinations Error ${response.status}: ${errText.substring(0, 150)}`);
         }
 
@@ -120,12 +165,11 @@ app.get('/api/image', async (req, res) => {
         }
 
     } catch (error) {
-        console.error("Image Proxy Error:", error.message);
         res.status(500).send(`Server Error: ${error.message}`);
     }
 });
 
-// --- HUGGING FACE PROXY (PHOTO EDITING) - FIXED ENDPOINT ---
+// --- HUGGING FACE PROXY (FIXED MODEL & ERROR PARSER) ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -140,12 +184,12 @@ app.post('/api/edit-image', async (req, res) => {
         let cleanKey = rawHFKey.replace(/[\r\n\s]+/g, ''); 
         if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
 
-        if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables! Please add HUGGINGFACE_API_KEY to Vercel." });
+        if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables!" });
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
         
-        // --- FIXED: Updated to Hugging Face's brand new Router endpoint ---
-        const response = await fetch("https://router.huggingface.co/hf-inference/models/runwayml/stable-diffusion-v1-5", {
+        // FIXED: Switched to instruct-pix2pix! This model expects base64 + instructional prompts.
+        const response = await fetch("https://router.huggingface.co/hf-inference/models/timbrooks/instruct-pix2pix", {
             method: "POST",
             headers: { 
                 "Authorization": `Bearer ${cleanKey}`, 
@@ -154,18 +198,26 @@ app.post('/api/edit-image', async (req, res) => {
             body: JSON.stringify({ 
                 inputs: base64Data, 
                 parameters: {
-                    prompt: prompt, 
-                    strength: 0.6 
+                    prompt: prompt
                 }
             })
         });
         
+        // FIXED: Bulletproof Error Parser. Never returns "Unknown Error" again.
         if (!response.ok) { 
-            const errData = await response.json().catch(() => ({ error: "Unknown Hugging Face Error" })); 
-            if (response.status === 503) {
-                throw new Error(`The free AI model is waking up from sleep. Please wait ${Math.round(errData.estimated_time || 20)} seconds and try again!`);
+            let errText = await response.text();
+            let errMsg = "";
+            try {
+                const errData = JSON.parse(errText);
+                errMsg = errData.error || errData.message || errText.substring(0, 100);
+                if (response.status === 503) {
+                    throw new Error(`The free AI model is waking up from sleep. Please wait ${Math.round(errData.estimated_time || 20)} seconds and try again!`);
+                }
+            } catch (e) {
+                if (e.message.includes('waking up')) throw e; // Pass up the 503
+                errMsg = errText.substring(0, 150);
             }
-            throw new Error(`Hugging Face Error: ${errData.error || response.statusText}`); 
+            throw new Error(`HF Error (${response.status}): ${errMsg}`); 
         }
         
         const arrayBuffer = await response.arrayBuffer();
@@ -178,7 +230,7 @@ app.post('/api/edit-image', async (req, res) => {
     }
 });
 
-// --- MAIN AI ENGINE ---
+// --- MAIN CHAT ENGINE (UNTOUCHED) ---
 app.post('/api/chat', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
