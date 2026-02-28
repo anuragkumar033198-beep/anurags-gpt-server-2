@@ -41,47 +41,48 @@
         .user-menu-trigger { opacity: 0; transition: opacity 0.2s; } .group:hover .user-menu-trigger { opacity: 1; }
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        /* --- BULLETPROOF LIGHT THEME OVERRIDES --- */
-        body.light-theme, body.light-theme .bg-gray-950, .light-theme main { background-color: #f9fafb !important; color: #111827 !important; }
-        body.light-theme header, body.light-theme aside { background-color: #ffffff !important; border-color: #e5e7eb !important; }
+        /* --- BULLETPROOF PURE WHITE LIGHT THEME OVERRIDES --- */
+        html.light-theme, body.light-theme { background-color: #ffffff !important; color: #000000 !important; }
+        .light-theme main, .light-theme .bg-gray-950 { background-color: #ffffff !important; }
+        .light-theme header, .light-theme aside { background-color: #f9f9f9 !important; border-color: #e5e7eb !important; }
         
-        .light-theme .bg-gray-900 { background-color: #ffffff !important; border-color: #e5e7eb !important; }
-        .light-theme .bg-gray-800 { background-color: #f3f4f6 !important; border-color: #d1d5db !important; }
-        .light-theme .bg-gray-700 { background-color: #e5e7eb !important; }
+        /* FIXED: Destroys the dark gradient over the input box */
+        .light-theme .bg-gradient-to-t { background: none !important; background-color: #ffffff !important; }
+        
+        .light-theme .bg-gray-900 { background-color: #f4f4f5 !important; border-color: #e5e7eb !important; } /* Input container */
+        .light-theme .bg-gray-800 { background-color: #e5e7eb !important; border-color: #d1d5db !important; color: #000000 !important; } /* Assistant Bubbles */
+        .light-theme .bg-gray-700 { background-color: #d1d5db !important; color: #000000 !important; }
         
         /* iMessage Blue Bubbles for User Chat */
         .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; border-color: #2563eb !important; color: #ffffff !important; }
         .light-theme .bg-gray-800.text-white * { color: #ffffff !important; }
 
-        /* Aggressive Text Color Overrides */
-        .light-theme .text-white { color: #111827 !important; }
-        .light-theme .text-gray-100, .light-theme .text-gray-200 { color: #1f2937 !important; }
+        /* Deep Text Overrides */
+        .light-theme .text-white { color: #000000 !important; }
+        .light-theme .text-gray-100, .light-theme .text-gray-200 { color: #111827 !important; }
         .light-theme .text-gray-300, .light-theme .text-gray-400 { color: #4b5563 !important; }
         .light-theme .text-gray-500 { color: #6b7280 !important; }
-        
-        /* Keep colored accents vibrant in light mode */
-        .light-theme .text-blue-400 { color: #2563eb !important; }
-        .light-theme .text-purple-400 { color: #9333ea !important; }
-        .light-theme .text-red-400 { color: #dc2626 !important; }
-        .light-theme .text-green-400 { color: #16a34a !important; }
-
-        /* Input & Form Area */
-        .light-theme input, .light-theme textarea { color: #111827 !important; }
+        .light-theme input, .light-theme textarea { color: #000000 !important; }
         .light-theme #user-input::placeholder { color: #9ca3af !important; }
         
-        /* Fix Tailwind Gradients (The cause of the muddy gray screen) */
-        .light-theme .from-gray-950 { --tw-gradient-from: #f9fafb !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
-        .light-theme .via-gray-950 { --tw-gradient-to: rgba(249, 250, 251, 0) !important; --tw-gradient-stops: var(--tw-gradient-from), #f9fafb, var(--tw-gradient-to) !important; }
-        
-        /* Markdown Code Blocks in Light Mode */
+        /* Keep buttons/icons correct color in light mode */
+        .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 svg.text-white { color: #ffffff !important; }
+        .light-theme #send-btn.bg-blue-600.text-white, .light-theme #install-app-btn, .light-theme #save-settings-btn, .light-theme #submit-password-btn, .light-theme #confirm-action-btn, .light-theme #custom-prompt-confirm, .light-theme #toast-action-btn { background-color: #2563eb !important; color: #ffffff !important; }
+        .light-theme #send-btn.bg-blue-600.text-white svg { color: #ffffff !important; }
+        .light-theme #scroll-to-bottom-btn { background-color: #ffffff !important; color: #2563eb !important; border-color: #e5e7eb !important; }
+        .light-theme .border-gray-800, .light-theme .border-gray-700, .light-theme .border-gray-600 { border-color: #e5e7eb !important; }
         .light-theme .prose-content code { background-color: #e5e7eb !important; color: #b91c1c !important; }
         .light-theme .group\/code .bg-\[\#0d1117\] { background-color: #f8fafc !important; border-color: #e5e7eb !important; }
-        
-        /* Specific exception: Do not turn the white lightning bolt black inside the logo bubble */
-        .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 svg.text-white { color: #ffffff !important; }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
+
+    <div id="image-viewer-modal" class="fixed inset-0 bg-black/95 z-[300] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <button id="close-image-viewer" class="absolute top-4 right-4 md:top-6 md:right-6 text-white bg-gray-800/80 hover:bg-gray-700 p-2.5 rounded-full transition-colors z-10 backdrop-blur-md border border-gray-600 shadow-lg">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+        <img id="image-viewer-img" class="max-w-[95vw] max-h-[90vh] object-contain transform scale-95 transition-transform duration-300 rounded-lg shadow-2xl" src="">
+    </div>
 
     <div id="install-prompt" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-4 md:p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[150] transform translate-y-full transition-transform duration-500 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-t-3xl">
         <div class="flex items-center gap-4 w-full sm:w-auto"><div class="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center shrink-0 shadow-lg border border-gray-700"><img src="/icon.png" alt="App Icon" class="w-8 h-8 rounded-lg object-contain"></div><div><h3 class="text-white font-bold text-sm">Install Anurag's GPT</h3><p class="text-gray-400 text-xs">Add to your home screen.</p></div></div>
@@ -158,7 +159,7 @@
                 <div class="relative bg-gray-900 rounded-3xl border border-gray-700 shadow-xl focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500 transition-all duration-300">
                     <div id="attachment-preview-container" class="hidden px-5 pt-4 pb-1">
                         <div class="relative inline-block group">
-                            <img id="image-preview" class="h-16 w-16 object-cover rounded-xl border border-gray-600 shadow-md hidden">
+                            <img id="image-preview" class="h-20 w-20 object-cover rounded-xl border border-gray-600 shadow-md hidden cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageViewer(this.src)" title="Click to enlarge">
                             <div id="file-preview" class="h-16 flex items-center gap-3 bg-gray-800 border border-gray-600 rounded-xl px-4 shadow-md hidden max-w-[200px]">
                                 <svg class="w-6 h-6 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                 <div class="flex flex-col overflow-hidden"><span id="file-preview-name" class="text-xs font-medium text-gray-200 truncate"></span><span id="file-preview-status" class="text-[10px] text-gray-400">Extracted</span></div>
@@ -211,7 +212,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v75_fixed_light'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v75_fixed_light'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v76_viewer'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v76_viewer'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
@@ -224,6 +225,33 @@
                  renderMathInElement(element, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true} ], throwOnError: false });
              }
         }
+
+        // --- FULLSCREEN IMAGE VIEWER LOGIC (NEW) ---
+        window.openImageViewer = function(src) {
+            if (!src || src.includes('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')) return;
+            const modal = $('#image-viewer-modal');
+            const img = $('#image-viewer-img');
+            img.src = src;
+            modal.classList.remove('hidden');
+            void modal.offsetWidth; 
+            modal.classList.remove('opacity-0');
+            img.classList.remove('scale-95');
+            img.classList.add('scale-100');
+        };
+
+        window.closeImageViewer = function() {
+            const modal = $('#image-viewer-modal');
+            const img = $('#image-viewer-img');
+            modal.classList.add('opacity-0');
+            img.classList.remove('scale-100');
+            img.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        $('#close-image-viewer').addEventListener('click', window.closeImageViewer);
+        $('#image-viewer-modal').addEventListener('click', (e) => {
+            if (e.target === $('#image-viewer-modal') || e.target === $('#image-viewer-img')) window.closeImageViewer();
+        });
         
         // --- ICONS ---
         const DOWNLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`;
@@ -267,7 +295,25 @@
         };
         
         window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId).querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(node); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`).classList.add('hidden');};
-        window.editUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').innerText; elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); document.getElementById(`menu-${msgId}`).classList.add('hidden'); };
+        
+        window.editUserMessage = function(msgId) { 
+            const msgBox = document.getElementById(msgId);
+            const text = msgBox.querySelector('.message-text').innerText; 
+            
+            const img = msgBox.querySelector('img');
+            if (img && img.src.startsWith('data:image')) {
+                currentBase64Image = img.src;
+                $('#image-preview').src = currentBase64Image; 
+                $('#image-preview').classList.remove('hidden'); 
+                $('#file-preview').classList.add('hidden'); 
+                $('#attachment-preview-container').classList.remove('hidden');
+                elSendBtn.disabled = false;
+            }
+            
+            elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); 
+            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
+        };
+        
         window.shareUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').innerText; if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`).classList.add('hidden');};
 
         window.copyToClipboard = (btn) => { 
@@ -299,11 +345,22 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // --- THEME ENGINE ---
+        // --- FIXED: BULLETPROOF THEME ENGINE ---
         let isLightMode = localStorage.getItem('anurags_gpt_theme') === 'light';
         function applyTheme() {
-            if (isLightMode) { document.body.classList.add('light-theme'); $('#theme-icon-light').classList.add('hidden'); $('#theme-icon-dark').classList.remove('hidden'); } 
-            else { document.body.classList.remove('light-theme'); $('#theme-icon-light').classList.remove('hidden'); $('#theme-icon-dark').classList.add('hidden'); }
+            if (isLightMode) { 
+                document.documentElement.classList.remove('dark');
+                document.documentElement.classList.add('light-theme');
+                document.body.classList.add('light-theme'); 
+                $('#theme-icon-light').classList.add('hidden'); 
+                $('#theme-icon-dark').classList.remove('hidden'); 
+            } else { 
+                document.documentElement.classList.add('dark');
+                document.documentElement.classList.remove('light-theme');
+                document.body.classList.remove('light-theme'); 
+                $('#theme-icon-light').classList.remove('hidden'); 
+                $('#theme-icon-dark').classList.add('hidden'); 
+            }
         }
         $('#theme-toggle-btn').addEventListener('click', () => { isLightMode = !isLightMode; localStorage.setItem('anurags_gpt_theme', isLightMode ? 'light' : 'dark'); applyTheme(); });
 
@@ -375,6 +432,7 @@
             }
         };
 
+        // FIXED: AI Images are now fully clickable and launch the fullscreen viewer!
         renderer.image = function(arg1, arg2, arg3) { 
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1; const text = typeof arg1 === 'object' ? arg1.text : arg3;
              if (!rawHref) rawHref = ''; let cleanHref = rawHref.replace(/&amp;/g, '&'); 
@@ -397,9 +455,9 @@
              
              if (window.isGenerating && !isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><span class="text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span></div></div>`; } 
              
-             if (isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
+             if (isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10 cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="window.openImageViewer(this.src)" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
              
-             return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
+             return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" onclick="if(this.src && !this.src.startsWith('data:image/gif')) window.openImageViewer(this.src)" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10 hover:scale-[1.02]" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
         };
         
         window.formatText = function(text) { 
@@ -413,7 +471,9 @@
             let displayContent = ""; let imageHtml = "";
             if (Array.isArray(content)) {
                 let textObj = content.find(c => c.type === 'text'); displayContent = textObj ? textObj.text : "";
-                let imgObj = content.find(c => c.type === 'image_url'); if (imgObj) imageHtml = `<div class="mb-3 max-w-[200px] max-h-[200px] rounded-xl overflow-hidden border border-gray-700 shadow-md"><img src="${imgObj.image_url.url}" class="w-full h-full object-cover"></div>`;
+                let imgObj = content.find(c => c.type === 'image_url'); 
+                // FIXED: User chat bubble images are now clickable and perfectly sized!
+                if (imgObj) imageHtml = `<div class="mb-3 max-w-[240px] max-h-[240px] rounded-xl overflow-hidden border border-gray-700 shadow-md cursor-pointer hover:opacity-90 transition-opacity" onclick="window.openImageViewer('${imgObj.image_url.url}')"><img src="${imgObj.image_url.url}" class="w-full h-full object-cover"></div>`;
             } else { displayContent = content; }
             if (role === 'user' && displayContent.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = displayContent.split('\n\nUser Message: '); if (parts.length > 1) displayContent = parts.slice(1).join('\n\nUser Message: '); }
             if (role === 'user' && displayContent.includes('--- FILE CONTENT ---')) { displayContent = displayContent.split('--- END FILE CONTENT ---\n\n')[1] || displayContent; imageHtml = `<div class="flex items-center gap-2 mb-3 bg-gray-700 px-3 py-2 rounded-lg text-sm font-medium text-gray-200 border border-gray-600 w-fit"><svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Document Attached</div>`; }
