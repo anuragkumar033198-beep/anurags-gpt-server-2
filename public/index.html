@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover, interactive-widget=resizes-content">
+    
+    <meta name="color-scheme" content="dark light">
+    
     <title>Anurag's GPT</title>
     
     <link rel="manifest" href="/manifest.json">
@@ -42,16 +45,21 @@
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         /* --- BULLETPROOF PURE WHITE LIGHT THEME OVERRIDES --- */
+        /* These explicitly force pure white #ffffff and override mobile browser forced-dark modes */
+        :root.light-theme { color-scheme: light !important; }
         html.light-theme, body.light-theme { background-color: #ffffff !important; color: #000000 !important; }
         .light-theme main, .light-theme .bg-gray-950 { background-color: #ffffff !important; }
-        .light-theme header, .light-theme aside { background-color: #f9f9f9 !important; border-color: #e5e7eb !important; }
+        .light-theme header, .light-theme aside { background-color: #ffffff !important; border-color: #e5e7eb !important; }
         
-        /* FIXED: Destroys the dark gradient over the input box */
+        /* Destroys the dark gradient shadow over the input box */
         .light-theme .bg-gradient-to-t { background: none !important; background-color: #ffffff !important; }
         
-        .light-theme .bg-gray-900 { background-color: #f4f4f5 !important; border-color: #e5e7eb !important; } /* Input container */
-        .light-theme .bg-gray-800 { background-color: #e5e7eb !important; border-color: #d1d5db !important; color: #000000 !important; } /* Assistant Bubbles */
-        .light-theme .bg-gray-700 { background-color: #d1d5db !important; color: #000000 !important; }
+        /* Inputs, Modals, and Suggestion Buttons - matches ChatGPT light grey */
+        .light-theme .bg-gray-900 { background-color: #f4f4f5 !important; border-color: #e5e7eb !important; } 
+        
+        /* Assistant Bubbles & Standard UI elements */
+        .light-theme .bg-gray-800 { background-color: #f9f9f9 !important; border-color: #e5e7eb !important; color: #000000 !important; } 
+        .light-theme .bg-gray-700 { background-color: #e5e7eb !important; color: #000000 !important; }
         
         /* iMessage Blue Bubbles for User Chat */
         .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; border-color: #2563eb !important; color: #ffffff !important; }
@@ -59,7 +67,7 @@
 
         /* Deep Text Overrides */
         .light-theme .text-white { color: #000000 !important; }
-        .light-theme .text-gray-100, .light-theme .text-gray-200 { color: #111827 !important; }
+        .light-theme .text-gray-100, .light-theme .text-gray-200 { color: #000000 !important; }
         .light-theme .text-gray-300, .light-theme .text-gray-400 { color: #4b5563 !important; }
         .light-theme .text-gray-500 { color: #6b7280 !important; }
         .light-theme input, .light-theme textarea { color: #000000 !important; }
@@ -212,7 +220,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v76_viewer'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v76_viewer'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v77_white_ui'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v77_white_ui'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
@@ -226,7 +234,7 @@
              }
         }
 
-        // --- FULLSCREEN IMAGE VIEWER LOGIC (NEW) ---
+        // --- FULLSCREEN IMAGE VIEWER LOGIC ---
         window.openImageViewer = function(src) {
             if (!src || src.includes('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')) return;
             const modal = $('#image-viewer-modal');
@@ -325,7 +333,7 @@
             }); 
         };
 
-        // --- SMART SPEECH SANITIZER & TOGGLE FIX ---
+        // --- SMART SPEECH SANITIZER ---
         window.toggleSpeech = (btn) => { 
             const msgBox = btn.closest('.relative').querySelector('.message-text');
             let textToSpeak = msgBox.innerText;
@@ -352,12 +360,14 @@
                 document.documentElement.classList.remove('dark');
                 document.documentElement.classList.add('light-theme');
                 document.body.classList.add('light-theme'); 
+                document.documentElement.style.setProperty('color-scheme', 'light', 'important'); // Stops forced-dark mode!
                 $('#theme-icon-light').classList.add('hidden'); 
                 $('#theme-icon-dark').classList.remove('hidden'); 
             } else { 
                 document.documentElement.classList.add('dark');
                 document.documentElement.classList.remove('light-theme');
                 document.body.classList.remove('light-theme'); 
+                document.documentElement.style.setProperty('color-scheme', 'dark', 'important');
                 $('#theme-icon-light').classList.remove('hidden'); 
                 $('#theme-icon-dark').classList.add('hidden'); 
             }
@@ -432,7 +442,6 @@
             }
         };
 
-        // FIXED: AI Images are now fully clickable and launch the fullscreen viewer!
         renderer.image = function(arg1, arg2, arg3) { 
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1; const text = typeof arg1 === 'object' ? arg1.text : arg3;
              if (!rawHref) rawHref = ''; let cleanHref = rawHref.replace(/&amp;/g, '&'); 
@@ -472,7 +481,6 @@
             if (Array.isArray(content)) {
                 let textObj = content.find(c => c.type === 'text'); displayContent = textObj ? textObj.text : "";
                 let imgObj = content.find(c => c.type === 'image_url'); 
-                // FIXED: User chat bubble images are now clickable and perfectly sized!
                 if (imgObj) imageHtml = `<div class="mb-3 max-w-[240px] max-h-[240px] rounded-xl overflow-hidden border border-gray-700 shadow-md cursor-pointer hover:opacity-90 transition-opacity" onclick="window.openImageViewer('${imgObj.image_url.url}')"><img src="${imgObj.image_url.url}" class="w-full h-full object-cover"></div>`;
             } else { displayContent = content; }
             if (role === 'user' && displayContent.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = displayContent.split('\n\nUser Message: '); if (parts.length > 1) displayContent = parts.slice(1).join('\n\nUser Message: '); }
@@ -604,7 +612,7 @@
         $('#clear-chat-btn').addEventListener('click', () => { if (isTempChat) { window.showConfirmModal("Clear Temp Chat?", "Wipe messages.", () => { tempChatData.messages = []; clearMessages(); showWelcome(); }); } else { if (!state.currentChatId) return; window.showConfirmModal("Clear History?", "Delete messages.", () => { const chat = state.chats.find(c => c.id === state.currentChatId); if (chat) { chat.messages = []; saveChats(); loadChat(state.currentChatId); } }); } });
         $('#new-chat-btn').addEventListener('click', () => { disableTempMode(); state.currentChatId = null; showWelcome(); renderSidebar(); if (window.innerWidth < 768) { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); } });
         $('#open-settings-btn').addEventListener('click', () => $('#settings-modal').classList.remove('hidden')); 
-        $('#close-settings-btn').addEventListener('click', () => $('#settings-modal').classList.add('hidden'));
+        $('#close-settings-btn').addEventListener('click', () => $('#settings-modal').classList.add('hidden'); });
         $('#save-settings-btn').addEventListener('click', () => { settings.systemPrompt = $('#system-prompt-input').value.trim(); saveSettings(); $('#settings-modal').classList.add('hidden'); });
         $('#lock-app-btn').addEventListener('click', () => { currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); $('#settings-modal').classList.add('hidden'); $('#app-password-input').value = ''; $('#password-error').classList.add('hidden'); $('#password-overlay').classList.remove('hidden'); });
         $('#mobile-menu-btn').addEventListener('click', () => { $('#sidebar').classList.remove('-translate-x-full'); $('#sidebar-overlay').classList.remove('hidden'); });
