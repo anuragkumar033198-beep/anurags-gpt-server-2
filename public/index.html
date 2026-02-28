@@ -168,10 +168,10 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v74_perfect_ui'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v74_perfect_ui'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v74_polished'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v74_polished'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
-        let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] };
+        let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
 
         const renderer = new marked.Renderer();
         window.escapeHtml = function(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); };
@@ -213,24 +213,56 @@
             setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
         };
 
-        // --- MENU FUNCTIONS ---
+        // --- MENU & CLEAN COPY FUNCTIONS ---
         window.toggleUserMenu = function(e, msgId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${msgId}`) menu.classList.add('hidden'); }); document.getElementById(`menu-${msgId}`).classList.toggle('hidden'); };
         
-        // --- FIXED: CLEAN TEXT COPYING ---
-        window.copyToClipboard = (btn) => { 
-            const container = btn.closest('.flex-col').querySelector('.message-text');
-            // innerText extracts what the user visually sees (no Markdown symbols like * or #)
-            const textToCopy = container.innerText; 
-            navigator.clipboard.writeText(textToCopy).then(() => { 
-                const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); 
-                window.showToast("Message copied.", "Start new chat", () => document.getElementById('new-chat-btn').click());
-            }); 
+        window.copyUserMessage = function(msgId) { 
+            // FIXED: Grabs rendered plain text, ignoring hidden Markdown tags like # or *
+            const text = document.getElementById(msgId).querySelector('.message-text').innerText; 
+            navigator.clipboard.writeText(text); 
+            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
+            window.showToast("Prompt copied.", "Start new chat", () => document.getElementById('new-chat-btn').click()); 
         };
         
-        window.copyUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').getAttribute('data-raw-content'); navigator.clipboard.writeText(text); document.getElementById(`menu-${msgId}`).classList.add('hidden'); window.showToast("Prompt copied.", "Start new chat", () => document.getElementById('new-chat-btn').click()); };
         window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId).querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(node); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`).classList.add('hidden');};
-        window.editUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').getAttribute('data-raw-content'); elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); document.getElementById(`menu-${msgId}`).classList.add('hidden'); };
-        window.shareUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').getAttribute('data-raw-content'); if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`).classList.add('hidden');};
+        window.editUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').innerText; elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); document.getElementById(`menu-${msgId}`).classList.add('hidden'); };
+        window.shareUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').innerText; if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`).classList.add('hidden');};
+
+        window.copyToClipboard = (btn) => { 
+            // FIXED: Grabs rendered text to avoid copying hidden Markdown symbols
+            const msgBox = btn.closest('.relative').querySelector('.message-text');
+            const txt = document.createElement('textarea'); 
+            txt.value = msgBox.innerText; 
+            navigator.clipboard.writeText(txt.value).then(() => { 
+                const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); 
+            }); 
+        };
+
+        // --- SMART SPEECH SANITIZER & TOGGLE FIX ---
+        window.toggleSpeech = (btn) => { 
+            const msgBox = btn.closest('.relative').querySelector('.message-text');
+            let textToSpeak = msgBox.innerText;
+            
+            // FIXED: Regex strip to instantly delete emojis so TTS won't read them out loud
+            textToSpeak = textToSpeak.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+            textToSpeak = textToSpeak.replace(/https?:\/\/[^\s]+/g, ''); // Also removes ugly web links
+
+            if (window.speechSynthesis.speaking) { 
+                window.speechSynthesis.cancel(); 
+                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
+                // FIXED: If you click the same speaking button again, it shuts off completely
+                if (currentUtteranceText === textToSpeak) { 
+                    currentUtteranceText = null; 
+                    return; 
+                } 
+            }
+            
+            currentUtteranceText = textToSpeak; 
+            const utterance = new SpeechSynthesisUtterance(textToSpeak); 
+            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; currentUtteranceText = null; };
+            btn.innerHTML = SPEAKER_OFF_ICON; 
+            window.speechSynthesis.speak(utterance);
+        };
 
         // --- UNIFIED REGENERATE LOGIC ---
         window.regenerateResponse = function(btn) { 
@@ -283,32 +315,18 @@
             } catch (error) { window.showToast("Failed to download image."); }
         };
 
-        // --- CUSTOM MARKED.JS RENDERERS & MATH SHIELD ---
+        // --- CUSTOM MARKED.JS RENDERERS ---
         renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
         
         window.fetchSecureImage = async function(prompt, imgEl) { 
             try { 
-                const cacheKey = 'img_cache_' + prompt;
-                const cachedBase64 = localStorage.getItem(cacheKey);
-                if (cachedBase64) { imgEl.src = cachedBase64; if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none'; imgEl.style.opacity = '1'; return; }
-
-                const pwd = encodeURIComponent(currentPassword); const seed = Math.floor(Math.random() * 1000000); 
-                const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}&seed=${seed}`); 
-                if (!res.ok) throw new Error("Backend Error"); 
+                const pwd = encodeURIComponent(currentPassword); 
+                const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}`); 
+                if (!res.ok) throw new Error("Unknown Backend Error"); 
                 const blob = await res.blob(); 
-                
                 imgEl.src = URL.createObjectURL(blob); 
-                if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none'; imgEl.style.opacity = '1'; 
-                
-                const reader = new FileReader();
-                reader.onloadend = function() {
-                    try { localStorage.setItem(cacheKey, reader.result); } 
-                    catch(e) { 
-                        for (let i = 0; i < localStorage.length; i++) { if (localStorage.key(i).startsWith('img_cache_')) { localStorage.removeItem(localStorage.key(i)); } }
-                        try { localStorage.setItem(cacheKey, reader.result); } catch(err) {}
-                    }
-                };
-                reader.readAsDataURL(blob);
+                if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none'; 
+                imgEl.style.opacity = '1'; 
             } catch (e) { 
                 imgEl.parentElement.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#1f2937;padding:1rem;text-align:center;"><span style="font-size:2rem;margin-bottom:0.5rem;">⚠️</span><div style="color:#f87171;font-weight:bold;font-size:1rem;">Image Failed</div><div style="color:#9ca3af;font-size:0.7rem;margin-top:0.5rem;word-break:break-all;">${window.escapeHtml(e.message)}</div></div>`; 
             }
@@ -341,25 +359,10 @@
              return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
         };
         
-        // --- FIXED: THE MATH SHIELD ---
-        // This stops Markdown from corrupting LaTeX Math symbols!
         window.formatText = function(text) { 
             if (!text) return ""; let processedText = text;
             if (window.isGenerating) { processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`); }
-            
-            const mathBlocks = [];
-            processedText = processedText.replace(/(\$\$[\s\S]+?\$\$|\$[^\n$]+?\$)/g, (match) => {
-                mathBlocks.push(match);
-                return `%%MATH_BLOCK_${mathBlocks.length - 1}%%`;
-            });
-
-            let html = marked.parse(processedText, { renderer: renderer, breaks: true, gfm: true }); 
-
-            mathBlocks.forEach((block, i) => {
-                html = html.replace(`%%MATH_BLOCK_${i}%%`, block);
-            });
-
-            return html;
+            return marked.parse(processedText, { renderer: renderer, breaks: true, gfm: true }); 
         };
 
         window.appendMessageToDOM = function(role, content) {
@@ -378,6 +381,7 @@
             
             let actionButtons = '';
             if (!isUser) {
+                // Button HTML cleaned up - no more data-content attributes holding raw markdown!
                 actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; 
             } else {
                  actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-500 hover:text-gray-300 p-1.5 rounded-lg transition-colors bg-gray-900 border border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`;
@@ -477,7 +481,8 @@
                 
                 if(lastActionButtons) { 
                     const textWithoutImages = aiContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim();
-                    if(textWithoutImages.length > 0) { lastActionButtons.style.display = 'flex'; } else { lastActionButtons.style.display = 'none'; }
+                    if(textWithoutImages.length > 0) { lastActionButtons.style.display = 'flex'; } 
+                    else { lastActionButtons.style.display = 'none'; }
                 }
             } catch (error) {
                 window.isGenerating = false; removeLoadingIndicator();
@@ -499,6 +504,7 @@
         $('#mobile-menu-btn').addEventListener('click', () => { $('#sidebar').classList.remove('-translate-x-full'); $('#sidebar-overlay').classList.remove('hidden'); });
         $('#sidebar-overlay').addEventListener('click', () => { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); });
         $$('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { elUserInput.value = btn.innerText.replace(/"/g, '').trim(); elSendBtn.disabled = false; sendMessage(); }); });
+
         window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span>Copied!</span>`; btn.classList.replace('text-gray-400', 'text-green-400'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-400', 'text-gray-400'); }, 2000); }); };
 
         let confirmActionCallback = null; window.showConfirmModal = function(title, text, callback) { $('#confirm-modal-title').innerText = title; $('#confirm-modal-text').innerText = text; confirmActionCallback = callback; $('#confirm-modal').classList.remove('hidden'); }; window.closeConfirmModal = function() { $('#confirm-modal').classList.add('hidden'); confirmActionCallback = null; }; $('#confirm-cancel-btn').addEventListener('click', window.closeConfirmModal); $('#confirm-action-btn').addEventListener('click', () => { if (confirmActionCallback) confirmActionCallback(); window.closeConfirmModal(); });
@@ -512,13 +518,13 @@
         let deferredPrompt; const installPromptEl = $('#install-prompt'); const installBtn = $('#install-app-btn'); const closeInstallBtn = $('#close-install-btn');
         if (!window.matchMedia('(display-mode: standalone)').matches) { window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; setTimeout(() => installPromptEl.classList.remove('translate-y-full'), 2000); }); installBtn.addEventListener('click', async () => { installPromptEl.classList.add('translate-y-full'); if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; } }); closeInstallBtn.addEventListener('click', () => installPromptEl.classList.add('translate-y-full')); }
         
-        // --- FIXED TEMP CHAT BUTTON COLOR ---
+        // --- FIXED TEMP CHAT BUTTON COLORS ---
         $('#temp-chat-toggle-btn').addEventListener('click', () => { 
             if (isTempChat) { disableTempMode(); state.currentChatId = null; clearMessages(); showWelcome(); renderSidebar(); } 
-            else { isTempChat = true; state.currentChatId = null; tempChatData.messages = []; clearMessages(); showWelcome(); $('#temp-badge').classList.remove('hidden'); $('#temp-chat-toggle-btn').classList.remove('text-gray-400'); $('#temp-chat-toggle-btn').classList.add('text-purple-400'); } 
+            else { isTempChat = true; state.currentChatId = null; tempChatData.messages = []; clearMessages(); showWelcome(); $('#temp-badge').classList.remove('hidden'); $('#temp-chat-toggle-btn').className = 'text-purple-400 text-sm flex items-center gap-1.5 transition-colors'; } 
             $('#temp-chat-toggle-btn').blur(); if (window.innerWidth < 768) { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); }
         });
-        function disableTempMode() { isTempChat = false; $('#temp-badge').classList.add('hidden'); $('#temp-chat-toggle-btn').classList.remove('text-purple-400'); $('#temp-chat-toggle-btn').classList.add('text-gray-400'); }
+        function disableTempMode() { isTempChat = false; $('#temp-badge').classList.add('hidden'); $('#temp-chat-toggle-btn').className = 'text-gray-400 text-sm flex items-center gap-1.5 transition-colors'; }
         
         elMessagesContainer.addEventListener('scroll', () => { isUserScrolledUp = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight > 80; if (isUserScrolledUp && window.isGenerating) { elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); } else { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } });
         elScrollToBottomBtn.addEventListener('click', () => { isUserScrolledUp = false; elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); });
@@ -590,26 +596,6 @@
         
         function setupSpeechRecognition() { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); }; } else { elMicBtn.style.display = 'none'; } }
         elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } });
-        
-        // --- FIXED: SPEECH TOGGLE & EMOJI STRIPPER ---
-        let currentSpeechBtn = null;
-        window.toggleSpeech = (btn) => { 
-            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) { 
-                window.speechSynthesis.cancel(); 
-                if (currentSpeechBtn) currentSpeechBtn.innerHTML = SPEAKER_ICON;
-                if (currentSpeechBtn === btn) { currentSpeechBtn = null; return; } // Proper Toggle-Off feature
-            } 
-            currentSpeechBtn = btn;
-            const container = btn.closest('.flex-col').querySelector('.message-text');
-            // Extract clean visible text and perfectly strip out all emojis
-            let textToSpeak = container.innerText.replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
-            
-            const utterance = new SpeechSynthesisUtterance(textToSpeak); 
-            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; currentSpeechBtn = null; };
-            utterance.onerror = () => { btn.innerHTML = SPEAKER_ICON; currentSpeechBtn = null; };
-            btn.innerHTML = SPEAKER_OFF_ICON; 
-            window.speechSynthesis.speak(utterance); 
-        };
         
         function init() { setupSpeechRecognition(); loadSettings(); loadChats(); if(window.location.hash && window.location.hash.startsWith('#share=')) { try { const base64Data = window.location.hash.substring(7); const sharedChat = JSON.parse(atob(base64Data)); disableTempMode(); state.currentChatId = 'shared-' + Date.now(); clearMessages(); elWelcomeScreen.classList.add('hidden'); const banner = document.createElement('div'); banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50'; banner.innerHTML = `Viewing shared chat: <strong>${window.escapeHtml(sharedChat.title)}</strong> (Read-only)`; elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer); sharedChat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); elUserInput.disabled = true; elUserInput.placeholder = "Read-only shared chat."; elSendBtn.disabled = true; elMicBtn.style.display = 'none'; $('#plus-menu-btn').style.display = 'none'; } catch(e) { window.location.hash = ''; showWelcome(); } } else { if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); } renderSidebar(); }
         function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }

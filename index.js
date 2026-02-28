@@ -25,7 +25,7 @@ app.get('/sw.js', (req, res) => {
 app.get('/manifest.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json({
-      "name": "Anurag's GPT", "short_name": "AnuragGPT", "description": "Anurag's Custom AI Backend",
+      "name": "Anurag's GPT", "short_name": "Anurag's GPT", "description": "Anurag's Custom AI Backend",
       "start_url": "/", "display": "standalone", "background_color": "#0d1117", "theme_color": "#0d1117",
       "orientation": "portrait",
       "icons": [
@@ -37,7 +37,7 @@ app.get('/manifest.json', (req, res) => {
 
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
+    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
 });
 
 app.get('/', (req, res) => {
@@ -169,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- HUGGING FACE PROXY (Left untouched per your instruction, though no longer needed) ---
+// --- HUGGING FACE PROXY (UNTOUCHED) ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -269,14 +269,14 @@ app.post('/api/chat', async (req, res) => {
 
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        // --- NEW SMART INTENT & FAKE I2I SYSTEM PROMPT ---
+        // --- NEW SMART INTENT & FIXED MATH SYSTEM PROMPT ---
         const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
 Formatting Rules:
-1. MATH NOTATION (CRITICAL): You MUST wrap EVERY mathematical equation, variable, or symbol in LaTeX dollar signs. Example inline: "$x^2$", "$E=mc^2$". Block equations: "$$ y = mx + c $$". NEVER use raw text for math like "^2" or "x^2" without the "$" wrappers.
+1. MATH NOTATION (CRITICAL): Do NOT use LaTeX formatting like $, $$, \\frac, \\rangle, \\alpha, or ^. Instead, you MUST use standard plain-text Unicode mathematical symbols (e.g., ², ³, ×, ÷, ±, °, π) and write equations cleanly so they can be read easily as normal text. Example: Write "x² + y² = z²" instead of "$x^2 + y^2 = z^2$". 
 2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://image.pollinations.ai/prompt/highly%20detailed%20visual%20description). Do NOT put the image link inside a code block.
 3. EMOJIS: Use emojis at the start of major section headings.
-4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue circular icon with a white lightning bolt in the middle, DO NOT say it is Discord or a thunderbolt. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.
-5. SMART IMAGE EDITING (FAKE I2I): If the user uploads an image and asks you to modify, edit, or change it, act as a professional image generator. Analyze the uploaded image using your vision capabilities to understand its exact contents, style, and lighting. Then, create a completely new, highly detailed image prompt that recreates the original image BUT includes the user's requested changes. Generate this new image using the Pollinations markdown: ![Image](https://image.pollinations.ai/prompt/your%20new%20highly%20detailed%20description). Do NOT explain your editing process, just output the image markdown.`;
+4. YOUR IDENTITY & LOGO: If the user uploads an image of a blue circular icon with a white lightning bolt, DO NOT say it is Discord. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.
+5. SMART IMAGE EDITING (FAKE I2I): If the user uploads an image and asks you to edit or change it, act as a professional image generator. Analyze the uploaded image, then create a new image prompt that recreates it BUT includes the requested changes. Generate this new image using the Pollinations markdown: ![Image](https://image.pollinations.ai/prompt/your%20new%20description).`;
         
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
