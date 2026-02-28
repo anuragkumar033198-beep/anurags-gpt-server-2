@@ -41,29 +41,44 @@
         .user-menu-trigger { opacity: 0; transition: opacity 0.2s; } .group:hover .user-menu-trigger { opacity: 1; }
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        /* --- LIGHT THEME INJECTION LAYER --- */
-        body.light-theme { background-color: #f9fafb !important; color: #111827 !important; }
-        .light-theme .bg-gray-950 { background-color: #f9fafb !important; }
+        /* --- BULLETPROOF LIGHT THEME OVERRIDES --- */
+        body.light-theme, body.light-theme .bg-gray-950, .light-theme main { background-color: #f9fafb !important; color: #111827 !important; }
+        body.light-theme header, body.light-theme aside { background-color: #ffffff !important; border-color: #e5e7eb !important; }
+        
         .light-theme .bg-gray-900 { background-color: #ffffff !important; border-color: #e5e7eb !important; }
         .light-theme .bg-gray-800 { background-color: #f3f4f6 !important; border-color: #d1d5db !important; }
-        .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; color: #ffffff !important; } /* iMessage Blue Bubbles */
         .light-theme .bg-gray-700 { background-color: #e5e7eb !important; }
+        
+        /* iMessage Blue Bubbles for User Chat */
+        .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; border-color: #2563eb !important; color: #ffffff !important; }
+        .light-theme .bg-gray-800.text-white * { color: #ffffff !important; }
+
+        /* Aggressive Text Color Overrides */
         .light-theme .text-white { color: #111827 !important; }
-        .light-theme .text-gray-100 { color: #1f2937 !important; }
-        .light-theme .text-gray-200 { color: #374151 !important; }
-        .light-theme .text-gray-300 { color: #4b5563 !important; }
-        .light-theme .text-gray-400 { color: #6b7280 !important; }
-        .light-theme .text-gray-500 { color: #9ca3af !important; }
-        .light-theme .border-gray-800 { border-color: #e5e7eb !important; }
-        .light-theme .border-gray-700 { border-color: #d1d5db !important; }
-        .light-theme .border-gray-600 { border-color: #9ca3af !important; }
+        .light-theme .text-gray-100, .light-theme .text-gray-200 { color: #1f2937 !important; }
+        .light-theme .text-gray-300, .light-theme .text-gray-400 { color: #4b5563 !important; }
+        .light-theme .text-gray-500 { color: #6b7280 !important; }
+        
+        /* Keep colored accents vibrant in light mode */
+        .light-theme .text-blue-400 { color: #2563eb !important; }
+        .light-theme .text-purple-400 { color: #9333ea !important; }
+        .light-theme .text-red-400 { color: #dc2626 !important; }
+        .light-theme .text-green-400 { color: #16a34a !important; }
+
+        /* Input & Form Area */
         .light-theme input, .light-theme textarea { color: #111827 !important; }
         .light-theme #user-input::placeholder { color: #9ca3af !important; }
+        
+        /* Fix Tailwind Gradients (The cause of the muddy gray screen) */
+        .light-theme .from-gray-950 { --tw-gradient-from: #f9fafb !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+        .light-theme .via-gray-950 { --tw-gradient-to: rgba(249, 250, 251, 0) !important; --tw-gradient-stops: var(--tw-gradient-from), #f9fafb, var(--tw-gradient-to) !important; }
+        
+        /* Markdown Code Blocks in Light Mode */
         .light-theme .prose-content code { background-color: #e5e7eb !important; color: #b91c1c !important; }
-        .light-theme .group\\/code .bg-\\[\\#0d1117\\] { background-color: #f8fafc !important; }
-        .light-theme #welcome-screen .text-gray-200 { color: #111827 !important; }
-        .light-theme #welcome-screen .text-gray-500 { color: #6b7280 !important; }
-        .light-theme .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; }
+        .light-theme .group\/code .bg-\[\#0d1117\] { background-color: #f8fafc !important; border-color: #e5e7eb !important; }
+        
+        /* Specific exception: Do not turn the white lightning bolt black inside the logo bubble */
+        .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 svg.text-white { color: #ffffff !important; }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
@@ -196,7 +211,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v74_polished'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v74_polished'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v75_fixed_light'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v75_fixed_light'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
@@ -474,7 +489,6 @@
                 }
                 if (response.status === 403) { triggerLockdownUI(); throw new Error("IP BANNED"); }
                 
-                // FIXED: Extracts the actual OpenRouter error instead of saying "API Connection Failed"
                 if (!response.ok) {
                     const errData = await response.json().catch(() => ({ error: "API Connection Failed" }));
                     throw new Error(errData.error || "API Connection Failed");

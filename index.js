@@ -169,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- MAIN CHAT ENGINE WITH SMART VISION ROUTER ---
+// --- MAIN CHAT ENGINE WITH SMART ROUTING ---
 app.post('/api/chat', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -194,7 +194,6 @@ Formatting Rules:
 4. YOUR IDENTITY & LOGO: If the user uploads an image of a blue circular icon with a white lightning bolt, DO NOT say it is Discord. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.
 5. SMART IMAGE EDITING (FAKE I2I): If the user uploads an image and asks you to edit or change it, act as a professional image generator. Analyze the uploaded image, then create a new image prompt that recreates it BUT includes the requested changes. Generate this new image using the Pollinations markdown: ![Image](https://image.pollinations.ai/prompt/your%20new%20description).`;
         
-        // --- SMART VISION SCANNER ---
         let hasImage = false;
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
@@ -209,15 +208,20 @@ Formatting Rules:
             }
         }
 
-        // FIXED: Expanded the Vision Fallback list. If a model is offline, it drops to a stable alternative like Llama 3.2 Vision.
+        // FIXED: Added Dolphin-Mistral to the TEXT-ONLY fallback list. 
+        // We keep it out of the hasImage list because it does not have "eyes" and would crash on image edits!
         const autoModels = hasImage 
             ? [
-                "google/gemini-2.0-flash-lite-preview-02-05:free", 
-                "meta-llama/llama-3.2-90b-vision-instruct:free",
-                "qwen/qwen-vl-plus:free", 
+                "google/gemini-2.0-flash-exp:free", 
+                "google/gemini-1.5-flash:free",
+                "meta-llama/llama-3.2-11b-vision-instruct:free",
                 "openrouter/auto"
               ] 
-            : ["openrouter/auto", "openrouter/free"];
+            : [
+                "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
+                "openrouter/auto", 
+                "openrouter/free"
+              ];
 
         let response = null;
         let errorLogs = [];
@@ -226,8 +230,9 @@ Formatting Rules:
             response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json", "HTTP-Referer": "https://anurags-gpt.vercel.app", "X-Title": "Anurag's GPT" },
-                body: JSON.stringify({ model: currentModel, messages: messages, stream: true })
+                body: JSON.stringify({ model: currentModel, messages: messages, stream: true, max_tokens: 8000 })
             });
+            
             if (response.ok) break;
             else { 
                 let errText = `HTTP ${response.status}`; 
