@@ -125,7 +125,7 @@ app.get('/api/unban', (req, res) => {
     res.send("<h1>Error</h1><p>No IP provided.</p>");
 });
 
-// --- RESTORED WORKING IMAGE PROXY (UNTOUCHED) ---
+// --- THE SECURE IMAGE PROXY (FOR POLLINATIONS GENERATION) ---
 app.get('/api/image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
@@ -169,90 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- HUGGING FACE PROXY (UNTOUCHED) ---
-app.post('/api/edit-image', async (req, res) => {
-    try {
-        let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
-        const correctPassword = rawAppKey.replace(/[\r\n\s]+/g, '');
-        const userPassword = (req.headers['x-app-password'] || '').trim();
-        if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized" });
-        
-        const { imageBase64, prompt } = req.body;
-        if (!imageBase64 || !prompt) return res.status(400).json({ error: "Data missing." });
-        
-        let rawHFKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACEAPIKEY || '';
-        let cleanKey = rawHFKey.replace(/[\r\n\s]+/g, ''); 
-        if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
-
-        if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables!" });
-        
-        const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
-        const imageBuffer = Buffer.from(base64Data, 'base64');
-        
-        const boundary = '----AnuragGPTFormBoundary' + Math.random().toString(16).slice(2);
-        const bodyBuffer = Buffer.concat([
-            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="prompt"\r\n\r\n${prompt}\r\n`),
-            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="upload.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
-            imageBuffer,
-            Buffer.from(`\r\n--${boundary}--\r\n`)
-        ]);
-
-        const modelsToTry = [
-            "timbrooks/instruct-pix2pix",
-            "black-forest-labs/FLUX.1-schnell",
-            "stabilityai/stable-diffusion-xl-refiner-1.0",
-            "runwayml/stable-diffusion-v1-5"
-        ];
-        
-        const endpointsToTry = [
-            "https://router.huggingface.co/hf-inference/models/",
-            "https://api-inference.huggingface.co/models/"
-        ];
-
-        let response = null;
-        let lastError = "";
-        let success = false;
-
-        for (const model of modelsToTry) {
-            for (const baseEndpoint of endpointsToTry) {
-                response = await fetch(`${baseEndpoint}${model}`, {
-                    method: "POST",
-                    headers: { 
-                        "Authorization": `Bearer ${cleanKey}`, 
-                        "Content-Type": `multipart/form-data; boundary=${boundary}`,
-                        "X-Use-Cache": "false"
-                    },
-                    body: bodyBuffer
-                });
-                if (response.ok) { success = true; break; }
-                let errText = await response.text();
-                lastError = errText;
-                if (response.status === 503) {
-                    let waitTime = 20;
-                    try { waitTime = Math.round(JSON.parse(errText).estimated_time || 20); } catch(e) {}
-                    throw new Error(`The free AI model is waking up from sleep. Please wait ${waitTime} seconds and try again!`);
-                }
-            }
-            if (success) break;
-        }
-        
-        if (!success || !response || !response.ok) { 
-            let parsedErr = lastError.substring(0, 100);
-            try { parsedErr = JSON.parse(lastError).error || parsedErr; } catch(e) {}
-            throw new Error(`HF Models Failed (${response ? response.status : 'N/A'}): ${parsedErr}`); 
-        }
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const outputBase64 = Buffer.from(arrayBuffer).toString('base64');
-        
-        res.json({ success: true, image: `data:image/jpeg;base64,${outputBase64}` });
-    } catch (error) { 
-        console.error("Edit Error:", error.message); 
-        res.status(500).json({ error: error.message }); 
-    }
-});
-
-// --- MAIN CHAT ENGINE ---
+// --- MAIN CHAT ENGINE WITH SMART VISION ROUTER ---
 app.post('/api/chat', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -269,7 +186,6 @@ app.post('/api/chat', async (req, res) => {
 
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
-        // --- NEW SMART INTENT & FIXED MATH SYSTEM PROMPT ---
         const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
 Formatting Rules:
 1. MATH NOTATION (CRITICAL): Do NOT use LaTeX formatting like $, $$, \\frac, \\rangle, \\alpha, or ^. Instead, you MUST use standard plain-text Unicode mathematical symbols (e.g., ², ³, ×, ÷, ±, °, π) and write equations cleanly so they can be read easily as normal text. Example: Write "x² + y² = z²" instead of "$x^2 + y^2 = z^2$". 
@@ -278,19 +194,31 @@ Formatting Rules:
 4. YOUR IDENTITY & LOGO: If the user uploads an image of a blue circular icon with a white lightning bolt, DO NOT say it is Discord. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.
 5. SMART IMAGE EDITING (FAKE I2I): If the user uploads an image and asks you to edit or change it, act as a professional image generator. Analyze the uploaded image, then create a new image prompt that recreates it BUT includes the requested changes. Generate this new image using the Pollinations markdown: ![Image](https://image.pollinations.ai/prompt/your%20new%20description).`;
         
+        // --- SMART VISION SCANNER ---
+        let hasImage = false;
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
-            if (messages[lastMessageIndex].role === 'user') {
-                 if (typeof messages[lastMessageIndex].content === 'string') {
-                    messages[lastMessageIndex].content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${messages[lastMessageIndex].content}`;
-                 } else if (Array.isArray(messages[lastMessageIndex].content)) {
-                     let textObj = messages[lastMessageIndex].content.find(c => c.type === 'text');
-                     if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
-                 }
+            const lastMsg = messages[lastMessageIndex];
+            
+            if (Array.isArray(lastMsg.content)) {
+                hasImage = lastMsg.content.some(c => c.type === 'image_url');
+                let textObj = lastMsg.content.find(c => c.type === 'text');
+                if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
+            } else if (typeof lastMsg.content === 'string') {
+                lastMsg.content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${lastMsg.content}`;
             }
         }
 
-        const autoModels = ["openrouter/auto", "openrouter/free"];
+        // FIXED: Expanded the Vision Fallback list. If a model is offline, it drops to a stable alternative like Llama 3.2 Vision.
+        const autoModels = hasImage 
+            ? [
+                "google/gemini-2.0-flash-lite-preview-02-05:free", 
+                "meta-llama/llama-3.2-90b-vision-instruct:free",
+                "qwen/qwen-vl-plus:free", 
+                "openrouter/auto"
+              ] 
+            : ["openrouter/auto", "openrouter/free"];
+
         let response = null;
         let errorLogs = [];
 
@@ -301,10 +229,19 @@ Formatting Rules:
                 body: JSON.stringify({ model: currentModel, messages: messages, stream: true })
             });
             if (response.ok) break;
-            else { let errText = `HTTP ${response.status}`; try { errText = (await response.json()).error?.message || errText; } catch(e) {} errorLogs.push(`${currentModel}: ${errText}`); }
+            else { 
+                let errText = `HTTP ${response.status}`; 
+                try { 
+                    const errJson = await response.json(); 
+                    errText = errJson.error?.message || errText; 
+                } catch(e) {} 
+                errorLogs.push(`${currentModel}: ${errText}`); 
+            }
         }
 
-        if (!response || !response.ok) return res.status(response ? response.status : 500).json({ error: "Auto-Routing Failed.\n\nDiagnostics:\n" + errorLogs.join("\n") });
+        if (!response || !response.ok) {
+            return res.status(response ? response.status : 500).json({ error: "AI Engine Failed to process request.\n\nDiagnostics:\n" + errorLogs.join("\n") });
+        }
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache, no-transform');
