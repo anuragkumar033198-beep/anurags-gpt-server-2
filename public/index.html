@@ -45,15 +45,16 @@
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         /* --- BULLETPROOF PURE WHITE LIGHT THEME OVERRIDES --- */
+        /* FIXED: Using linear-gradient bypasses Samsung Internet's forced dark mode inversion completely! */
         :root.light-theme { color-scheme: light !important; }
-        html.light-theme, body.light-theme { background-color: #ffffff !important; color: #000000 !important; }
-        .light-theme main, .light-theme .bg-gray-950 { background-color: #ffffff !important; }
-        .light-theme header, .light-theme aside { background-color: #ffffff !important; border-color: #e5e7eb !important; }
-        .light-theme .bg-gradient-to-t { background: none !important; background-color: #ffffff !important; }
-        .light-theme .bg-gray-900 { background-color: #f4f4f5 !important; border-color: #e5e7eb !important; } 
-        .light-theme .bg-gray-800 { background-color: #f9f9f9 !important; border-color: #e5e7eb !important; color: #000000 !important; } 
-        .light-theme .bg-gray-700 { background-color: #e5e7eb !important; color: #000000 !important; }
-        .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; border-color: #2563eb !important; color: #ffffff !important; }
+        html.light-theme, body.light-theme { background-color: #ffffff !important; background-image: linear-gradient(#ffffff, #ffffff) !important; color: #000000 !important; }
+        .light-theme main, .light-theme .bg-gray-950 { background-color: #ffffff !important; background-image: linear-gradient(#ffffff, #ffffff) !important; }
+        .light-theme header, .light-theme aside { background-color: #ffffff !important; background-image: linear-gradient(#ffffff, #ffffff) !important; border-color: #e5e7eb !important; }
+        .light-theme .bg-gradient-to-t { background: none !important; background-image: linear-gradient(to top, #ffffff, #ffffff) !important; }
+        .light-theme .bg-gray-900 { background-color: #f4f4f5 !important; background-image: linear-gradient(#f4f4f5, #f4f4f5) !important; border-color: #e5e7eb !important; } 
+        .light-theme .bg-gray-800 { background-color: #f9f9f9 !important; background-image: linear-gradient(#f9f9f9, #f9f9f9) !important; border-color: #e5e7eb !important; color: #000000 !important; } 
+        .light-theme .bg-gray-700 { background-color: #e5e7eb !important; background-image: linear-gradient(#e5e7eb, #e5e7eb) !important; color: #000000 !important; }
+        .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; background-image: linear-gradient(#2563eb, #2563eb) !important; border-color: #2563eb !important; color: #ffffff !important; }
         .light-theme .bg-gray-800.text-white * { color: #ffffff !important; }
 
         /* Deep Text Overrides */
@@ -210,7 +211,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v78_mobile_fix'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v78_mobile_fix'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v79_startup_fix'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v79_startup_fix'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
@@ -510,52 +511,6 @@
             catch (e) { window.showToast("⚠️ Device storage limit reached. Session not saved.", null, null); } 
         }
 
-        // --- FIXED: PASSWORD VERIFICATION WITH BUTTON FEEDBACK ---
-        async function verifyPassword(pwd) { 
-            const btn = document.getElementById('submit-password-btn');
-            const errEl = document.getElementById('password-error');
-            if (!pwd) return;
-
-            // Instantly show "Verifying" so the user knows Vercel is waking up!
-            if (btn) { btn.innerText = 'Verifying...'; btn.disabled = true; btn.classList.add('opacity-75'); }
-            if (errEl) errEl.classList.add('hidden');
-
-            try { 
-                const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } }); 
-                const data = await res.json().catch(() => ({ attemptsLeft: 0 }));
-                
-                if (btn) { btn.innerText = 'Unlock App'; btn.disabled = false; btn.classList.remove('opacity-75'); }
-
-                if (res.ok) { 
-                    currentPassword = pwd; 
-                    localStorage.setItem(PWD_STORAGE_KEY, pwd); 
-                    const overlay = document.getElementById('password-overlay');
-                    overlay.classList.add('hidden'); 
-                    overlay.style.display = 'none'; // Force destruction of the overlay!
-                } 
-                else if (res.status === 403) { triggerLockdownUI(); } 
-                else if (res.status === 401) { 
-                    errEl.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; 
-                    errEl.classList.remove('hidden'); 
-                }
-            } catch (err) { 
-                if (btn) { btn.innerText = 'Unlock App'; btn.disabled = false; btn.classList.remove('opacity-75'); }
-                errEl.innerText = "Connecting to server... Please try again."; 
-                errEl.classList.remove('hidden'); 
-            } 
-        }
-        
-        if (currentPassword) { verifyPassword(currentPassword); } else { $('#password-overlay').classList.remove('hidden'); }
-        $('#submit-password-btn').addEventListener('click', () => verifyPassword($('#app-password-input').value.trim()));
-        
-        // FIXED: Mobile Keyboard "Go/Enter" Support!
-        $('#app-password-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                verifyPassword($('#app-password-input').value.trim());
-            }
-        });
-
         async function sendMessage() {
             if (window.isGenerating) { if (abortController) abortController.abort(); return; }
             const text = elUserInput.value.trim(); if (!text && !currentBase64Image && !currentFileAttachment) return;
@@ -588,7 +543,7 @@
                     const errData = await response.json().catch(() => ({ attemptsLeft: 0 }));
                     currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); 
                     $('#password-error').innerText = `Incorrect password. ${errData.attemptsLeft} attempts remaining.`;
-                    $('#password-error').classList.remove('hidden'); $('#password-overlay').style.display = 'flex';
+                    $('#password-error').classList.remove('hidden'); elPassOverlay.classList.remove('hidden'); 
                     throw new Error("Incorrect Password."); 
                 }
                 if (response.status === 403) { triggerLockdownUI(); throw new Error("IP BANNED"); }
@@ -643,11 +598,12 @@
 
         function resetUIState() { window.isGenerating = false; abortController = null; elSendBtn.innerHTML = SEND_ICON; elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; elMicBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none'); elSendBtn.disabled = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment; elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); elUserInput.focus(); const li = document.getElementById('loading-indicator'); if (li) li.remove();}
         elSendBtn.addEventListener('click', sendMessage);
+        elUserInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
         elUserInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if (!window.isGenerating) { elSendBtn.disabled = this.value.trim() === '' && !currentBase64Image && !currentFileAttachment; } });
         $('#clear-chat-btn').addEventListener('click', () => { if (isTempChat) { window.showConfirmModal("Clear Temp Chat?", "Wipe messages.", () => { tempChatData.messages = []; clearMessages(); showWelcome(); }); } else { if (!state.currentChatId) return; window.showConfirmModal("Clear History?", "Delete messages.", () => { const chat = state.chats.find(c => c.id === state.currentChatId); if (chat) { chat.messages = []; saveChats(); loadChat(state.currentChatId); } }); } });
         $('#new-chat-btn').addEventListener('click', () => { disableTempMode(); state.currentChatId = null; showWelcome(); renderSidebar(); if (window.innerWidth < 768) { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); } });
         $('#open-settings-btn').addEventListener('click', () => $('#settings-modal').classList.remove('hidden')); 
-        $('#close-settings-btn').addEventListener('click', () => $('#settings-modal').classList.add('hidden'));
+        $('#close-settings-btn').addEventListener('click', () => $('#settings-modal').classList.add('hidden'); });
         $('#save-settings-btn').addEventListener('click', () => { settings.systemPrompt = $('#system-prompt-input').value.trim(); saveSettings(); $('#settings-modal').classList.add('hidden'); });
         $('#lock-app-btn').addEventListener('click', () => { currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); $('#settings-modal').classList.add('hidden'); $('#app-password-input').value = ''; $('#password-error').classList.add('hidden'); $('#password-overlay').style.display = 'flex'; $('#password-overlay').classList.remove('hidden'); });
         $('#mobile-menu-btn').addEventListener('click', () => { $('#sidebar').classList.remove('-translate-x-full'); $('#sidebar-overlay').classList.remove('hidden'); });
@@ -680,6 +636,42 @@
         
         function triggerLockdownUI() { $('#password-overlay').classList.remove('hidden'); $('#password-overlay').style.display = 'flex'; $('#app-password-input').classList.add('hidden'); $('#submit-password-btn').classList.add('hidden'); $('#password-error').classList.remove('hidden'); $('#password-error').innerHTML = "🚨 IP BANNED 🚨<br>Too many failed attempts."; }
         
+        async function verifyPassword(pwd) { 
+            const btn = document.getElementById('submit-password-btn');
+            const errEl = document.getElementById('password-error');
+            if (!pwd) return;
+            if (btn) { btn.innerText = 'Verifying...'; btn.disabled = true; btn.classList.add('opacity-75'); }
+            if (errEl) errEl.classList.add('hidden');
+
+            try { 
+                const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } }); 
+                const data = await res.json().catch(() => ({ attemptsLeft: 0 }));
+                
+                if (btn) { btn.innerText = 'Unlock App'; btn.disabled = false; btn.classList.remove('opacity-75'); }
+
+                if (res.ok) { 
+                    currentPassword = pwd; 
+                    localStorage.setItem(PWD_STORAGE_KEY, pwd); 
+                    const overlay = document.getElementById('password-overlay');
+                    overlay.classList.add('hidden'); 
+                    overlay.style.display = 'none';
+                } 
+                else if (res.status === 403) { triggerLockdownUI(); } 
+                else if (res.status === 401) { 
+                    errEl.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; 
+                    errEl.classList.remove('hidden'); 
+                }
+            } catch (err) { 
+                if (btn) { btn.innerText = 'Unlock App'; btn.disabled = false; btn.classList.remove('opacity-75'); }
+                errEl.innerText = "Connecting to server... Please try again."; 
+                errEl.classList.remove('hidden'); 
+            } 
+        }
+        
+        if (currentPassword) { verifyPassword(currentPassword); } else { $('#password-overlay').classList.remove('hidden'); }
+        $('#submit-password-btn').addEventListener('click', () => verifyPassword($('#app-password-input').value.trim()));
+        $('#app-password-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verifyPassword($('#app-password-input').value.trim()); } });
+
         $('#plus-menu-btn').addEventListener('click', (e) => { e.stopPropagation(); $('#attachment-menu').classList.toggle('hidden'); $('#attachment-menu').classList.toggle('flex'); });
         document.addEventListener('click', (e) => { if (!$('#attachment-menu').contains(e.target) && e.target !== $('#plus-menu-btn')) { $('#attachment-menu').classList.add('hidden'); $('#attachment-menu').classList.remove('flex'); } if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown') && !e.target.closest('.user-menu-trigger')) { $$('.chat-menu-dropdown').forEach(menu => menu.classList.add('hidden')); } });
         $('#menu-photo-btn').addEventListener('click', () => { $('#file-input').click(); }); $('#menu-file-btn').addEventListener('click', () => { $('#general-file-input').click(); });
@@ -732,7 +724,43 @@
         function setupSpeechRecognition() { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); }; } else { elMicBtn.style.display = 'none'; } }
         elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } });
         
-        function init() { applyTheme(); setupSpeechRecognition(); loadSettings(); loadChats(); if(window.location.hash && window.location.hash.startsWith('#share=')) { try { const base64Data = window.location.hash.substring(7); const sharedChat = JSON.parse(atob(base64Data)); disableTempMode(); state.currentChatId = 'shared-' + Date.now(); clearMessages(); elWelcomeScreen.classList.add('hidden'); const banner = document.createElement('div'); banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50'; banner.innerHTML = `Viewing shared chat: <strong>${window.escapeHtml(sharedChat.title)}</strong> (Read-only)`; elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer); sharedChat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); elUserInput.disabled = true; elUserInput.placeholder = "Read-only shared chat."; elSendBtn.disabled = true; elMicBtn.style.display = 'none'; $('#plus-menu-btn').style.display = 'none'; } catch(e) { window.location.hash = ''; showWelcome(); } } else { if (state.chats.length > 0) loadChat(state.chats[0].id); else showWelcome(); } renderSidebar(); }
+        // FIXED: init() now forces showWelcome() instead of loading the last chat!
+        function init() { 
+            applyTheme(); 
+            setupSpeechRecognition(); 
+            loadSettings(); 
+            loadChats(); 
+            if(window.location.hash && window.location.hash.startsWith('#share=')) { 
+                try { 
+                    const base64Data = window.location.hash.substring(7); 
+                    const sharedChat = JSON.parse(atob(base64Data)); 
+                    disableTempMode(); 
+                    state.currentChatId = 'shared-' + Date.now(); 
+                    clearMessages(); 
+                    elWelcomeScreen.classList.add('hidden'); 
+                    const banner = document.createElement('div'); 
+                    banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50'; 
+                    banner.innerHTML = `Viewing shared chat: <strong>${window.escapeHtml(sharedChat.title)}</strong> (Read-only)`; 
+                    elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer); 
+                    sharedChat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); 
+                    scrollToBottom(); 
+                    elUserInput.disabled = true; 
+                    elUserInput.placeholder = "Read-only shared chat."; 
+                    elSendBtn.disabled = true; 
+                    elMicBtn.style.display = 'none'; 
+                    $('#plus-menu-btn').style.display = 'none'; 
+                } catch(e) { 
+                    window.location.hash = ''; 
+                    showWelcome(); 
+                } 
+            } else { 
+                // ALWAYS show welcome screen on fresh open!
+                state.currentChatId = null; 
+                showWelcome(); 
+            } 
+            renderSidebar(); 
+        }
+
         function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
         function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
         function loadSettings() { const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); if (stored) settings = { ...settings, ...JSON.parse(stored) }; $('#system-prompt-input').value = settings.systemPrompt || ''; }
