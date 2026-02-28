@@ -17,7 +17,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 750: '#2d3748', 850: '#1a202c', 950: '#0d1117' }, primary: { 500: '#3b82f6', 600: '#2563eb' } }, animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite' } } } }
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { gray: { 750: '#2d3748', 850: '#1a202c', 950: '#0d1117' }, primary: { 500: '#3b82f6', 600: '#2563eb' } }, animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite', 'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' } } } }
     </script>
     <style>
         html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; overscroll-behavior-y: none; }
@@ -56,9 +56,9 @@
             </div>
             <h2 class="text-2xl font-bold text-white mb-2">Private Access</h2>
             <p class="text-gray-400 text-sm mb-6">Enter the password to access Anurag's GPT.</p>
-            <input type="password" id="app-password-input" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-blue-500 text-center" placeholder="Enter Password">
-            <button id="submit-password-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl shadow-md active:scale-95">Unlock App</button>
-            <p id="password-error" class="text-red-400 text-sm mt-4 hidden fade-in font-medium"></p>
+            <input type="password" id="app-password-input" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center transition-colors" placeholder="Enter Password">
+            <button id="submit-password-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-md active:scale-95">Unlock App</button>
+            <p id="password-error" class="text-red-400 text-sm mt-4 hidden fade-in font-medium">Incorrect password.</p>
         </div>
     </div>
 
@@ -90,7 +90,7 @@
                 <span class="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent flex items-center gap-2">Anurag's GPT <span id="temp-badge" class="hidden bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">Temp</span></span>
             </div>
             <div class="flex items-center gap-4">
-                <button id="temp-chat-toggle-btn" class="text-gray-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Temporary Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg><span class="hidden sm:inline font-medium">Temp Chat</span></button>
+                <button id="temp-chat-toggle-btn" class="text-gray-400 hover:text-purple-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Temporary Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg><span class="hidden sm:inline font-medium">Temp Chat</span></button>
                 <button id="clear-chat-btn" class="text-gray-400 hover:text-red-400 text-sm flex items-center gap-1.5 transition-colors" title="Clear Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg><span class="hidden sm:inline font-medium">Clear</span></button>
             </div>
         </header>
@@ -160,7 +160,6 @@
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
-        // --- 1. DEFINE DOM ELEMENTS ---
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
         
@@ -169,15 +168,12 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        // --- 2. STATE VARIABLES ---
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v72_ultimate'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v72_ultimate'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v73_smart_intent'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v73_smart_intent'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] };
 
         const renderer = new marked.Renderer();
-        
-        // --- HELPER FUNCTIONS ---
         window.escapeHtml = function(text) { const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; return text.replace(/[&<>"']/g, m => map[m]); };
         
         function applyKaTeX(element) {
@@ -225,7 +221,6 @@
         window.shareUserMessage = function(msgId) { const text = document.getElementById(msgId).querySelector('.message-text').getAttribute('data-raw-content'); if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`).classList.add('hidden');};
 
         // --- UNIFIED REGENERATE LOGIC ---
-        // Both buttons now completely delete the bad response and automatically resend the exact original user message.
         window.regenerateResponse = function(btn) { 
             if (window.isGenerating) return; 
             let chat = isTempChat ? tempChatData : state.chats.find(c => c.id === state.currentChatId);
@@ -235,7 +230,6 @@
                 const userContent = chat.messages[chat.messages.length - 2].content;
                 let lastUserText = "";
                 
-                // If they used an image edit/upload previously, restore it to memory so the API doesn't crash!
                 if (Array.isArray(userContent)) {
                     let textObj = userContent.find(c => c.type === 'text');
                     let imgObj = userContent.find(c => c.type === 'image_url');
@@ -253,7 +247,6 @@
                      if (parts.length > 1) lastUserText = parts.slice(1).join('\n\nUser Message: '); 
                 }
                 
-                // Erase history and re-trigger send
                 chat.messages.pop(); chat.messages.pop();
                 if (!isTempChat) saveChats();
                 loadChat(chat.id || null);
@@ -263,7 +256,6 @@
                 elSendBtn.disabled = false; elSendBtn.click();
             }
         };
-        // The image button now does the exact same thing as the text button for perfect consistency
         window.regenerateImageBtn = window.regenerateResponse; 
 
         window.downloadImageBtn = async function(btn) { 
@@ -282,7 +274,6 @@
         // --- CUSTOM MARKED.JS RENDERERS ---
         renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
         
-        // YOUR EXACT ORIGINAL WORKING IMAGE RENDERER
         window.fetchSecureImage = async function(prompt, imgEl) { 
             try { 
                 const pwd = encodeURIComponent(currentPassword); 
@@ -346,10 +337,7 @@
             
             let actionButtons = '';
             if (!isUser) {
-                const textWithoutImages = displayContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim();
-                if (textWithoutImages.length > 0) {
-                     actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; 
-                }
+                actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; 
             } else {
                  actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-500 hover:text-gray-300 p-1.5 rounded-lg transition-colors bg-gray-900 border border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`;
             }
@@ -375,7 +363,6 @@
         function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-800 shadow-sm"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; elMessagesContainer.appendChild(div); scrollToBottom(); }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
-        // --- SAFE STORAGE (PREVENTS CRASH ON BIG IMAGES) ---
         function saveChats() { 
             state.chats.sort((a, b) => (a.pinned === b.pinned) ? b.id - a.id : b.pinned ? -1 : 1); 
             try { localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); } 
@@ -387,34 +374,24 @@
             const text = elUserInput.value.trim(); if (!text && !currentBase64Image && !currentFileAttachment) return;
             window.isGenerating = true; abortController = new AbortController();
             elMicBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+            
+            // --- FIXED: SMART INTENT FALLTHROUGH ---
+            // The hardcoded edit interceptor is REMOVED! It now falls straight through to the AI chat engine.
             const lowerText = text.toLowerCase();
             const isEditRequest = currentBase64Image && (lowerText.includes('edit') || lowerText.includes('change') || lowerText.includes('make') || lowerText.includes('turn') || lowerText.includes('add') || lowerText.includes('remove') || lowerText.includes('replace') || lowerText.includes('swap'));
             if (isEditRequest) { elUserInput.placeholder = "Anurag's GPT is editing the image..."; } else if (lowerText.includes('draw') || lowerText.includes('generate') || lowerText.includes('image') || lowerText.includes('picture')) { elUserInput.placeholder = "Anurag's GPT is generating..."; } else { elUserInput.placeholder = "Anurag's GPT is typing..."; }
+            
             elUserInput.value = ''; elUserInput.style.height = 'auto'; elUserInput.disabled = true; elSendBtn.innerHTML = STOP_ICON; elSendBtn.disabled = false; elWelcomeScreen.classList.add('hidden');
             let chat; if (isTempChat) { chat = tempChatData; } else { chat = getOrCreateChat(text || "Document Analysis"); }
             let messageContent = text;
+            
             if (currentBase64Image) { messageContent = [{ type: "text", text: text || "Analyze this image." }, { type: "image_url", image_url: { url: currentBase64Image } }]; } 
             else if (currentFileAttachment) { messageContent = `I have attached a file named "${currentFileAttachment.name}".\n\n--- FILE CONTENT ---\n${currentFileAttachment.text}\n--- END FILE CONTENT ---\n\n${text || "Please review the attached document."}`; }
+            
             chat.messages.push({ role: 'user', content: messageContent }); if (!isTempChat) saveChats(); 
             window.appendMessageToDOM('user', messageContent); createLoadingIndicator(); resetAttachments();
 
-            // EDIT IMAGE BYPASS
-            if (isEditRequest) {
-                try {
-                    let response = await fetch("/api/edit-image", { method: "POST", headers: { "Content-Type": "application/json", "x-app-password": currentPassword }, body: JSON.stringify({ imageBase64: messageContent[1].image_url.url, prompt: text }), signal: abortController.signal });
-                    if (response.status === 401) { currentPassword = ''; localStorage.removeItem(PWD_STORAGE_KEY); elPassOverlay.classList.remove('hidden'); throw new Error("Incorrect Password."); }
-                    if (!response.ok) { 
-                        const errData = await response.json().catch(() => ({ error: { message: "Unknown API Error" } })); 
-                        throw new Error(errData.error?.message || errData.error || "Image Edit Failed"); 
-                    }
-                    const data = await response.json(); window.isGenerating = false; removeLoadingIndicator();
-                    const editedImageMarkdown = `![Edited Image](${data.image})`;
-                    window.appendMessageToDOM('assistant', editedImageMarkdown); chat.messages.push({ role: 'assistant', content: editedImageMarkdown }); if (!isTempChat) saveChats(); scrollToBottom();
-                } catch(error) { window.isGenerating = false; removeLoadingIndicator(); if (error.name !== 'AbortError') window.appendMessageToDOM('assistant', `⚠️ **Error:** ${error.message}`); }
-                resetUIState(); return; 
-            }
-
-            // REGULAR CHAT
+            // ALL Requests (including image edits) now go cleanly to /api/chat so the AI can use its Smart Vision!
             try {
                 let payloadMessages = chat.messages.map(m => ({ role: m.role, content: m.content }));
                 if (settings.systemPrompt && settings.systemPrompt.trim() !== '') {
@@ -537,7 +514,6 @@
         $('#menu-photo-btn').addEventListener('click', () => { $('#file-input').click(); }); $('#menu-file-btn').addEventListener('click', () => { $('#general-file-input').click(); });
         $('#menu-create-image-btn').addEventListener('click', () => { elUserInput.value = "Generate an image of "; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); });
         
-        // --- CLIENT SIDE IMAGE COMPRESSION ---
         $('#file-input').addEventListener('change', (e) => { 
             const file = e.target.files[0]; if (!file) return; resetAttachments(); 
             const reader = new FileReader(); 
@@ -546,13 +522,13 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     let width = img.width; let height = img.height;
-                    const MAX_DIM = 800; // Compresses image to prevent Payload Too Large & Storage Full errors
+                    const MAX_DIM = 800;
                     if (width > height) { if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; } }
                     else { if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; } }
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    currentBase64Image = canvas.toDataURL('image/jpeg', 0.7); // 70% Quality JPEG
+                    currentBase64Image = canvas.toDataURL('image/jpeg', 0.7);
                     $('#image-preview').src = currentBase64Image; 
                     $('#image-preview').classList.remove('hidden'); 
                     $('#file-preview').classList.add('hidden'); 

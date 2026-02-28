@@ -37,7 +37,7 @@ app.get('/manifest.json', (req, res) => {
 
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["PASTE_YOUR_SHA256_FINGERPRINT_HERE"] } }]);
+    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
 });
 
 app.get('/', (req, res) => {
@@ -169,7 +169,7 @@ app.get('/api/image', async (req, res) => {
     }
 });
 
-// --- GETIMG PROXY (PHOTO EDITING) - RESTORED ---
+// --- HUGGING FACE PROXY (Left untouched per your instruction, though no longer needed) ---
 app.post('/api/edit-image', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -180,41 +180,79 @@ app.post('/api/edit-image', async (req, res) => {
         const { imageBase64, prompt } = req.body;
         if (!imageBase64 || !prompt) return res.status(400).json({ error: "Data missing." });
         
-        const cleanKey = cleanApiKey('GETIMG_API_KEY', 'GETIMGAPIKEY');
-        if (!cleanKey) return res.status(500).json({ error: "Getimg API Key missing in Variables!" });
+        let rawHFKey = process.env.HUGGINGFACE_API_KEY || process.env.HUGGINGFACEAPIKEY || '';
+        let cleanKey = rawHFKey.replace(/[\r\n\s]+/g, ''); 
+        if (cleanKey.toLowerCase().startsWith('bearer')) cleanKey = cleanKey.substring(6);
+
+        if (!cleanKey) return res.status(500).json({ error: "Hugging Face API Key missing in Variables!" });
         
         const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+        const imageBuffer = Buffer.from(base64Data, 'base64');
         
-        const response = await fetch("https://api.getimg.ai/v1/stable-diffusion/image-to-image", {
-            method: "POST",
-            headers: { 
-                "Authorization": `Bearer ${cleanKey}`, 
-                "Content-Type": "application/json", 
-                "Accept": "application/json" 
-            },
-            body: JSON.stringify({ 
-                model: "realistic-vision-v5-1",
-                image: base64Data, 
-                prompt: prompt, 
-                output_format: "jpeg", 
-                strength: 0.6 
-            })
-        });
+        const boundary = '----AnuragGPTFormBoundary' + Math.random().toString(16).slice(2);
+        const bodyBuffer = Buffer.concat([
+            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="prompt"\r\n\r\n${prompt}\r\n`),
+            Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="upload.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`),
+            imageBuffer,
+            Buffer.from(`\r\n--${boundary}--\r\n`)
+        ]);
+
+        const modelsToTry = [
+            "timbrooks/instruct-pix2pix",
+            "black-forest-labs/FLUX.1-schnell",
+            "stabilityai/stable-diffusion-xl-refiner-1.0",
+            "runwayml/stable-diffusion-v1-5"
+        ];
         
-        if (!response.ok) { 
-            const errData = await response.json().catch(() => ({ error: { message: "Unknown GetImg Error" }})); 
-            throw new Error(`GetImg API Error: ${errData.error?.message || response.statusText}`); 
+        const endpointsToTry = [
+            "https://router.huggingface.co/hf-inference/models/",
+            "https://api-inference.huggingface.co/models/"
+        ];
+
+        let response = null;
+        let lastError = "";
+        let success = false;
+
+        for (const model of modelsToTry) {
+            for (const baseEndpoint of endpointsToTry) {
+                response = await fetch(`${baseEndpoint}${model}`, {
+                    method: "POST",
+                    headers: { 
+                        "Authorization": `Bearer ${cleanKey}`, 
+                        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+                        "X-Use-Cache": "false"
+                    },
+                    body: bodyBuffer
+                });
+                if (response.ok) { success = true; break; }
+                let errText = await response.text();
+                lastError = errText;
+                if (response.status === 503) {
+                    let waitTime = 20;
+                    try { waitTime = Math.round(JSON.parse(errText).estimated_time || 20); } catch(e) {}
+                    throw new Error(`The free AI model is waking up from sleep. Please wait ${waitTime} seconds and try again!`);
+                }
+            }
+            if (success) break;
         }
         
-        const data = await response.json();
-        res.json({ success: true, image: `data:image/jpeg;base64,${data.image}` });
+        if (!success || !response || !response.ok) { 
+            let parsedErr = lastError.substring(0, 100);
+            try { parsedErr = JSON.parse(lastError).error || parsedErr; } catch(e) {}
+            throw new Error(`HF Models Failed (${response ? response.status : 'N/A'}): ${parsedErr}`); 
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        const outputBase64 = Buffer.from(arrayBuffer).toString('base64');
+        
+        res.json({ success: true, image: `data:image/jpeg;base64,${outputBase64}` });
     } catch (error) { 
         console.error("Edit Error:", error.message); 
         res.status(500).json({ error: error.message }); 
     }
 });
 
-// --- MAIN CHAT ENGINE (UNTOUCHED) ---
+// --- MAIN CHAT ENGINE ---
 app.post('/api/chat', async (req, res) => {
     try {
         let rawAppKey = process.env.APP_PASSWORD || process.env.APPPASSWORD || '';
@@ -231,12 +269,14 @@ app.post('/api/chat', async (req, res) => {
 
         if (!apiKey) return res.status(500).json({ error: "API Key missing!" });
 
+        // --- NEW SMART INTENT & FAKE I2I SYSTEM PROMPT ---
         const myCustomIdentity = `You are Anurag's GPT, a highly intelligent senior AI assistant created by Anurag.
 Formatting Rules:
 1. MATH NOTATION (CRITICAL): You MUST wrap EVERY mathematical equation, variable, or symbol in LaTeX dollar signs. Example inline: "$x^2$", "$E=mc^2$". Block equations: "$$ y = mx + c $$". NEVER use raw text for math like "^2" or "x^2" without the "$" wrappers.
-2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://gen.pollinations.ai/image/highly%20detailed%20visual%20description). Do NOT put the image link inside a code block.
+2. AUTOMATIC IMAGES: Whenever explaining a topic, you MUST ALWAYS generate a relevant illustrative image at the VERY TOP of your response. Use EXACTLY this markdown format: ![Image](https://image.pollinations.ai/prompt/highly%20detailed%20visual%20description). Do NOT put the image link inside a code block.
 3. EMOJIS: Use emojis at the start of major section headings.
-4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue circular icon with a white lightning bolt in the middle, DO NOT say it is Discord or a thunderbolt. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.`;
+4. YOUR IDENTITY & LOGO (CRITICAL RULE): If the user uploads an image of a blue circular icon with a white lightning bolt in the middle, DO NOT say it is Discord or a thunderbolt. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.
+5. SMART IMAGE EDITING (FAKE I2I): If the user uploads an image and asks you to modify, edit, or change it, act as a professional image generator. Analyze the uploaded image using your vision capabilities to understand its exact contents, style, and lighting. Then, create a completely new, highly detailed image prompt that recreates the original image BUT includes the user's requested changes. Generate this new image using the Pollinations markdown: ![Image](https://image.pollinations.ai/prompt/your%20new%20highly%20detailed%20description). Do NOT explain your editing process, just output the image markdown.`;
         
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
