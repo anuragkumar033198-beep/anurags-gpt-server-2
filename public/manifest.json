@@ -1,19 +1,11 @@
 {
   "name": "Anurag's GPT",
-  "short_name": "Anurag's GPT",
-  "description": "A highly intelligent AI assistant created by Anurag.",
+  "short_name": "AnuragGPT",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d1117",
   "theme_color": "#0d1117",
-  "orientation": "portrait",
   "icons": [
-    {
-      "src": "/icon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
     {
       "src": "/icon.png",
       "sizes": "512x512",

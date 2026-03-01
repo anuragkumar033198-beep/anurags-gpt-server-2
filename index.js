@@ -105,7 +105,8 @@ app.post('/api/verify', async (req, res) => {
             await notifyDiscord(ip, req);
             return res.status(403).json({ error: "BANNED" }); 
         }
-        if (attempts > MAX_ATTEMPTS) return res.status(403).json({ error: "BANNED" });
+        if (attempts > MAX_AT
+            TEMPTS) return res.status(403).json({ error: "BANNED" });
         return res.status(401).json({ error: "Incorrect Password", attemptsLeft: MAX_ATTEMPTS - attempts });
     }
     failedAttempts.delete(ip);
