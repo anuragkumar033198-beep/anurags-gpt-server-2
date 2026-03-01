@@ -45,15 +45,19 @@
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         /* --- BULLETPROOF PURE WHITE LIGHT THEME OVERRIDES --- */
+        /* FIXED: Using a 1x1 pure white pixel image physically blocks Samsung Internet from applying forced dark-mode overlays */
         :root.light-theme { color-scheme: light !important; }
-        html.light-theme, body.light-theme { background-color: #ffffff !important; background-image: linear-gradient(#ffffff, #ffffff) !important; color: #000000 !important; }
-        .light-theme main, .light-theme .bg-gray-950 { background-color: #ffffff !important; background-image: linear-gradient(#ffffff, #ffffff) !important; }
-        .light-theme header, .light-theme aside { background-color: #ffffff !important; background-image: linear-gradient(#ffffff, #ffffff) !important; border-color: #e5e7eb !important; }
-        .light-theme .bg-gradient-to-t { background: none !important; background-image: linear-gradient(to top, #ffffff, #ffffff) !important; }
-        .light-theme .bg-gray-900 { background-color: #f4f4f5 !important; background-image: linear-gradient(#f4f4f5, #f4f4f5) !important; border-color: #e5e7eb !important; } 
-        .light-theme .bg-gray-800 { background-color: #f9f9f9 !important; background-image: linear-gradient(#f9f9f9, #f9f9f9) !important; border-color: #e5e7eb !important; color: #000000 !important; } 
-        .light-theme .bg-gray-700 { background-color: #e5e7eb !important; background-image: linear-gradient(#e5e7eb, #e5e7eb) !important; color: #000000 !important; }
-        .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; background-image: linear-gradient(#2563eb, #2563eb) !important; border-color: #2563eb !important; color: #ffffff !important; }
+        html.light-theme, body.light-theme, .light-theme main, .light-theme .bg-gray-950, .light-theme header, .light-theme aside, .light-theme .bg-gradient-to-t { 
+            background-color: #ffffff !important; 
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=') !important; 
+            background-repeat: repeat !important;
+            color: #000000 !important; 
+        }
+        .light-theme header, .light-theme aside { border-color: #e5e7eb !important; }
+        .light-theme .bg-gray-900 { background-color: #f4f4f5 !important; background-image: none !important; border-color: #e5e7eb !important; } 
+        .light-theme .bg-gray-800 { background-color: #f9f9f9 !important; background-image: none !important; border-color: #e5e7eb !important; color: #000000 !important; } 
+        .light-theme .bg-gray-700 { background-color: #e5e7eb !important; background-image: none !important; color: #000000 !important; }
+        .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; background-image: none !important; border-color: #2563eb !important; color: #ffffff !important; }
         .light-theme .bg-gray-800.text-white * { color: #ffffff !important; }
 
         /* Deep Text Overrides */
@@ -343,14 +347,16 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // --- BULLETPROOF THEME ENGINE ---
+        // --- FIXED: THEME ENGINE WITH META OVERRIDE ---
         let isLightMode = localStorage.getItem('anurags_gpt_theme') === 'light';
         function applyTheme() {
+            const metaTag = document.querySelector('meta[name="color-scheme"]');
             if (isLightMode) { 
                 document.documentElement.classList.remove('dark');
                 document.documentElement.classList.add('light-theme');
                 document.body.classList.add('light-theme'); 
                 document.documentElement.style.setProperty('color-scheme', 'light', 'important'); 
+                if (metaTag) metaTag.setAttribute('content', 'light'); // Force Samsung to recognize light mode!
                 $('#theme-icon-light').classList.add('hidden'); 
                 $('#theme-icon-dark').classList.remove('hidden'); 
             } else { 
@@ -358,6 +364,7 @@
                 document.documentElement.classList.remove('light-theme');
                 document.body.classList.remove('light-theme'); 
                 document.documentElement.style.setProperty('color-scheme', 'dark', 'important');
+                if (metaTag) metaTag.setAttribute('content', 'dark light');
                 $('#theme-icon-light').classList.remove('hidden'); 
                 $('#theme-icon-dark').classList.add('hidden'); 
             }
@@ -725,7 +732,7 @@
         function setupSpeechRecognition() { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); }; } else { elMicBtn.style.display = 'none'; } }
         elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } });
         
-        // --- BOOT PROCESS ---
+        // --- FIXED: STARTUP LOGIC ---
         function init() { 
             applyTheme(); 
             setupSpeechRecognition(); 
@@ -754,6 +761,7 @@
                     $('#plus-menu-btn').style.display = 'none'; 
                 } catch(e) { window.location.hash = ''; showWelcome(); } 
             } else { 
+                // CRITICAL FIX: Forces the app to start completely blank instead of loading the last chat!
                 state.currentChatId = null; 
                 showWelcome(); 
             } 
