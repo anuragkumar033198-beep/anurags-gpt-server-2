@@ -25,7 +25,8 @@
     <style>
         html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; overscroll-behavior-y: none; transition: background-color 0.3s ease, color 0.3s ease; }
         .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
-        ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; } ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: transparent; } 
+        ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; } .dark ::-webkit-scrollbar-thumb { background: #374151; }
         
         .prose-content { line-height: 1.6; overflow-wrap: anywhere; word-break: normal; }
         .prose-content p { margin-bottom: 0.75em; }
@@ -33,9 +34,14 @@
         .prose-content h1 { font-size: 1.5em; } .prose-content h2 { font-size: 1.25em; } .prose-content h3 { font-size: 1.1em; }
         .prose-content ul, .prose-content ol { margin-left: 1.5rem; margin-bottom: 1rem; padding-left: 1rem; }
         .prose-content ul { list-style-type: disc; } .prose-content ol { list-style-type: decimal; } .prose-content li { margin-bottom: 0.5rem; }
-        .prose-content strong { color: inherit; font-weight: 700; } .prose-content em { font-style: italic; } .prose-content a { color: #60a5fa; text-decoration: underline; }
+        .prose-content strong { color: inherit; font-weight: 700; } .prose-content em { font-style: italic; } 
+        .prose-content a { color: #3b82f6; text-decoration: underline; }
         .prose-content pre { margin-top: 1em; margin-bottom: 1em; overflow-x: auto; }
-        .prose-content :not(pre) > code { background-color: #374151; padding: 0.2em 0.4em; border-radius: 0.3em; font-size: 0.9em; font-family: monospace; color: #e5e7eb; word-break: break-word; }
+        .prose-content :not(pre) > code { padding: 0.2em 0.4em; border-radius: 0.3em; font-size: 0.9em; font-family: monospace; word-break: break-word; }
+        
+        /* Native Tailwind Markdown Overrides */
+        .prose-content :not(pre) > code { background-color: #f3f4f6; color: #ef4444; }
+        .dark .prose-content :not(pre) > code { background-color: #374151; color: #e5e7eb; }
         .katex { font-size: 1.1em; } .katex-display { margin: 1em 0; overflow-x: auto; overflow-y: hidden; padding-top: 0.5em; padding-bottom: 0.5em;}
 
         .typing-dot { animation: typing 1.4s infinite ease-in-out both; } .typing-dot:nth-child(1) { animation-delay: -0.32s; } .typing-dot:nth-child(2) { animation-delay: -0.16s; } @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } } .fade-in { animation: fadeIn 0.3s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -43,119 +49,9 @@
         .chat-menu-dropdown.hidden { opacity: 0; transform: scale(0.95); pointer-events: none; }
         .user-menu-trigger { opacity: 0; transition: opacity 0.2s; } .group:hover .user-menu-trigger { opacity: 1; }
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
-
-        /* --- THE ULTIMATE SAMSUNG INTERNET BYPASS (LIGHT THEME) --- */
-        /* 1. Box-Shadow Hack: Mobile browsers NEVER invert box-shadows. We paint the screen white using shadows. */
-        /* 2. Text-Fill-Color Hack: Overrides forced text color inversion. */
-        :root.light-theme { color-scheme: light only !important; forced-color-adjust: none !important; }
-        
-        html.light-theme, body.light-theme, .light-theme main, .light-theme .bg-gray-950 { 
-            background-color: transparent !important;
-            background-image: none !important;
-            box-shadow: inset 0 0 0 9999px #ffffff !important; 
-            color: #000000 !important; 
-            -webkit-text-fill-color: #000000 !important;
-        }
-        .light-theme header, .light-theme aside { 
-            background-color: transparent !important;
-            background-image: none !important;
-            box-shadow: inset 0 0 0 9999px #ffffff !important; 
-            border-color: #e5e7eb !important; 
-        }
-        .light-theme .bg-gradient-to-t { 
-            background: none !important; 
-            background-color: transparent !important;
-            box-shadow: inset 0 0 0 9999px #ffffff !important; 
-        }
-        
-        /* Input Areas and Suggestions */
-        .light-theme .bg-gray-900, .light-theme .suggestion-btn { 
-            background-color: transparent !important;
-            background-image: none !important;
-            box-shadow: inset 0 0 0 9999px #f4f4f5 !important; 
-            border-color: #e5e7eb !important; 
-        } 
-        
-        /* Assistant Bubbles */
-        .light-theme .bg-gray-800 { 
-            background-color: transparent !important;
-            background-image: none !important;
-            box-shadow: inset 0 0 0 9999px #f9f9f9 !important; 
-            border-color: #e5e7eb !important; 
-            color: #000000 !important; 
-            -webkit-text-fill-color: #000000 !important;
-        } 
-        .light-theme .bg-gray-700 { 
-            background-color: transparent !important;
-            background-image: none !important;
-            box-shadow: inset 0 0 0 9999px #e5e7eb !important; 
-            color: #000000 !important; 
-            -webkit-text-fill-color: #000000 !important;
-        }
-        
-        /* iMessage Blue Bubbles for User Chat */
-        .light-theme .bg-gray-800.text-white { 
-            background-color: transparent !important;
-            background-image: none !important;
-            box-shadow: inset 0 0 0 9999px #2563eb !important; 
-            border-color: #2563eb !important; 
-            color: #ffffff !important; 
-            -webkit-text-fill-color: #ffffff !important;
-        }
-        .light-theme .bg-gray-800.text-white * { 
-            color: #ffffff !important; 
-            -webkit-text-fill-color: #ffffff !important;
-        }
-
-        /* Deep Text Overrides */
-        .light-theme .text-white { color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
-        .light-theme .text-gray-100, .light-theme .text-gray-200 { color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
-        .light-theme .text-gray-300, .light-theme .text-gray-400 { color: #4b5563 !important; -webkit-text-fill-color: #4b5563 !important; }
-        .light-theme .text-gray-500 { color: #6b7280 !important; -webkit-text-fill-color: #6b7280 !important; }
-        
-        .light-theme input, .light-theme textarea { 
-            color: #000000 !important; 
-            -webkit-text-fill-color: #000000 !important;
-            background-color: transparent !important;
-        }
-        .light-theme #user-input::placeholder { color: #9ca3af !important; -webkit-text-fill-color: #9ca3af !important; }
-        
-        /* Icons and Buttons */
-        .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 { box-shadow: none !important; } /* Protects the logo gradient */
-        .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 svg.text-white { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
-        
-        .light-theme #send-btn.bg-blue-600.text-white, .light-theme #install-app-btn, .light-theme #save-settings-btn, .light-theme #submit-password-btn, .light-theme #confirm-action-btn, .light-theme #custom-prompt-confirm, .light-theme #toast-action-btn { 
-            background-color: transparent !important;
-            box-shadow: inset 0 0 0 9999px #2563eb !important; 
-            color: #ffffff !important; 
-            -webkit-text-fill-color: #ffffff !important;
-        }
-        .light-theme #send-btn.bg-blue-600.text-white svg { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
-        
-        .light-theme #scroll-to-bottom-btn { 
-            background-color: transparent !important;
-            box-shadow: inset 0 0 0 9999px #ffffff !important; 
-            color: #2563eb !important; 
-            -webkit-text-fill-color: #2563eb !important;
-            border-color: #e5e7eb !important; 
-        }
-        
-        /* Borders & Code Blocks */
-        .light-theme .border-gray-800, .light-theme .border-gray-700, .light-theme .border-gray-600 { border-color: #e5e7eb !important; }
-        .light-theme .prose-content code { 
-            background-color: transparent !important;
-            box-shadow: inset 0 0 0 9999px #e5e7eb !important; 
-            color: #b91c1c !important; 
-            -webkit-text-fill-color: #b91c1c !important;
-        }
-        .light-theme .group\/code .bg-\[\#0d1117\] { 
-            background-color: transparent !important;
-            box-shadow: inset 0 0 0 9999px #f8fafc !important; 
-            border-color: #e5e7eb !important; 
-        }
     </style>
 </head>
-<body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
+<body class="bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
 
     <div id="image-viewer-modal" class="fixed inset-0 bg-black/95 z-[300] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
         <button id="close-image-viewer" class="absolute top-4 right-4 md:top-6 md:right-6 text-white bg-gray-800/80 hover:bg-gray-700 p-2.5 rounded-full transition-colors z-10 backdrop-blur-md border border-gray-600 shadow-lg">
@@ -164,120 +60,120 @@
         <img id="image-viewer-img" class="max-w-[95vw] max-h-[90vh] object-contain transform scale-95 transition-transform duration-300 rounded-lg shadow-2xl" src="">
     </div>
 
-    <div id="install-prompt" class="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-800 p-4 md:p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[150] transform translate-y-full transition-transform duration-500 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-t-3xl">
-        <div class="flex items-center gap-4 w-full sm:w-auto"><div class="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center shrink-0 shadow-lg border border-gray-700"><img src="/icon.png" alt="App Icon" class="w-8 h-8 rounded-lg object-contain"></div><div><h3 class="text-white font-bold text-sm">Install Anurag's GPT</h3><p class="text-gray-400 text-xs">Add to your home screen.</p></div></div>
-        <div class="flex items-center gap-3 w-full sm:w-auto"><button id="close-install-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-xl transition-colors">Later</button><button id="install-app-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95">Install App</button></div>
+    <div id="install-prompt" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-4 md:p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[150] transform translate-y-full transition-transform duration-500 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-t-3xl">
+        <div class="flex items-center gap-4 w-full sm:w-auto"><div class="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-gray-200 dark:border-gray-700"><img src="/icon.png" alt="App Icon" class="w-8 h-8 rounded-lg object-contain"></div><div><h3 class="text-gray-900 dark:text-white font-bold text-sm">Install Anurag's GPT</h3><p class="text-gray-500 dark:text-gray-400 text-xs">Add to your home screen.</p></div></div>
+        <div class="flex items-center gap-3 w-full sm:w-auto"><button id="close-install-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-xl transition-colors">Later</button><button id="install-app-btn" class="flex-1 sm:flex-none px-4 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95">Install App</button></div>
     </div>
 
-    <div id="password-overlay" class="fixed inset-0 bg-gray-950 z-[100] flex items-center justify-center p-4">
-        <div class="bg-gray-900 border border-gray-800 p-8 rounded-3xl shadow-2xl w-full max-w-sm text-center transform transition-all">
-            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-900/20">
+    <div id="password-overlay" class="fixed inset-0 bg-white dark:bg-gray-950 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-8 rounded-3xl shadow-xl dark:shadow-2xl w-full max-w-sm text-center transform transition-all">
+            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/20 dark:shadow-blue-900/20">
                 <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
             </div>
-            <h2 class="text-2xl font-bold text-white mb-2">Private Access</h2>
-            <p class="text-gray-400 text-sm mb-6">Enter the password to access Anurag's GPT.</p>
-            <input type="password" id="app-password-input" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center transition-colors" placeholder="Enter Password">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Private Access</h2>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Enter the password to access Anurag's GPT.</p>
+            <input type="password" id="app-password-input" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center transition-colors" placeholder="Enter Password">
             <button id="submit-password-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-md active:scale-95">Unlock App</button>
-            <p id="password-error" class="text-red-400 text-sm mt-4 hidden fade-in font-medium">Incorrect password.</p>
+            <p id="password-error" class="text-red-500 dark:text-red-400 text-sm mt-4 hidden fade-in font-medium">Incorrect password.</p>
         </div>
     </div>
 
-    <div id="custom-prompt-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
-        <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
+    <div id="custom-prompt-modal" class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
             <div class="p-6 text-center">
-                <h3 id="custom-prompt-title" class="text-xl font-bold text-white mb-2">Rename Chat</h3>
-                <input type="text" id="custom-prompt-input" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 text-center transition-colors mt-4">
+                <h3 id="custom-prompt-title" class="text-xl font-bold text-gray-900 dark:text-white mb-2">Rename Chat</h3>
+                <input type="text" id="custom-prompt-input" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 text-center transition-colors mt-4">
             </div>
-            <div class="p-4 border-t border-gray-800 bg-gray-900 flex gap-3">
-                <button id="custom-prompt-cancel" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex gap-3">
+                <button id="custom-prompt-cancel" class="flex-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button>
                 <button id="custom-prompt-confirm" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20">Save</button>
             </div>
         </div>
     </div>
 
-    <aside id="sidebar" class="w-72 bg-gray-900 border-r border-gray-800 flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative z-40 h-full">
-        <div class="p-4"><button id="new-chat-btn" class="w-full flex items-center gap-3 bg-gray-800 hover:bg-gray-700 text-gray-200 py-3 px-4 rounded-full transition-all duration-200 border border-gray-700 shadow-sm"><span class="font-medium text-sm">New Chat</span></button></div>
+    <aside id="sidebar" class="w-72 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative z-40 h-full">
+        <div class="p-4"><button id="new-chat-btn" class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 py-3 px-4 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-700 shadow-sm"><span class="font-medium text-sm">New Chat</span></button></div>
         <div class="flex-1 overflow-y-auto px-2 pb-10" id="chat-history-list"></div>
-        <div class="p-4 border-t border-gray-800 bg-gray-900 mt-auto"><button id="open-settings-btn" class="flex items-center gap-3 text-gray-400 hover:text-white hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span class="text-sm font-medium">Settings</span></button></div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 mt-auto"><button id="open-settings-btn" class="flex items-center gap-3 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span class="text-sm font-medium">Settings</span></button></div>
     </aside>
 
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden glass"></div>
 
-    <main class="flex-1 flex flex-col h-full relative w-full bg-gray-950">
-        <header class="h-14 border-b border-gray-800 flex items-center justify-between px-4 bg-gray-950 z-10 shrink-0">
+    <main class="flex-1 flex flex-col h-full relative w-full bg-white dark:bg-gray-950">
+        <header class="h-14 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 bg-white dark:bg-gray-950 z-10 shrink-0">
             <div class="flex items-center gap-3">
-                <button id="mobile-menu-btn" class="md:hidden text-gray-400 hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
-                <span class="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent flex items-center gap-2">Anurag's GPT <span id="temp-badge" class="hidden bg-purple-500/20 text-purple-400 border border-purple-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">Temp</span></span>
+                <button id="mobile-menu-btn" class="md:hidden text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+                <span class="text-lg font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">Anurag's GPT <span id="temp-badge" class="hidden bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">Temp</span></span>
             </div>
             <div class="flex items-center gap-4">
-                <button id="theme-toggle-btn" class="text-gray-400 hover:text-yellow-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Light/Dark Mode">
-                    <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                <button id="theme-toggle-btn" class="text-gray-500 dark:text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Light/Dark Mode">
+                    <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
                 </button>
-                <button id="temp-chat-toggle-btn" class="text-gray-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Temporary Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg><span class="hidden sm:inline font-medium">Temp Chat</span></button>
-                <button id="clear-chat-btn" class="text-gray-400 hover:text-red-400 text-sm flex items-center gap-1.5 transition-colors" title="Clear Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg><span class="hidden sm:inline font-medium">Clear</span></button>
+                <button id="temp-chat-toggle-btn" class="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Temporary Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg><span class="hidden sm:inline font-medium">Temp Chat</span></button>
+                <button id="clear-chat-btn" class="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 text-sm flex items-center gap-1.5 transition-colors" title="Clear Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg><span class="hidden sm:inline font-medium">Clear</span></button>
             </div>
         </header>
 
         <div id="messages-container" class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth relative">
-            <div id="welcome-screen" class="h-full flex flex-col items-center justify-center text-center space-y-6 text-gray-400">
-                <div class="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mb-2 shadow-lg shadow-blue-900/20"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
-                <div><h2 class="text-2xl font-bold text-gray-200 mb-2">How can I help you today?</h2><p class="text-sm max-w-md mx-auto text-gray-500">Connected securely to your backend server.</p></div>
+            <div id="welcome-screen" class="h-full flex flex-col items-center justify-center text-center space-y-6 text-gray-500 dark:text-gray-400">
+                <div class="w-16 h-16 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-2 shadow-sm dark:shadow-lg border border-gray-200 dark:border-gray-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
+                <div><h2 class="text-2xl font-bold text-gray-900 dark:text-gray-200 mb-2">How can I help you today?</h2><p class="text-sm max-w-md mx-auto text-gray-500">Connected securely to your backend server.</p></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl px-4 mt-6">
-                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Explain quantum computing"</button>
-                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Write a Python script to scrape a site"</button>
-                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Generate an image of a cyberpunk city"</button>
-                    <button class="suggestion-btn bg-gray-900 border border-gray-800 p-4 rounded-xl hover:bg-gray-800 hover:border-gray-600 text-left text-sm transition-all shadow-sm">"Draft a professional email"</button>
+                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Explain quantum computing"</button>
+                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Write a Python script to scrape a site"</button>
+                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Generate an image of a cyberpunk city"</button>
+                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-800 dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Draft a professional email"</button>
                 </div>
             </div>
         </div>
 
-        <button id="scroll-to-bottom-btn" class="absolute bottom-28 left-1/2 -translate-x-1/2 bg-blue-600/90 backdrop-blur-md border border-blue-500 text-white hover:bg-blue-500 py-2.5 px-5 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all duration-300 z-50 opacity-0 pointer-events-none translate-y-4 flex items-center gap-2 text-xs font-bold tracking-wider uppercase"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4 animate-bounce"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg> Jump to latest</button>
+        <button id="scroll-to-bottom-btn" class="absolute bottom-28 left-1/2 -translate-x-1/2 bg-white dark:bg-blue-600 border border-gray-200 dark:border-blue-500 text-blue-600 dark:text-white hover:bg-gray-50 dark:hover:bg-blue-500 py-2.5 px-5 rounded-full shadow-lg transition-all duration-300 z-50 opacity-0 pointer-events-none translate-y-4 flex items-center gap-2 text-xs font-bold tracking-wider uppercase"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4 animate-bounce"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg> Jump to latest</button>
 
-        <div class="p-4 md:p-6 pb-safe bg-gradient-to-t from-gray-950 via-gray-950 to-transparent shrink-0 z-10">
+        <div class="p-4 md:p-6 pb-safe bg-gradient-to-t from-white via-white to-transparent dark:from-gray-950 dark:via-gray-950 dark:to-transparent shrink-0 z-10">
             <div class="max-w-3xl mx-auto relative">
-                <div class="relative bg-gray-900 rounded-3xl border border-gray-700 shadow-xl focus-within:border-gray-500 focus-within:ring-1 focus-within:ring-gray-500 transition-all duration-300">
+                <div class="relative bg-gray-50 dark:bg-gray-900 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm focus-within:border-gray-400 dark:focus-within:border-gray-500 transition-all duration-300">
                     <div id="attachment-preview-container" class="hidden px-5 pt-4 pb-1">
                         <div class="relative inline-block group">
-                            <img id="image-preview" class="h-20 w-20 object-cover rounded-xl border border-gray-600 shadow-md hidden cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageViewer(this.src)" title="Click to enlarge">
-                            <div id="file-preview" class="h-16 flex items-center gap-3 bg-gray-800 border border-gray-600 rounded-xl px-4 shadow-md hidden max-w-[200px]">
-                                <svg class="w-6 h-6 text-blue-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <div class="flex flex-col overflow-hidden"><span id="file-preview-name" class="text-xs font-medium text-gray-200 truncate"></span><span id="file-preview-status" class="text-[10px] text-gray-400">Extracted</span></div>
+                            <img id="image-preview" class="h-20 w-20 object-cover rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm hidden cursor-pointer hover:opacity-80 transition-opacity" onclick="window.openImageViewer(this.src)" title="Click to enlarge">
+                            <div id="file-preview" class="h-16 flex items-center gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl px-4 shadow-sm hidden max-w-[200px]">
+                                <svg class="w-6 h-6 text-blue-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <div class="flex flex-col overflow-hidden"><span id="file-preview-name" class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate"></span><span id="file-preview-status" class="text-[10px] text-gray-500">Extracted</span></div>
                             </div>
-                            <button id="remove-attachment-btn" class="absolute -top-2 -right-2 bg-gray-700 hover:bg-red-500 text-white rounded-full p-1.5 shadow-md transition-colors z-10 border border-gray-600"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                            <button id="remove-attachment-btn" class="absolute -top-2 -right-2 bg-white dark:bg-gray-700 hover:bg-red-500 dark:hover:bg-red-500 text-gray-600 hover:text-white dark:text-white rounded-full p-1.5 shadow-md transition-colors z-10 border border-gray-200 dark:border-gray-600"><svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                         </div>
                     </div>
                     <div class="relative flex items-end w-full">
                         <div id="attachment-wrapper" class="absolute left-2 bottom-2 z-20">
-                            <div id="attachment-menu" class="absolute bottom-12 left-0 min-w-[200px] bg-gray-900 border border-gray-700 rounded-xl shadow-xl hidden flex-col overflow-hidden z-30 pb-1">
-                                <button id="menu-file-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-800"><svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> <div><div class="font-medium">Upload Document</div><div class="text-xs text-gray-500">PDF, TXT, Code...</div></div></button>
-                                <button id="menu-photo-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-800"><svg class="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> <div><div class="font-medium">Upload Photo</div><div class="text-xs text-gray-500">JPEG, PNG...</div></div></button>
-                                <button id="menu-create-image-btn" class="text-left px-4 py-3 text-sm text-gray-200 hover:bg-gray-800 transition-colors flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> <div><div class="font-medium text-purple-400">Create Image</div><div class="text-xs text-gray-500">Generate with AI</div></div></button>
+                            <div id="attachment-menu" class="absolute bottom-12 left-0 min-w-[200px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl hidden flex-col overflow-hidden z-30 pb-1">
+                                <button id="menu-file-btn" class="text-left px-4 py-3 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-100 dark:border-gray-800"><svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> <div><div class="font-medium">Upload Document</div><div class="text-xs text-gray-500">PDF, TXT, Code...</div></div></button>
+                                <button id="menu-photo-btn" class="text-left px-4 py-3 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-100 dark:border-gray-800"><svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> <div><div class="font-medium">Upload Photo</div><div class="text-xs text-gray-500">JPEG, PNG...</div></div></button>
+                                <button id="menu-create-image-btn" class="text-left px-4 py-3 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-500 dark:text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> <div><div class="font-medium text-purple-600 dark:text-purple-400">Create Image</div><div class="text-xs text-gray-500">Generate with AI</div></div></button>
                             </div>
-                            <button id="plus-menu-btn" class="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800 transition-transform duration-200" title="Open Menu"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg></button>
+                            <button id="plus-menu-btn" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:text-white rounded-full dark:hover:bg-gray-800 transition-colors" title="Open Menu"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg></button>
                         </div>
                         <input type="file" id="general-file-input" accept=".txt,.pdf,.md,.csv,.js,.py,.html,.css,.json" class="hidden"><input type="file" id="file-input" accept="image/*" class="hidden">
-                        <textarea id="user-input" rows="1" class="w-full bg-transparent text-gray-100 placeholder-gray-500 pl-14 py-4 pr-24 rounded-3xl outline-none resize-none max-h-48 overflow-y-auto leading-relaxed" placeholder="Message Anurag's GPT..."></textarea>
-                        <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-400 hover:text-white transition-all duration-300 rounded-full hover:bg-gray-800" title="Speak"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg></button>
-                        <button id="send-btn" class="absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-800 text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed enabled:bg-blue-600 enabled:text-white hover:enabled:bg-blue-500" disabled><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg></button>
+                        <textarea id="user-input" rows="1" class="w-full bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-500 pl-14 py-4 pr-24 rounded-3xl outline-none resize-none max-h-48 overflow-y-auto leading-relaxed" placeholder="Message Anurag's GPT..."></textarea>
+                        <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:text-white rounded-full dark:hover:bg-gray-800 transition-colors" title="Speak"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg></button>
+                        <button id="send-btn" class="absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed enabled:bg-blue-600 enabled:text-white hover:enabled:bg-blue-500" disabled><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg></button>
                     </div>
                 </div>
             </div>
         </div>
     </main>
 
-    <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-gray-900 border border-gray-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]">
-            <div class="p-5 border-b border-gray-800 flex justify-between items-center bg-gray-900 shrink-0"><h3 class="text-lg font-semibold text-white flex items-center gap-2">Settings</h3><button id="close-settings-btn" class="text-gray-500 hover:text-white transition-colors bg-gray-800 hover:bg-gray-700 p-1.5 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div>
-            <div class="p-6 space-y-5 overflow-y-auto"><div><label class="block text-sm font-semibold text-gray-300 mb-1.5 flex justify-between items-center">System Prompt Override <span class="text-[10px] font-normal bg-gray-800 text-gray-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Optional</span></label><textarea id="system-prompt-input" rows="4" class="w-full bg-gray-950 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner resize-none leading-relaxed" placeholder="e.g., You are a senior web developer..."></textarea></div></div>
-            <div class="p-5 border-t border-gray-800 bg-gray-900 shrink-0 flex justify-between items-center"><button id="lock-app-btn" class="bg-red-900/30 border border-red-900/50 hover:bg-red-600 hover:border-red-500 text-red-400 hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm">Lock App</button><button id="save-settings-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-lg active:scale-95">Save Preferences</button></div>
+    <div id="settings-modal" class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col max-h-[90vh]">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-white dark:bg-gray-900 shrink-0"><h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">Settings</h3><button id="close-settings-btn" class="text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 p-1.5 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button></div>
+            <div class="p-6 space-y-5 overflow-y-auto"><div><label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5 flex justify-between items-center">System Prompt Override <span class="text-[10px] font-normal bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">Optional</span></label><textarea id="system-prompt-input" rows="4" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 transition-colors shadow-inner resize-none leading-relaxed" placeholder="e.g., You are a senior web developer..."></textarea></div></div>
+            <div class="p-5 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 shrink-0 flex justify-between items-center"><button id="lock-app-btn" class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-600 text-red-600 dark:text-red-400 dark:hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-sm">Lock App</button><button id="save-settings-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md active:scale-95">Save Preferences</button></div>
         </div>
     </div>
 
-    <div id="confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
-        <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
-            <div class="p-6 text-center"><div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20"><svg class="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div><h3 id="confirm-modal-title" class="text-xl font-bold text-white mb-2">Are you sure?</h3><p id="confirm-modal-text" class="text-gray-400 text-sm">This action cannot be undone.</p></div>
-            <div class="p-4 border-t border-gray-800 bg-gray-900 flex gap-3"><button id="confirm-cancel-btn" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button><button id="confirm-action-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-red-500/20">Delete</button></div>
+    <div id="confirm-modal" class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
+            <div class="p-6 text-center"><div class="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20"><svg class="w-8 h-8 text-red-600 dark:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div><h3 id="confirm-modal-title" class="text-xl font-bold text-gray-900 dark:text-white mb-2">Are you sure?</h3><p id="confirm-modal-text" class="text-gray-500 dark:text-gray-400 text-sm">This action cannot be undone.</p></div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex gap-3"><button id="confirm-cancel-btn" class="flex-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-800 dark:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button><button id="confirm-action-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20">Delete</button></div>
         </div>
     </div>
 
@@ -295,7 +191,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v82_samsung_bypass'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v82_samsung_bypass'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v83_native_tailwind'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v83_native_tailwind'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
@@ -348,9 +244,9 @@
         const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
         const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
         const CLIPBOARD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>`;
-        const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-green-400"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
+        const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-green-500"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
         const SPEAKER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" /></svg>`;
-        const SPEAKER_OFF_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-blue-400 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>`;
+        const SPEAKER_OFF_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-blue-500 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>`;
         const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
         const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
 
@@ -428,28 +324,19 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // --- FIXED: THEME ENGINE ---
+        // --- NATIVE TAILWIND THEME ENGINE ---
+        // This is exactly what ChatGPT recommended. We stop fighting CSS and use native classes.
         let isLightMode = localStorage.getItem('anurags_gpt_theme') === 'light';
         function applyTheme() {
-            const metaTag = document.getElementById('theme-meta');
+            const htmlTag = document.documentElement;
             if (isLightMode) { 
-                document.documentElement.classList.remove('dark');
-                document.documentElement.classList.add('light-theme');
-                document.body.classList.add('light-theme'); 
-                
-                if (metaTag) metaTag.setAttribute('content', 'light');
-                document.documentElement.style.setProperty('color-scheme', 'light', 'important');
-                
+                htmlTag.classList.remove('dark');
+                htmlTag.style.colorScheme = 'light';
                 $('#theme-icon-light').classList.add('hidden'); 
                 $('#theme-icon-dark').classList.remove('hidden'); 
             } else { 
-                document.documentElement.classList.add('dark');
-                document.documentElement.classList.remove('light-theme');
-                document.body.classList.remove('light-theme'); 
-                
-                if (metaTag) metaTag.setAttribute('content', 'dark light');
-                document.documentElement.style.setProperty('color-scheme', 'dark', 'important');
-                
+                htmlTag.classList.add('dark');
+                htmlTag.style.colorScheme = 'dark';
                 $('#theme-icon-light').classList.remove('hidden'); 
                 $('#theme-icon-dark').classList.add('hidden'); 
             }
@@ -507,7 +394,7 @@
         };
 
         // --- CUSTOM MARKED.JS RENDERERS ---
-        renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-[#0d1117] rounded-xl border border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-400 hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-[#0d1117]"><code class="text-sm font-mono text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
+        renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-gray-50 dark:bg-[#0d1117] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-gray-50 dark:bg-[#0d1117]"><code class="text-sm font-mono text-gray-800 dark:text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
         
         window.fetchSecureImage = async function(prompt, imgEl) { 
             try { 
@@ -543,16 +430,16 @@
              
              const containerStyle = "width: 280px; height: 280px; min-width: 280px; min-height: 280px;"; 
              
-             if (window.isGenerating && !isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><span class="text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span></div></div>`; } 
+             if (window.isGenerating && !isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><span class="text-blue-500 dark:text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span></div></div>`; } 
              
-             if (isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10 cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="window.openImageViewer(this.src)" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
+             if (isBase64) { return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10 cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="window.openImageViewer(this.src)" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
              
-             return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-900 rounded-2xl border border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-lg"><div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" onclick="if(this.src && !this.src.startsWith('data:image/gif')) window.openImageViewer(this.src)" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10 hover:scale-[1.02]" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-gray-300 tracking-wider z-20 pointer-events-none border border-white/10">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-gray-700/90 hover:bg-gray-600 text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
+             return `<div class="my-4 relative group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><div class="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" onclick="if(this.src && !this.src.startsWith('data:image/gif')) window.openImageViewer(this.src)" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10 hover:scale-[1.02]" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-white/80 dark:bg-black/60 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-white/10 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider z-20 pointer-events-none border">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
         };
         
         window.formatText = function(text) { 
             if (!text) return ""; let processedText = text;
-            if (window.isGenerating) { processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`); }
+            if (window.isGenerating) { processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-500 dark:text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`); }
             return marked.parse(processedText, { renderer: renderer, breaks: true, gfm: true }); 
         };
 
@@ -562,10 +449,10 @@
             if (Array.isArray(content)) {
                 let textObj = content.find(c => c.type === 'text'); displayContent = textObj ? textObj.text : "";
                 let imgObj = content.find(c => c.type === 'image_url'); 
-                if (imgObj) imageHtml = `<div class="mb-3 max-w-[240px] max-h-[240px] rounded-xl overflow-hidden border border-gray-700 shadow-md cursor-pointer hover:opacity-90 transition-opacity" onclick="window.openImageViewer('${imgObj.image_url.url}')"><img src="${imgObj.image_url.url}" class="w-full h-full object-cover"></div>`;
+                if (imgObj) imageHtml = `<div class="mb-3 max-w-[240px] max-h-[240px] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="window.openImageViewer('${imgObj.image_url.url}')"><img src="${imgObj.image_url.url}" class="w-full h-full object-cover"></div>`;
             } else { displayContent = content; }
             if (role === 'user' && displayContent.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = displayContent.split('\n\nUser Message: '); if (parts.length > 1) displayContent = parts.slice(1).join('\n\nUser Message: '); }
-            if (role === 'user' && displayContent.includes('--- FILE CONTENT ---')) { displayContent = displayContent.split('--- END FILE CONTENT ---\n\n')[1] || displayContent; imageHtml = `<div class="flex items-center gap-2 mb-3 bg-gray-700 px-3 py-2 rounded-lg text-sm font-medium text-gray-200 border border-gray-600 w-fit"><svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Document Attached</div>`; }
+            if (role === 'user' && displayContent.includes('--- FILE CONTENT ---')) { displayContent = displayContent.split('--- END FILE CONTENT ---\n\n')[1] || displayContent; imageHtml = `<div class="flex items-center gap-2 mb-3 bg-white dark:bg-gray-700 px-3 py-2 rounded-lg text-sm font-medium text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 w-fit"><svg class="w-4 h-4 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Document Attached</div>`; }
 
             const isUser = role === 'user'; 
             const msgId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -573,13 +460,13 @@
             
             let actionButtons = '';
             if (!isUser) {
-                actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-400 hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; 
+                actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; 
             } else {
-                 actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-500 hover:text-gray-300 p-1.5 rounded-lg transition-colors bg-gray-900 border border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`;
+                 actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`;
             }
 
-            const bubbleStyles = isUser ? 'bg-gray-800 text-white rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm' : 'text-gray-200 px-5 py-4 bg-gray-900 border border-gray-800 rounded-2xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-sm'; 
-            div.innerHTML = `<div class="max-w-[92%] md:max-w-[85%] flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} relative">${isUser ? actionButtons : ''}<div class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-gray-700' : 'bg-gradient-to-br from-blue-500 to-purple-600'}">${isUser ? '<svg class="h-5 w-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' : '<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'}</div><div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full min-w-0"><div class="prose-content ${bubbleStyles} min-w-0">${imageHtml}<div class="message-text w-full min-w-0" data-raw-content="${window.escapeHtml(displayContent)}">${isUser ? window.escapeHtml(displayContent) : window.formatText(displayContent)}</div></div>${!isUser ? actionButtons : ''}</div></div>`;
+            const bubbleStyles = isUser ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white rounded-2xl rounded-tr-sm px-5 py-3 shadow-sm' : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-sm'; 
+            div.innerHTML = `<div class="max-w-[92%] md:max-w-[85%] flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} relative">${isUser ? actionButtons : ''}<div class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gradient-to-br from-blue-500 to-purple-600'}">${isUser ? '<svg class="h-5 w-5 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' : '<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'}</div><div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full min-w-0"><div class="prose-content ${bubbleStyles} min-w-0">${imageHtml}<div class="message-text w-full min-w-0" data-raw-content="${window.escapeHtml(displayContent)}">${isUser ? window.escapeHtml(displayContent) : window.formatText(displayContent)}</div></div>${!isUser ? actionButtons : ''}</div></div>`;
             elMessagesContainer.appendChild(div);
             
             if (!isUser) { 
@@ -592,7 +479,7 @@
             }
         };
 
-        function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-800 shadow-sm"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; elMessagesContainer.appendChild(div); scrollToBottom(); }
+        function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-200 dark:border-gray-800 shadow-sm"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; elMessagesContainer.appendChild(div); scrollToBottom(); }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
         function saveChats() { 
@@ -741,7 +628,7 @@
         
         $$('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { elUserInput.value = btn.innerText.replace(/"/g, '').trim(); elSendBtn.disabled = false; sendMessage(); }); });
 
-        window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span>Copied!</span>`; btn.classList.replace('text-gray-400', 'text-green-400'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-400', 'text-gray-400'); }, 2000); }); };
+        window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span class="text-gray-800 dark:text-white">Copied!</span>`; btn.classList.replace('text-gray-400', 'text-green-500'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-500', 'text-gray-400'); }, 2000); }); };
 
         let confirmActionCallback = null; window.showConfirmModal = function(title, text, callback) { $('#confirm-modal-title').innerText = title; $('#confirm-modal-text').innerText = text; confirmActionCallback = callback; $('#confirm-modal').classList.remove('hidden'); }; window.closeConfirmModal = function() { $('#confirm-modal').classList.add('hidden'); confirmActionCallback = null; }; $('#confirm-cancel-btn').addEventListener('click', window.closeConfirmModal); $('#confirm-action-btn').addEventListener('click', () => { if (confirmActionCallback) confirmActionCallback(); window.closeConfirmModal(); });
         
@@ -756,10 +643,10 @@
         
         $('#temp-chat-toggle-btn').addEventListener('click', () => { 
             if (isTempChat) { disableTempMode(); state.currentChatId = null; clearMessages(); showWelcome(); renderSidebar(); } 
-            else { isTempChat = true; state.currentChatId = null; tempChatData.messages = []; clearMessages(); showWelcome(); $('#temp-badge').classList.remove('hidden'); $('#temp-chat-toggle-btn').className = 'text-purple-400 text-sm flex items-center gap-1.5 transition-colors'; } 
+            else { isTempChat = true; state.currentChatId = null; tempChatData.messages = []; clearMessages(); showWelcome(); $('#temp-badge').classList.remove('hidden'); $('#temp-chat-toggle-btn').className = 'text-purple-600 dark:text-purple-400 text-sm flex items-center gap-1.5 transition-colors'; } 
             $('#temp-chat-toggle-btn').blur(); if (window.innerWidth < 768) { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); }
         });
-        function disableTempMode() { isTempChat = false; $('#temp-badge').classList.add('hidden'); $('#temp-chat-toggle-btn').className = 'text-gray-400 text-sm flex items-center gap-1.5 transition-colors'; }
+        function disableTempMode() { isTempChat = false; $('#temp-badge').classList.add('hidden'); $('#temp-chat-toggle-btn').className = 'text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors'; }
         
         elMessagesContainer.addEventListener('scroll', () => { isUserScrolledUp = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight > 80; if (isUserScrolledUp && window.isGenerating) { elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); } else { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } });
         elScrollToBottomBtn.addEventListener('click', () => { isUserScrolledUp = false; elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); });
@@ -817,13 +704,18 @@
         function setupSpeechRecognition() { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); }; } else { elMicBtn.style.display = 'none'; } }
         elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } });
         
-        // --- FIXED: GUARANTEED FRESH STARTUP ---
+        // --- BOOT PROCESS ---
         function init() { 
             applyTheme(); 
             setupSpeechRecognition(); 
             loadSettings(); 
             loadChats(); 
             if (currentPassword) { verifyPassword(currentPassword); } else { $('#password-overlay').classList.remove('hidden'); $('#password-overlay').style.display = 'flex'; }
+            
+            // ALWAYS force a fresh Welcome Screen to beat Android Webview caching!
+            state.currentChatId = null; 
+            clearMessages();
+            showWelcome(); 
             
             if(window.location.hash && window.location.hash.startsWith('#share=')) { 
                 try { 
@@ -834,7 +726,7 @@
                     clearMessages(); 
                     elWelcomeScreen.classList.add('hidden'); 
                     const banner = document.createElement('div'); 
-                    banner.className = 'bg-blue-900/50 text-blue-200 text-xs text-center py-2 border-b border-blue-800/50'; 
+                    banner.className = 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 text-xs text-center py-2 border-b border-blue-200 dark:border-blue-800/50'; 
                     banner.innerHTML = `Viewing shared chat: <strong>${window.escapeHtml(sharedChat.title)}</strong> (Read-only)`; 
                     elMessagesContainer.parentNode.insertBefore(banner, elMessagesContainer); 
                     sharedChat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); 
@@ -844,19 +736,14 @@
                     elSendBtn.disabled = true; 
                     elMicBtn.style.display = 'none'; 
                     $('#plus-menu-btn').style.display = 'none'; 
-                } catch(e) { window.location.hash = ''; showWelcome(); } 
-            } else { 
-                // Always force a brand new screen
-                state.currentChatId = null; 
-                clearMessages();
-                showWelcome(); 
-            } 
+                } catch(e) { window.location.hash = ''; } 
+            }
             renderSidebar(); 
         }
 
-        // --- FIXED: INTERCEPT BACK-FORWARD CACHE ---
+        // Kills the frozen background cache when reopening the app
         window.addEventListener('pageshow', function(event) {
-            if (event.persisted) { // If the OS restores a frozen background tab
+            if (event.persisted) {
                 state.currentChatId = null;
                 clearMessages();
                 showWelcome();
@@ -867,12 +754,12 @@
         function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
         function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
         function loadSettings() { const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); if (stored) settings = { ...settings, ...JSON.parse(stored) }; $('#system-prompt-input').value = settings.systemPrompt || ''; }
-        function getOrCreateChat(firstMessage) { disableTempMode(); if (state.currentChatId) { const existing = state.chats.find(c => c.id === state.currentChatId); if (existing) return existing; } const newChat = { id: Date.now().toString(), title: firstMessage ? firstMessage.substring(0, 30) : "New Chat", messages: [], pinned: false }; state.chats.unshift(newChat); state.currentChatId = newChat.id; saveChats(); renderSidebar(); return newChat; }
+        function getOrCreateChat(firstMessage) { disableTempMode(); if (state.currentChatId && !state.currentChatId.startsWith('shared-')) { const existing = state.chats.find(c => c.id === state.currentChatId); if (existing) return existing; } const newChat = { id: Date.now().toString(), title: firstMessage ? firstMessage.substring(0, 30) : "New Chat", messages: [], pinned: false }; state.chats.unshift(newChat); state.currentChatId = newChat.id; saveChats(); renderSidebar(); return newChat; }
         function clearMessages() { Array.from(elMessagesContainer.children).forEach(child => { if (child.id !== 'welcome-screen' && child.id !== 'scroll-to-bottom-btn') child.remove(); }); }
         function showWelcome() { clearMessages(); elWelcomeScreen.classList.remove('hidden'); }
         function loadChat(id) { disableTempMode(); state.currentChatId = id; const chat = state.chats.find(c => c.id === id); clearMessages(); if(elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) { elMessagesContainer.previousElementSibling.remove(); elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; elMicBtn.style.display = ''; $('#plus-menu-btn').style.display = ''; } if (chat && chat.messages.length > 0) { elWelcomeScreen.classList.add('hidden'); chat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); } else { elWelcomeScreen.classList.remove('hidden'); } renderSidebar(); }
         
-        function renderSidebar() { $('#chat-history-list').innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>'; state.chats.forEach(chat => { const isActive = chat.id === state.currentChatId && !isTempChat; const div = document.createElement('div'); div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-800/80 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'}`; div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { loadChat(chat.id); } }; div.innerHTML = `<div class="flex items-center gap-3 overflow-hidden flex-1">${chat.pinned ? `<span class="text-blue-400 mr-2">${PIN_ICON}</span>` : ''}<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-400' : 'text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg><span class="truncate font-medium">${window.escapeHtml(chat.title)}</span></div><button class="chat-menu-trigger text-white hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="window.toggleChatMenu(event, '${chat.id}')">${THREE_DOTS_VERTICAL_ICON}</button><div id="menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-gray-900 border border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3">${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span></button><button onclick="window.renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${EDIT_ICON} <span>Rename</span></button><button onclick="window.shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white flex items-center gap-3 border-t border-gray-800">${SHARE_ICON} <span>Share</span></button><button onclick="window.deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-800">${TRASH_ICON} <span>Delete</span></button></div>`; $('#chat-history-list').appendChild(div); }); }
+        function renderSidebar() { $('#chat-history-list').innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>'; state.chats.forEach(chat => { const isActive = chat.id === state.currentChatId && !isTempChat; const div = document.createElement('div'); div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-100 dark:bg-gray-800/80 text-gray-900 dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'}`; div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { loadChat(chat.id); } }; div.innerHTML = `<div class="flex items-center gap-3 overflow-hidden flex-1">${chat.pinned ? `<span class="text-blue-500 dark:text-blue-400 mr-2">${PIN_ICON}</span>` : ''}<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg><span class="truncate font-medium">${window.escapeHtml(chat.title)}</span></div><button class="chat-menu-trigger text-gray-500 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="window.toggleChatMenu(event, '${chat.id}')">${THREE_DOTS_VERTICAL_ICON}</button><div id="menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-white flex items-center gap-3">${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span></button><button onclick="window.renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Rename</span></button><button onclick="window.shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button><button onclick="window.deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${TRASH_ICON} <span>Delete</span></button></div>`; $('#chat-history-list').appendChild(div); }); }
         
         window.toggleChatMenu = function(e, id) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${id}`) menu.classList.add('hidden'); }); document.getElementById(`menu-${id}`).classList.toggle('hidden'); };
         window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
