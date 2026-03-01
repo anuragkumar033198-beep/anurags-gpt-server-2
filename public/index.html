@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover, interactive-widget=resizes-content">
     
-    <meta name="color-scheme" content="dark light">
+    <meta name="color-scheme" id="theme-meta" content="dark light">
     
     <title>Anurag's GPT</title>
     
@@ -45,19 +45,23 @@
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
         /* --- BULLETPROOF PURE WHITE LIGHT THEME OVERRIDES --- */
-        /* FIXED: Using a 1x1 pure white pixel image physically blocks Samsung Internet from applying forced dark-mode overlays */
-        :root.light-theme { color-scheme: light !important; }
-        html.light-theme, body.light-theme, .light-theme main, .light-theme .bg-gray-950, .light-theme header, .light-theme aside, .light-theme .bg-gradient-to-t { 
-            background-color: #ffffff !important; 
-            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=') !important; 
-            background-repeat: repeat !important;
+        /* FIXED: Using RGBA(255,255,255,0.99) physically blocks Samsung Internet from applying forced dark-mode overlays, while looking perfectly white to humans! */
+        :root.light-theme { color-scheme: light only !important; forced-color-adjust: none !important; }
+        html.light-theme, body.light-theme, .light-theme main, .light-theme .bg-gray-950, .light-theme header, .light-theme aside { 
+            background-color: rgba(255, 255, 255, 0.99) !important; 
+            background-image: none !important; 
             color: #000000 !important; 
+            forced-color-adjust: none !important;
         }
-        .light-theme header, .light-theme aside { border-color: #e5e7eb !important; }
-        .light-theme .bg-gray-900 { background-color: #f4f4f5 !important; background-image: none !important; border-color: #e5e7eb !important; } 
-        .light-theme .bg-gray-800 { background-color: #f9f9f9 !important; background-image: none !important; border-color: #e5e7eb !important; color: #000000 !important; } 
-        .light-theme .bg-gray-700 { background-color: #e5e7eb !important; background-image: none !important; color: #000000 !important; }
-        .light-theme .bg-gray-800.text-white { background-color: #2563eb !important; background-image: none !important; border-color: #2563eb !important; color: #ffffff !important; }
+        .light-theme header, .light-theme aside { border-color: rgba(229, 231, 235, 0.99) !important; }
+        .light-theme .bg-gradient-to-t { background: none !important; background-color: transparent !important; }
+        
+        .light-theme .bg-gray-900 { background-color: rgba(244, 244, 245, 0.99) !important; background-image: none !important; border-color: rgba(229, 231, 235, 0.99) !important; } 
+        .light-theme .bg-gray-800 { background-color: rgba(249, 249, 249, 0.99) !important; background-image: none !important; border-color: rgba(229, 231, 235, 0.99) !important; color: #000000 !important; } 
+        .light-theme .bg-gray-700 { background-color: rgba(229, 231, 235, 0.99) !important; background-image: none !important; color: #000000 !important; }
+        
+        /* iMessage Blue Bubbles for User Chat */
+        .light-theme .bg-gray-800.text-white { background-color: rgba(37, 99, 235, 0.99) !important; background-image: none !important; border-color: rgba(37, 99, 235, 0.99) !important; color: #ffffff !important; }
         .light-theme .bg-gray-800.text-white * { color: #ffffff !important; }
 
         /* Deep Text Overrides */
@@ -69,12 +73,12 @@
         .light-theme #user-input::placeholder { color: #9ca3af !important; }
         
         .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 svg.text-white { color: #ffffff !important; }
-        .light-theme #send-btn.bg-blue-600.text-white, .light-theme #install-app-btn, .light-theme #save-settings-btn, .light-theme #submit-password-btn, .light-theme #confirm-action-btn, .light-theme #custom-prompt-confirm, .light-theme #toast-action-btn { background-color: #2563eb !important; color: #ffffff !important; }
+        .light-theme #send-btn.bg-blue-600.text-white, .light-theme #install-app-btn, .light-theme #save-settings-btn, .light-theme #submit-password-btn, .light-theme #confirm-action-btn, .light-theme #custom-prompt-confirm, .light-theme #toast-action-btn { background-color: rgba(37, 99, 235, 0.99) !important; color: #ffffff !important; }
         .light-theme #send-btn.bg-blue-600.text-white svg { color: #ffffff !important; }
-        .light-theme #scroll-to-bottom-btn { background-color: #ffffff !important; color: #2563eb !important; border-color: #e5e7eb !important; }
-        .light-theme .border-gray-800, .light-theme .border-gray-700, .light-theme .border-gray-600 { border-color: #e5e7eb !important; }
-        .light-theme .prose-content code { background-color: #e5e7eb !important; color: #b91c1c !important; }
-        .light-theme .group\/code .bg-\[\#0d1117\] { background-color: #f8fafc !important; border-color: #e5e7eb !important; }
+        .light-theme #scroll-to-bottom-btn { background-color: rgba(255, 255, 255, 0.99) !important; color: rgba(37, 99, 235, 0.99) !important; border-color: rgba(229, 231, 235, 0.99) !important; }
+        .light-theme .border-gray-800, .light-theme .border-gray-700, .light-theme .border-gray-600 { border-color: rgba(229, 231, 235, 0.99) !important; }
+        .light-theme .prose-content code { background-color: rgba(229, 231, 235, 0.99) !important; color: #b91c1c !important; }
+        .light-theme .group\/code .bg-\[\#0d1117\] { background-color: rgba(248, 250, 252, 0.99) !important; border-color: rgba(229, 231, 235, 0.99) !important; }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
@@ -214,7 +218,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v80_bugfixes'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v80_bugfixes'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v81_purewhite'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v81_purewhite'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
@@ -347,24 +351,30 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // --- FIXED: THEME ENGINE WITH META OVERRIDE ---
+        // --- FIXED: THEME ENGINE ---
         let isLightMode = localStorage.getItem('anurags_gpt_theme') === 'light';
         function applyTheme() {
-            const metaTag = document.querySelector('meta[name="color-scheme"]');
+            const metaTag = document.getElementById('theme-meta');
             if (isLightMode) { 
                 document.documentElement.classList.remove('dark');
                 document.documentElement.classList.add('light-theme');
                 document.body.classList.add('light-theme'); 
-                document.documentElement.style.setProperty('color-scheme', 'light', 'important'); 
-                if (metaTag) metaTag.setAttribute('content', 'light'); // Force Samsung to recognize light mode!
+                
+                // Explicitly inform the browser engine this is a Light theme now
+                if (metaTag) metaTag.setAttribute('content', 'light');
+                document.documentElement.style.setProperty('color-scheme', 'light', 'important');
+                
                 $('#theme-icon-light').classList.add('hidden'); 
                 $('#theme-icon-dark').classList.remove('hidden'); 
             } else { 
                 document.documentElement.classList.add('dark');
                 document.documentElement.classList.remove('light-theme');
                 document.body.classList.remove('light-theme'); 
-                document.documentElement.style.setProperty('color-scheme', 'dark', 'important');
+                
+                // Revert to default
                 if (metaTag) metaTag.setAttribute('content', 'dark light');
+                document.documentElement.style.setProperty('color-scheme', 'dark', 'important');
+                
                 $('#theme-icon-light').classList.remove('hidden'); 
                 $('#theme-icon-dark').classList.add('hidden'); 
             }
@@ -732,7 +742,7 @@
         function setupSpeechRecognition() { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); }; } else { elMicBtn.style.display = 'none'; } }
         elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } });
         
-        // --- FIXED: STARTUP LOGIC ---
+        // --- BOOT PROCESS ---
         function init() { 
             applyTheme(); 
             setupSpeechRecognition(); 
@@ -761,7 +771,6 @@
                     $('#plus-menu-btn').style.display = 'none'; 
                 } catch(e) { window.location.hash = ''; showWelcome(); } 
             } else { 
-                // CRITICAL FIX: Forces the app to start completely blank instead of loading the last chat!
                 state.currentChatId = null; 
                 showWelcome(); 
             } 
