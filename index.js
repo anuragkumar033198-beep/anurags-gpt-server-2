@@ -100,14 +100,12 @@ app.post('/api/verify', async (req, res) => {
         let attempts = (failedAttempts.get(ip) || 0) + 1;
         failedAttempts.set(ip, attempts);
         
-        if (attempts === MAX_ATTEMPTS) { 
+        if (attempts >= MAX_ATTEMPTS) { 
             bannedIPs.add(ip); 
             await notifyDiscord(ip, req);
             return res.status(403).json({ error: "BANNED" }); 
         }
-        if (attempts > MAX_AT
-            TEMPTS) return res.status(403).json({ error: "BANNED" });
-        return res.status(401).json({ error: "Incorrect Password", attemptsLeft: MAX_ATTEMPTS - attempts });
+        return res.status(401).json({ error: "Incorrect Password", attempts_left: MAX_ATTEMPTS - attempts });
     }
     failedAttempts.delete(ip);
     res.json({ success: true });
@@ -268,6 +266,6 @@ Formatting Rules:
 });
 
 app.use((err, req, res, next) => { res.status(500).send('Something broke!'); });
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 app.listen(port, '0.0.0.0', () => { console.log(`🚀 Anurag's GPT Backend is running on port ${port}!`); });
 module.exports = app;
