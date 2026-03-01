@@ -5,41 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover, interactive-widget=resizes-content">
     
     <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
     
     <title>Anurag's GPT</title>
+    
+    <script>
+        const savedTheme = localStorage.getItem('anurags_gpt_theme') || 'light';
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('anurags_gpt_theme', 'light');
+        }
+    </script>
     
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icon.png">
     <link rel="apple-touch-icon" href="/icon.png">
     
-    <script id="theme-fix">
-        function setTheme(mode) {
-            const html = document.documentElement;
-            if (mode === "light") {
-                html.classList.remove("dark");
-                html.style.colorScheme = "light";
-                localStorage.setItem("anurags_gpt_theme", "light");
-            } else {
-                html.classList.add("dark");
-                html.style.colorScheme = "dark";
-                localStorage.setItem("anurags_gpt_theme", "dark");
-            }
-        }
-        
-        // Load theme instantly on start to prevent flickering
-        (function () {
-            const saved = localStorage.getItem("anurags_gpt_theme") || "light";
-            setTheme(saved);
-        })();
-    </script>
-    
     <script>
-        window.tailwind = {
+        tailwind = {
             darkMode: 'class',
             theme: { extend: { colors: { gray: { 750: '#2d3748', 850: '#1a202c', 950: '#0d1117' }, primary: { 500: '#3b82f6', 600: '#2563eb' } }, animation: { 'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite', 'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite' } } }
         };
     </script>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -49,7 +38,11 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     
     <style>
-        html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; overscroll-behavior-y: none; transition: background-color 0.3s ease, color 0.3s ease; }
+        /* 4. BASE SAFEGUARDS: Enforces pure white/black regardless of browser overrides */
+        body { background-color: #ffffff !important; color: #000000; transition: background-color 0.3s ease, color 0.3s ease; }
+        html.dark body { background-color: #0d1117 !important; color: #f3f4f6; }
+        
+        html, body { height: 100%; height: 100dvh; width: 100%; overflow: hidden; overscroll-behavior-y: none; }
         .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
         ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-track { background: transparent; } 
         ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; } .dark ::-webkit-scrollbar-thumb { background: #374151; }
@@ -65,7 +58,6 @@
         .prose-content pre { margin-top: 1em; margin-bottom: 1em; overflow-x: auto; }
         .prose-content :not(pre) > code { padding: 0.2em 0.4em; border-radius: 0.3em; font-size: 0.9em; font-family: monospace; word-break: break-word; }
         
-        /* Native Tailwind Markdown Overrides */
         .prose-content :not(pre) > code { background-color: #f3f4f6; color: #ef4444; }
         .dark .prose-content :not(pre) > code { background-color: #374151; color: #e5e7eb; }
         .katex { font-size: 1.1em; } .katex-display { margin: 1em 0; overflow-x: auto; overflow-y: hidden; padding-top: 0.5em; padding-bottom: 0.5em;}
@@ -77,7 +69,6 @@
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
     </style>
 </head>
-
 <body class="bg-white text-black dark:bg-gray-950 dark:text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
 
     <div id="image-viewer-modal" class="fixed inset-0 bg-black/95 z-[300] hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
@@ -99,7 +90,7 @@
             </div>
             <h2 class="text-2xl font-bold text-black dark:text-white mb-2">Private Access</h2>
             <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">Enter the password to access Anurag's GPT.</p>
-            <input type="password" id="app-password-input" class="w-full bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-black dark:text-white mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center transition-colors" placeholder="Enter Password">
+            <input type="password" id="app-password-input" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-black dark:text-white mb-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-center transition-colors" placeholder="Enter Password">
             <button id="submit-password-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl transition-all shadow-md active:scale-95">Unlock App</button>
             <p id="password-error" class="text-red-500 dark:text-red-400 text-sm mt-4 hidden fade-in font-medium">Incorrect password.</p>
         </div>
@@ -109,19 +100,19 @@
         <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
             <div class="p-6 text-center">
                 <h3 id="custom-prompt-title" class="text-xl font-bold text-black dark:text-white mb-2">Rename Chat</h3>
-                <input type="text" id="custom-prompt-input" class="w-full bg-white dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-black dark:text-white focus:outline-none focus:border-blue-500 text-center transition-colors mt-4">
+                <input type="text" id="custom-prompt-input" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-300 dark:border-gray-700 rounded-xl px-4 py-3 text-black dark:text-white focus:outline-none focus:border-blue-500 text-center transition-colors mt-4">
             </div>
-            <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-3">
+            <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 flex gap-3">
                 <button id="custom-prompt-cancel" class="flex-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-black dark:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button>
                 <button id="custom-prompt-confirm" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20">Save</button>
             </div>
         </div>
     </div>
 
-    <aside id="sidebar" class="w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative z-40 h-full">
+    <aside id="sidebar" class="w-72 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative z-40 h-full">
         <div class="p-4"><button id="new-chat-btn" class="w-full flex items-center gap-3 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-black dark:text-gray-200 py-3 px-4 rounded-full transition-all duration-200 border border-gray-200 dark:border-gray-700 shadow-sm"><span class="font-medium text-sm">New Chat</span></button></div>
         <div class="flex-1 overflow-y-auto px-2 pb-10" id="chat-history-list"></div>
-        <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 mt-auto"><button id="open-settings-btn" class="flex items-center gap-3 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span class="text-sm font-medium">Settings</span></button></div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 mt-auto"><button id="open-settings-btn" class="flex items-center gap-3 text-gray-600 dark:text-gray-400 hover:text-black dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-800 w-full p-2.5 rounded-lg transition-colors"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span class="text-sm font-medium">Settings</span></button></div>
     </aside>
 
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden glass"></div>
@@ -135,7 +126,7 @@
             <div class="flex items-center gap-4">
                 <button id="theme-toggle-btn" class="text-gray-500 dark:text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Light/Dark Mode">
                     <svg id="theme-icon-light" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    <svg id="theme-icon-dark" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
                 </button>
                 <button id="temp-chat-toggle-btn" class="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors" title="Toggle Temporary Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg><span class="hidden sm:inline font-medium">Temp Chat</span></button>
                 <button id="clear-chat-btn" class="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 text-sm flex items-center gap-1.5 transition-colors" title="Clear Chat"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg><span class="hidden sm:inline font-medium">Clear</span></button>
@@ -147,10 +138,10 @@
                 <div class="w-16 h-16 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-2 shadow-sm dark:shadow-lg border border-gray-200 dark:border-gray-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
                 <div><h2 class="text-2xl font-bold text-black dark:text-white mb-2">How can I help you today?</h2><p class="text-sm max-w-md mx-auto text-gray-500">Connected securely to your backend server.</p></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl px-4 mt-6">
-                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-black dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Explain quantum computing"</button>
-                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-black dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Write a Python script to scrape a site"</button>
-                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-black dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Generate an image of a cyberpunk city"</button>
-                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-black dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Draft a professional email"</button>
+                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-black dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Explain quantum computing"</button>
+                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-black dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Write a Python script to scrape a site"</button>
+                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-black dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Generate an image of a cyberpunk city"</button>
+                    <button class="suggestion-btn bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-black dark:text-gray-200 text-left text-sm transition-all shadow-sm">"Draft a professional email"</button>
                 </div>
             </div>
         </div>
@@ -173,15 +164,15 @@
                     <div class="relative flex items-end w-full">
                         <div id="attachment-wrapper" class="absolute left-2 bottom-2 z-20">
                             <div id="attachment-menu" class="absolute bottom-12 left-0 min-w-[200px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl hidden flex-col overflow-hidden z-30 pb-1">
-                                <button id="menu-file-btn" class="text-left px-4 py-3 text-sm text-black dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-100 dark:border-gray-800"><svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> <div><div class="font-medium">Upload Document</div><div class="text-xs text-gray-500">PDF, TXT, Code...</div></div></button>
-                                <button id="menu-photo-btn" class="text-left px-4 py-3 text-sm text-black dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-100 dark:border-gray-800"><svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> <div><div class="font-medium">Upload Photo</div><div class="text-xs text-gray-500">JPEG, PNG...</div></div></button>
-                                <button id="menu-create-image-btn" class="text-left px-4 py-3 text-sm text-black dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-500 dark:text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> <div><div class="font-medium text-purple-600 dark:text-purple-400">Create Image</div><div class="text-xs text-gray-500">Generate with AI</div></div></button>
+                                <button id="menu-file-btn" class="text-left px-4 py-3 text-sm text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-100 dark:border-gray-800"><svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> <div><div class="font-medium">Upload Document</div><div class="text-xs text-gray-500">PDF, TXT, Code...</div></div></button>
+                                <button id="menu-photo-btn" class="text-left px-4 py-3 text-sm text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-3 border-b border-gray-100 dark:border-gray-800"><svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> <div><div class="font-medium">Upload Photo</div><div class="text-xs text-gray-500">JPEG, PNG...</div></div></button>
+                                <button id="menu-create-image-btn" class="text-left px-4 py-3 text-sm text-black dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-3"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-purple-500 dark:text-purple-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg> <div><div class="font-medium text-purple-600 dark:text-purple-400">Create Image</div><div class="text-xs text-gray-500">Generate with AI</div></div></button>
                             </div>
-                            <button id="plus-menu-btn" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors" title="Open Menu"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg></button>
+                            <button id="plus-menu-btn" class="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:text-white rounded-full dark:hover:bg-gray-800 transition-colors" title="Open Menu"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg></button>
                         </div>
                         <input type="file" id="general-file-input" accept=".txt,.pdf,.md,.csv,.js,.py,.html,.css,.json" class="hidden"><input type="file" id="file-input" accept="image/*" class="hidden">
                         <textarea id="user-input" rows="1" class="w-full bg-transparent text-black dark:text-gray-100 placeholder-gray-500 pl-14 py-4 pr-24 rounded-3xl outline-none resize-none max-h-48 overflow-y-auto leading-relaxed" placeholder="Message Anurag's GPT..."></textarea>
-                        <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-300 rounded-full" title="Speak"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg></button>
+                        <button id="mic-btn" class="absolute right-12 bottom-2 p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:text-white rounded-full dark:hover:bg-gray-800 transition-colors" title="Speak"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg></button>
                         <button id="send-btn" class="absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed enabled:bg-blue-600 enabled:text-white hover:enabled:bg-blue-500" disabled><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg></button>
                     </div>
                 </div>
@@ -205,7 +196,6 @@
     </div>
 
     <script>
-        // Force Service Worker Update
         if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) { registration.update(); } }); }
         
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -218,7 +208,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v85_pure_tailwind'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v85_pure_tailwind'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v86_tailwind_clean'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v86_tailwind_clean'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
@@ -232,7 +222,6 @@
              }
         }
 
-        // --- FULLSCREEN IMAGE VIEWER LOGIC ---
         window.openImageViewer = function(src) {
             if (!src || src.includes('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')) return;
             const modal = $('#image-viewer-modal');
@@ -277,7 +266,6 @@
         const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
         const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
 
-        // --- CUSTOM TOAST NOTIFICATION ---
         window.showToast = function(message, actionText = null, actionCallback = null) {
             const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
             const toast = document.createElement('div'); toast.id = 'custom-toast';
@@ -290,7 +278,6 @@
             setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
         };
 
-        // --- MENU & CLEAN COPY FUNCTIONS ---
         window.toggleUserMenu = function(e, msgId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${msgId}`) menu.classList.add('hidden'); }); document.getElementById(`menu-${msgId}`).classList.toggle('hidden'); };
         
         window.copyUserMessage = function(msgId) { 
@@ -331,7 +318,6 @@
             }); 
         };
 
-        // --- SMART SPEECH SANITIZER ---
         window.toggleSpeech = (btn) => { 
             const msgBox = btn.closest('.relative').querySelector('.message-text');
             let textToSpeak = msgBox.innerText;
@@ -351,21 +337,26 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // --- FIXED: THEME ENGINE LISTENER ---
+        // --- FIXED: PURE TAILWIND THEME ENGINE ---
         $('#theme-toggle-btn').addEventListener('click', () => { 
-            const isDark = document.documentElement.classList.contains('dark');
-            setTheme(isDark ? 'light' : 'dark');
+            const htmlTag = document.documentElement;
+            const isDark = htmlTag.classList.contains('dark');
             
-            if (isDark) { // Switched to light
+            if (isDark) { 
+                htmlTag.classList.remove('dark');
+                htmlTag.style.colorScheme = 'light';
+                localStorage.setItem('anurags_gpt_theme', 'light');
                 $('#theme-icon-light').classList.add('hidden'); 
                 $('#theme-icon-dark').classList.remove('hidden'); 
-            } else { // Switched to dark
+            } else { 
+                htmlTag.classList.add('dark');
+                htmlTag.style.colorScheme = 'dark';
+                localStorage.setItem('anurags_gpt_theme', 'dark');
                 $('#theme-icon-light').classList.remove('hidden'); 
                 $('#theme-icon-dark').classList.add('hidden'); 
             }
         });
         
-        // --- UNIFIED REGENERATE LOGIC ---
         window.regenerateResponse = function(btn) { 
             if (window.isGenerating) return; 
             let chat = isTempChat ? tempChatData : state.chats.find(c => c.id === state.currentChatId);
@@ -416,8 +407,7 @@
             } catch (error) { window.showToast("Failed to download image."); }
         };
 
-        // --- CUSTOM MARKED.JS RENDERERS ---
-        renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-gray-50 dark:bg-[#0d1117] rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-gray-50 dark:bg-[#0d1117]"><code class="text-sm font-mono text-gray-800 dark:text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
+        renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-gray-50 dark:bg-gray-900"><code class="text-sm font-mono text-gray-800 dark:text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
         
         window.fetchSecureImage = async function(prompt, imgEl) { 
             try { 
@@ -727,6 +717,15 @@
         
         // --- BOOT PROCESS ---
         function init() { 
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) { 
+                $('#theme-icon-light').classList.remove('hidden'); 
+                $('#theme-icon-dark').classList.add('hidden'); 
+            } else { 
+                $('#theme-icon-light').classList.add('hidden'); 
+                $('#theme-icon-dark').classList.remove('hidden'); 
+            }
+            
             setupSpeechRecognition(); 
             loadSettings(); 
             loadChats(); 
@@ -758,16 +757,6 @@
                 } catch(e) { window.location.hash = ''; } 
             }
             renderSidebar(); 
-            
-            // Set initial toggle icons
-            const isDark = document.documentElement.classList.contains('dark');
-            if (isDark) { 
-                $('#theme-icon-light').classList.remove('hidden'); 
-                $('#theme-icon-dark').classList.add('hidden'); 
-            } else { 
-                $('#theme-icon-light').classList.add('hidden'); 
-                $('#theme-icon-dark').classList.remove('hidden'); 
-            }
         }
 
         window.addEventListener('pageshow', function(event) {
