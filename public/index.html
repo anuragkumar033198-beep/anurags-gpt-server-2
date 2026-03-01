@@ -44,41 +44,115 @@
         .user-menu-trigger { opacity: 0; transition: opacity 0.2s; } .group:hover .user-menu-trigger { opacity: 1; }
         .mic-active { color: #ef4444 !important; animation: pulse-red 1.5s infinite; } @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-        /* --- BULLETPROOF PURE WHITE LIGHT THEME OVERRIDES --- */
-        /* FIXED: Using RGBA(255,255,255,0.99) physically blocks Samsung Internet from applying forced dark-mode overlays, while looking perfectly white to humans! */
+        /* --- THE ULTIMATE SAMSUNG INTERNET BYPASS (LIGHT THEME) --- */
+        /* 1. Box-Shadow Hack: Mobile browsers NEVER invert box-shadows. We paint the screen white using shadows. */
+        /* 2. Text-Fill-Color Hack: Overrides forced text color inversion. */
         :root.light-theme { color-scheme: light only !important; forced-color-adjust: none !important; }
-        html.light-theme, body.light-theme, .light-theme main, .light-theme .bg-gray-950, .light-theme header, .light-theme aside { 
-            background-color: rgba(255, 255, 255, 0.99) !important; 
-            background-image: none !important; 
-            color: #000000 !important; 
-            forced-color-adjust: none !important;
-        }
-        .light-theme header, .light-theme aside { border-color: rgba(229, 231, 235, 0.99) !important; }
-        .light-theme .bg-gradient-to-t { background: none !important; background-color: transparent !important; }
         
-        .light-theme .bg-gray-900 { background-color: rgba(244, 244, 245, 0.99) !important; background-image: none !important; border-color: rgba(229, 231, 235, 0.99) !important; } 
-        .light-theme .bg-gray-800 { background-color: rgba(249, 249, 249, 0.99) !important; background-image: none !important; border-color: rgba(229, 231, 235, 0.99) !important; color: #000000 !important; } 
-        .light-theme .bg-gray-700 { background-color: rgba(229, 231, 235, 0.99) !important; background-image: none !important; color: #000000 !important; }
+        html.light-theme, body.light-theme, .light-theme main, .light-theme .bg-gray-950 { 
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: inset 0 0 0 9999px #ffffff !important; 
+            color: #000000 !important; 
+            -webkit-text-fill-color: #000000 !important;
+        }
+        .light-theme header, .light-theme aside { 
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: inset 0 0 0 9999px #ffffff !important; 
+            border-color: #e5e7eb !important; 
+        }
+        .light-theme .bg-gradient-to-t { 
+            background: none !important; 
+            background-color: transparent !important;
+            box-shadow: inset 0 0 0 9999px #ffffff !important; 
+        }
+        
+        /* Input Areas and Suggestions */
+        .light-theme .bg-gray-900, .light-theme .suggestion-btn { 
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: inset 0 0 0 9999px #f4f4f5 !important; 
+            border-color: #e5e7eb !important; 
+        } 
+        
+        /* Assistant Bubbles */
+        .light-theme .bg-gray-800 { 
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: inset 0 0 0 9999px #f9f9f9 !important; 
+            border-color: #e5e7eb !important; 
+            color: #000000 !important; 
+            -webkit-text-fill-color: #000000 !important;
+        } 
+        .light-theme .bg-gray-700 { 
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: inset 0 0 0 9999px #e5e7eb !important; 
+            color: #000000 !important; 
+            -webkit-text-fill-color: #000000 !important;
+        }
         
         /* iMessage Blue Bubbles for User Chat */
-        .light-theme .bg-gray-800.text-white { background-color: rgba(37, 99, 235, 0.99) !important; background-image: none !important; border-color: rgba(37, 99, 235, 0.99) !important; color: #ffffff !important; }
-        .light-theme .bg-gray-800.text-white * { color: #ffffff !important; }
+        .light-theme .bg-gray-800.text-white { 
+            background-color: transparent !important;
+            background-image: none !important;
+            box-shadow: inset 0 0 0 9999px #2563eb !important; 
+            border-color: #2563eb !important; 
+            color: #ffffff !important; 
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        .light-theme .bg-gray-800.text-white * { 
+            color: #ffffff !important; 
+            -webkit-text-fill-color: #ffffff !important;
+        }
 
         /* Deep Text Overrides */
-        .light-theme .text-white { color: #000000 !important; }
-        .light-theme .text-gray-100, .light-theme .text-gray-200 { color: #000000 !important; }
-        .light-theme .text-gray-300, .light-theme .text-gray-400 { color: #4b5563 !important; }
-        .light-theme .text-gray-500 { color: #6b7280 !important; }
-        .light-theme input, .light-theme textarea { color: #000000 !important; }
-        .light-theme #user-input::placeholder { color: #9ca3af !important; }
+        .light-theme .text-white { color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
+        .light-theme .text-gray-100, .light-theme .text-gray-200 { color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
+        .light-theme .text-gray-300, .light-theme .text-gray-400 { color: #4b5563 !important; -webkit-text-fill-color: #4b5563 !important; }
+        .light-theme .text-gray-500 { color: #6b7280 !important; -webkit-text-fill-color: #6b7280 !important; }
         
-        .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 svg.text-white { color: #ffffff !important; }
-        .light-theme #send-btn.bg-blue-600.text-white, .light-theme #install-app-btn, .light-theme #save-settings-btn, .light-theme #submit-password-btn, .light-theme #confirm-action-btn, .light-theme #custom-prompt-confirm, .light-theme #toast-action-btn { background-color: rgba(37, 99, 235, 0.99) !important; color: #ffffff !important; }
-        .light-theme #send-btn.bg-blue-600.text-white svg { color: #ffffff !important; }
-        .light-theme #scroll-to-bottom-btn { background-color: rgba(255, 255, 255, 0.99) !important; color: rgba(37, 99, 235, 0.99) !important; border-color: rgba(229, 231, 235, 0.99) !important; }
-        .light-theme .border-gray-800, .light-theme .border-gray-700, .light-theme .border-gray-600 { border-color: rgba(229, 231, 235, 0.99) !important; }
-        .light-theme .prose-content code { background-color: rgba(229, 231, 235, 0.99) !important; color: #b91c1c !important; }
-        .light-theme .group\/code .bg-\[\#0d1117\] { background-color: rgba(248, 250, 252, 0.99) !important; border-color: rgba(229, 231, 235, 0.99) !important; }
+        .light-theme input, .light-theme textarea { 
+            color: #000000 !important; 
+            -webkit-text-fill-color: #000000 !important;
+            background-color: transparent !important;
+        }
+        .light-theme #user-input::placeholder { color: #9ca3af !important; -webkit-text-fill-color: #9ca3af !important; }
+        
+        /* Icons and Buttons */
+        .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 { box-shadow: none !important; } /* Protects the logo gradient */
+        .light-theme .bg-gradient-to-br.from-blue-500.to-purple-600 svg.text-white { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+        
+        .light-theme #send-btn.bg-blue-600.text-white, .light-theme #install-app-btn, .light-theme #save-settings-btn, .light-theme #submit-password-btn, .light-theme #confirm-action-btn, .light-theme #custom-prompt-confirm, .light-theme #toast-action-btn { 
+            background-color: transparent !important;
+            box-shadow: inset 0 0 0 9999px #2563eb !important; 
+            color: #ffffff !important; 
+            -webkit-text-fill-color: #ffffff !important;
+        }
+        .light-theme #send-btn.bg-blue-600.text-white svg { color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; }
+        
+        .light-theme #scroll-to-bottom-btn { 
+            background-color: transparent !important;
+            box-shadow: inset 0 0 0 9999px #ffffff !important; 
+            color: #2563eb !important; 
+            -webkit-text-fill-color: #2563eb !important;
+            border-color: #e5e7eb !important; 
+        }
+        
+        /* Borders & Code Blocks */
+        .light-theme .border-gray-800, .light-theme .border-gray-700, .light-theme .border-gray-600 { border-color: #e5e7eb !important; }
+        .light-theme .prose-content code { 
+            background-color: transparent !important;
+            box-shadow: inset 0 0 0 9999px #e5e7eb !important; 
+            color: #b91c1c !important; 
+            -webkit-text-fill-color: #b91c1c !important;
+        }
+        .light-theme .group\/code .bg-\[\#0d1117\] { 
+            background-color: transparent !important;
+            box-shadow: inset 0 0 0 9999px #f8fafc !important; 
+            border-color: #e5e7eb !important; 
+        }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 font-sans flex overflow-hidden selection:bg-primary-500 selection:text-white relative w-full h-[100dvh]">
@@ -208,6 +282,9 @@
     </div>
 
     <script>
+        // Force Service Worker Update
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) { registration.update(); } }); }
+        
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
         const $ = (selector) => document.querySelector(selector);
@@ -218,7 +295,7 @@
         const elWelcomeScreen = $('#welcome-screen'); const elAttachmentMenu = $('#attachment-menu'); const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); const elPlusBtn = $('#plus-menu-btn'); const elCreateImgBtn = $('#menu-create-image-btn');
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v81_purewhite'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v81_purewhite'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v82_samsung_bypass'; const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v82_samsung_bypass'; const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         let state = { chats: [], currentChatId: null }; let settings = { systemPrompt: '' }; let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
         let currentBase64Image = null; let currentFileAttachment = null; window.isGenerating = false; let abortController = null;
         let isUserScrolledUp = false; let recognition = null; let isTempChat = false; let tempChatData = { messages: [] }; let currentUtteranceText = null;
@@ -360,7 +437,6 @@
                 document.documentElement.classList.add('light-theme');
                 document.body.classList.add('light-theme'); 
                 
-                // Explicitly inform the browser engine this is a Light theme now
                 if (metaTag) metaTag.setAttribute('content', 'light');
                 document.documentElement.style.setProperty('color-scheme', 'light', 'important');
                 
@@ -371,7 +447,6 @@
                 document.documentElement.classList.remove('light-theme');
                 document.body.classList.remove('light-theme'); 
                 
-                // Revert to default
                 if (metaTag) metaTag.setAttribute('content', 'dark light');
                 document.documentElement.style.setProperty('color-scheme', 'dark', 'important');
                 
@@ -742,7 +817,7 @@
         function setupSpeechRecognition() { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); }; } else { elMicBtn.style.display = 'none'; } }
         elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } });
         
-        // --- BOOT PROCESS ---
+        // --- FIXED: GUARANTEED FRESH STARTUP ---
         function init() { 
             applyTheme(); 
             setupSpeechRecognition(); 
@@ -771,11 +846,23 @@
                     $('#plus-menu-btn').style.display = 'none'; 
                 } catch(e) { window.location.hash = ''; showWelcome(); } 
             } else { 
+                // Always force a brand new screen
                 state.currentChatId = null; 
+                clearMessages();
                 showWelcome(); 
             } 
             renderSidebar(); 
         }
+
+        // --- FIXED: INTERCEPT BACK-FORWARD CACHE ---
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) { // If the OS restores a frozen background tab
+                state.currentChatId = null;
+                clearMessages();
+                showWelcome();
+                renderSidebar();
+            }
+        });
 
         function loadChats() { const stored = localStorage.getItem(APP_STORAGE_KEY); if (stored) state.chats = JSON.parse(stored); }
         function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
@@ -792,8 +879,6 @@
         window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`).classList.add('hidden'); } };
         window.shareChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { try { const shareUrl = `${window.location.origin}${window.location.pathname}#share=${btoa(JSON.stringify(chat))}`; navigator.clipboard.writeText(shareUrl).then(() => window.showToast("Link copied to clipboard!")).catch(() => window.showToast("Failed to copy link.")); } catch (err) { window.showToast("Chat too large to share via URL."); } document.getElementById(`menu-${id}`).classList.add('hidden'); } };
         window.deleteChat = function(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`).classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (state.currentChatId === id) { state.currentChatId = null; showWelcome(); } }); };
-        
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); }); }
         
         // Start App
         init();
