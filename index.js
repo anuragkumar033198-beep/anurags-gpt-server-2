@@ -37,7 +37,7 @@ app.get('/manifest.json', (req, res) => {
 
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": ["D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
+    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
 });
 
 app.get('/', (req, res) => {
@@ -100,12 +100,13 @@ app.post('/api/verify', async (req, res) => {
         let attempts = (failedAttempts.get(ip) || 0) + 1;
         failedAttempts.set(ip, attempts);
         
-        if (attempts >= MAX_ATTEMPTS) { 
+        if (attempts === MAX_ATTEMPTS) { 
             bannedIPs.add(ip); 
             await notifyDiscord(ip, req);
             return res.status(403).json({ error: "BANNED" }); 
         }
-        return res.status(401).json({ error: "Incorrect Password", attempts_left: MAX_ATTEMPTS - attempts });
+        if (attempts > MAX_ATTEMPTS) return res.status(403).json({ error: "BANNED" });
+        return res.status(401).json({ error: "Incorrect Password", attemptsLeft: MAX_ATTEMPTS - attempts });
     }
     failedAttempts.delete(ip);
     res.json({ success: true });
@@ -176,7 +177,8 @@ app.post('/api/chat', async (req, res) => {
         const userPassword = (req.headers['x-app-password'] || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized: Invalid Password" });
 
-        const { messages } = req.body;
+        // FIXED: Now we accept BOTH the messages and the custom system prompt from the frontend!
+        const { messages, customSystemPrompt } = req.body;
         if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "Invalid message format." });
 
         let rawOpenRouter = process.env.OPENROUTER_API_KEY || process.env.OPENROUTERAPIKEY || '';
@@ -193,6 +195,12 @@ Formatting Rules:
 4. YOUR IDENTITY & LOGO: If the user uploads an image of a blue circular icon with a white lightning bolt, DO NOT say it is Discord. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.
 5. SMART IMAGE EDITING (FAKE I2I): If the user uploads an image and asks you to edit or change it, act as a professional image generator. Analyze the uploaded image, then create a new image prompt that recreates it BUT includes the requested changes. Generate this new image using the Pollinations markdown: ![Image](https://image.pollinations.ai/prompt/your%20new%20description).`;
         
+        // FIXED: Merge the hardcoded identity with the custom user settings prompt seamlessly!
+        let combinedInstructions = myCustomIdentity;
+        if (customSystemPrompt && typeof customSystemPrompt === 'string' && customSystemPrompt.trim() !== '') {
+            combinedInstructions += `\n\nADDITIONAL USER-DEFINED BEHAVIOR (MUST OBEY):\n${customSystemPrompt.trim()}`;
+        }
+
         let hasImage = false;
         if (messages.length > 0) {
             const lastMessageIndex = messages.length - 1;
@@ -201,14 +209,12 @@ Formatting Rules:
             if (Array.isArray(lastMsg.content)) {
                 hasImage = lastMsg.content.some(c => c.type === 'image_url');
                 let textObj = lastMsg.content.find(c => c.type === 'text');
-                if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${textObj.text}`;
+                if (textObj) textObj.text = `[STRICT SYSTEM INSTRUCTIONS: ${combinedInstructions}]\n\nUser Message: ${textObj.text}`;
             } else if (typeof lastMsg.content === 'string') {
-                lastMsg.content = `[STRICT SYSTEM INSTRUCTIONS: ${myCustomIdentity}]\n\nUser Message: ${lastMsg.content}`;
+                lastMsg.content = `[STRICT SYSTEM INSTRUCTIONS: ${combinedInstructions}]\n\nUser Message: ${lastMsg.content}`;
             }
         }
 
-        // FIXED: Added Dolphin-Mistral to the TEXT-ONLY fallback list. 
-        // We keep it out of the hasImage list because it does not have "eyes" and would crash on image edits!
         const autoModels = hasImage 
             ? [
                 "google/gemini-2.0-flash-exp:free", 
@@ -266,6 +272,6 @@ Formatting Rules:
 });
 
 app.use((err, req, res, next) => { res.status(500).send('Something broke!'); });
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 app.listen(port, '0.0.0.0', () => { console.log(`🚀 Anurag's GPT Backend is running on port ${port}!`); });
 module.exports = app;
