@@ -126,6 +126,22 @@
         </div>
     </div>
 
+    <div id="confirm-modal" class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20">
+                    <svg class="w-8 h-8 text-red-600 dark:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" /></svg>
+                </div>
+                <h3 id="confirm-modal-title" class="text-xl font-bold text-black dark:text-white mb-2">Are you sure?</h3>
+                <p id="confirm-modal-text" class="text-gray-500 dark:text-gray-400 text-sm">This action cannot be undone.</p>
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-3">
+                <button id="confirm-cancel-btn" class="flex-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-black dark:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button>
+                <button id="confirm-action-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <div id="custom-prompt-modal" class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
             <div class="p-6 text-center">
@@ -236,7 +252,7 @@
 
     <div id="confirm-modal" class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
-            <div class="p-6 text-center"><div class="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20"><svg class="w-8 h-8 text-red-600 dark:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div><h3 id="confirm-modal-title" class="text-xl font-bold text-black dark:text-white mb-2">Are you sure?</h3><p id="confirm-modal-text" class="text-gray-500 dark:text-gray-400 text-sm">This action cannot be undone.</p></div>
+            <div class="p-6 text-center"><div class="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20"><svg class="w-8 h-8 text-red-600 dark:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77-1.333.192 3 1.732 3z" /></svg></div><h3 id="confirm-modal-title" class="text-xl font-bold text-black dark:text-white mb-2">Are you sure?</h3><p id="confirm-modal-text" class="text-gray-500 dark:text-gray-400 text-sm">This action cannot be undone.</p></div>
             <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-3">
                 <button id="confirm-cancel-btn" class="flex-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-black dark:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button>
                 <button id="confirm-action-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20">Confirm</button>
@@ -264,8 +280,8 @@
         const elAttachmentPreviewContainer = $('#attachment-preview-container');
         const elScrollToBottomBtn = $('#scroll-to-bottom-btn'); 
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v96_ultimate'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v96_ultimate'; 
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v97_final'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v97_final'; 
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         
         let state = { chats: [] }; 
@@ -282,7 +298,7 @@
         let isTempChat = false; 
         let tempChatData = { messages: [] }; 
 
-        // --- THE MASTER UI STATE MACHINE (FIXED TIMING) ---
+        // --- THE MASTER UI STATE MACHINE ---
         let appState = {
             isPasswordValid: false,
             firebaseReady: false,
@@ -291,7 +307,6 @@
         };
 
         function renderUIMaster() {
-            // Gate 1: Password Check First
             if (!appState.isPasswordValid) {
                 elPassOverlay.classList.remove('hidden'); elPassOverlay.style.display = 'flex';
                 $('#login-overlay').classList.add('hidden'); 
@@ -300,10 +315,8 @@
                 elPassOverlay.classList.add('hidden'); elPassOverlay.style.display = 'none'; 
             }
 
-            // Gate 2: Wait for Firebase Boot
             if (!appState.firebaseReady) return; 
 
-            // Gate 3: Display Correct App View
             if (appState.firebaseUser) {
                 $('#login-overlay').classList.add('hidden');
                 $('#user-profile-section').classList.remove('hidden'); $('#user-profile-section').classList.add('flex');
@@ -320,6 +333,12 @@
                 $('#user-profile-section').classList.add('hidden'); $('#user-profile-section').classList.remove('flex');
                 appState.chatsLoaded = false;
             }
+        }
+
+        function handleAuthState(user) {
+            appState.firebaseUser = user;
+            if (!user) { state.chats = []; clearMessages(); renderSidebar(); }
+            renderUIMaster();
         }
 
         // --- SAFE FIREBASE INITIALIZATION ---
@@ -341,12 +360,8 @@
                 
                 auth.onAuthStateChanged((user) => {
                     appState.firebaseReady = true;
-                    appState.firebaseUser = user;
-                    renderUIMaster();
+                    handleAuthState(user);
                 });
-                
-                // Catch redirect errors cleanly
-                auth.getRedirectResult().catch((e) => { console.error("Redirect Error:", e); });
             } else {
                 console.warn("Firebase blocked by browser. Running local.");
                 appState.firebaseReady = true; 
@@ -457,26 +472,29 @@
         window.toggleSpeech = (btn) => { 
             const msgBox = btn.closest('.relative').querySelector('.message-text');
             const clone = msgBox.cloneNode(true);
-            clone.querySelectorAll('.group\\/imgbox').forEach(el => el.remove()); 
+            
+            // Delete ALL HTML elements that aren't pure text (Images, Code Boxes, Widgets)
+            clone.querySelectorAll('div, svg, button').forEach(el => el.remove()); 
             
             let textToSpeak = clone.innerText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/https?:\/\/[^\s]+/g, '').trim(); 
             
-            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) { 
-                window.speechSynthesis.cancel(); 
-                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
-                if (btn.dataset.speaking === "true") { 
-                    $$('.speaker-btn').forEach(b => b.dataset.speaking = "false");
-                    return; 
-                } 
+            if (btn.classList.contains('is-speaking')) {
+                window.speechSynthesis.cancel();
+                $$('.speaker-btn').forEach(b => { b.innerHTML = SPEAKER_ICON; b.classList.remove('is-speaking'); });
+                return; 
             }
             
-            $$('.speaker-btn').forEach(b => b.dataset.speaking = "false");
-            btn.dataset.speaking = "true";
+            window.speechSynthesis.cancel();
+            $$('.speaker-btn').forEach(b => { b.innerHTML = SPEAKER_ICON; b.classList.remove('is-speaking'); });
+            
+            btn.classList.add('is-speaking');
+            btn.innerHTML = SPEAKER_OFF_ICON;
             
             const utterance = new SpeechSynthesisUtterance(textToSpeak); 
-            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; btn.dataset.speaking = "false"; };
-            utterance.onerror = () => { btn.innerHTML = SPEAKER_ICON; btn.dataset.speaking = "false"; };
-            btn.innerHTML = SPEAKER_OFF_ICON; window.speechSynthesis.speak(utterance);
+            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; btn.classList.remove('is-speaking'); };
+            utterance.onerror = () => { btn.innerHTML = SPEAKER_ICON; btn.classList.remove('is-speaking'); };
+            
+            setTimeout(() => { if (btn.classList.contains('is-speaking')) { window.speechSynthesis.speak(utterance); } }, 50);
         };
 
         $('#theme-toggle-btn').addEventListener('click', () => { 
@@ -565,7 +583,9 @@
             if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
             
             // FIXED: High Contrast Aesthetic Bubbles for Light Mode!
-            const bubbleStyles = isUser ? 'bg-blue-600 dark:bg-gray-800 text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-sm' : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-sm'; 
+            const bubbleStyles = isUser 
+                ? 'bg-blue-600 dark:bg-gray-800 text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-sm' 
+                : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-gray-100 dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-md'; 
             
             div.innerHTML = `<div class="max-w-[92%] md:max-w-[85%] flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} relative">${isUser ? actionButtons : ''}<div class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gradient-to-br from-blue-500 to-purple-600'}">${isUser ? '<svg class="h-5 w-5 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' : '<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'}</div><div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full min-w-0"><div class="prose-content ${bubbleStyles} min-w-0">${imageHtml}<div class="message-text w-full min-w-0" data-raw-content="${window.escapeHtml(displayContent)}">${isUser ? window.escapeHtml(displayContent) : window.formatText(displayContent)}</div></div>${!isUser ? actionButtons : ''}</div></div>`;
             elMessagesContainer.appendChild(div);
@@ -585,7 +605,7 @@
         async function saveChats() { 
             state.chats.sort((a, b) => (a.pinned === b.pinned) ? b.id - a.id : b.pinned ? -1 : 1); 
             try { localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); } catch (e) { } 
-            if (currentUser && db) { try { await db.collection('users').doc(currentUser.uid).set({ chats: state.chats }); } catch(e) {} }
+            if (appState.firebaseUser && db) { try { await db.collection('users').doc(appState.firebaseUser.uid).set({ chats: state.chats }); } catch(e) {} }
         }
 
         async function loadChatsFromCloud(user) {
@@ -600,6 +620,37 @@
                 renderSidebar(); if (currentChatId) { loadChat(currentChatId); } else { showWelcome(); }
             } catch(e) { console.error("Cloud Load Error", e); }
         }
+
+        // --- LOGIN BUTTON LISTENERS ---
+        $('#google-login-btn-main').addEventListener('click', () => { 
+            if(auth) {
+                // FIXED: Popup forces UI to update without reloading Mobile Browsers!
+                auth.signInWithPopup(provider)
+                    .then((result) => { handleAuthState(result.user); })
+                    .catch(err => { if(err.code !== 'auth/popup-closed-by-user') window.showToast("Login failed: " + err.message); }); 
+            } else {
+                window.showToast("Cloud sync is blocked by browser."); 
+            }
+        });
+        
+        $('#email-login-btn').addEventListener('click', () => {
+            const email = $('#auth-email').value.trim(); const pass = $('#auth-password').value.trim();
+            if(!email || !pass) return window.showToast("Please enter email and password.");
+            if(auth) auth.signInWithEmailAndPassword(email, pass).catch(err => window.showToast("Login failed: " + err.message));
+        });
+
+        $('#email-signup-btn').addEventListener('click', () => {
+            const email = $('#auth-email').value.trim(); const pass = $('#auth-password').value.trim();
+            if(!email || !pass) return window.showToast("Please enter email and password.");
+            if(auth) auth.createUserWithEmailAndPassword(email, pass).catch(err => window.showToast("Sign up failed: " + err.message));
+        });
+
+        // FIXED: Solid Sign-out logic
+        $('#google-logout-btn').addEventListener('click', () => { 
+            window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", () => { 
+                if(auth) auth.signOut().then(() => { handleAuthState(null); }); 
+            }); 
+        });
 
         // --- PASSWORD SYSTEM ---
         async function verifyPassword(pwd) { 
@@ -861,7 +912,6 @@
             showWelcome(); 
             renderSidebar(); 
             
-            // Core Boot Logic (Optimistic Unlock)
             if (currentPassword) { 
                 appState.isPasswordValid = true; 
                 renderUIMaster();
