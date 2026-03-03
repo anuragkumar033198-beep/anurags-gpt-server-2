@@ -237,7 +237,10 @@
     <div id="confirm-modal" class="fixed inset-0 bg-black/50 dark:bg-black/80 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
         <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100 flex flex-col">
             <div class="p-6 text-center"><div class="w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20"><svg class="w-8 h-8 text-red-600 dark:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg></div><h3 id="confirm-modal-title" class="text-xl font-bold text-black dark:text-white mb-2">Are you sure?</h3><p id="confirm-modal-text" class="text-gray-500 dark:text-gray-400 text-sm">This action cannot be undone.</p></div>
-            <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-3"><button id="confirm-cancel-btn" class="flex-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-black dark:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button><button id="confirm-action-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20">Delete</button></div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-3">
+                <button id="confirm-cancel-btn" class="flex-1 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-black dark:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">Cancel</button>
+                <button id="confirm-action-btn" class="flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20">Confirm</button>
+            </div>
         </div>
     </div>
 
@@ -278,7 +281,6 @@
         let recognition = null; 
         let isTempChat = false; 
         let tempChatData = { messages: [] }; 
-        let currentUtteranceText = null;
 
         // --- THE MASTER UI STATE MACHINE ---
         let appState = {
@@ -289,47 +291,27 @@
         };
 
         function renderUIMaster() {
-            // 1. Gate 1: Password Wall
             if (!appState.isPasswordValid) {
-                elPassOverlay.classList.remove('hidden');
-                elPassOverlay.style.display = 'flex';
-                $('#login-overlay').classList.add('hidden');
-                return;
-            } else {
-                elPassOverlay.classList.add('hidden');
-                elPassOverlay.style.display = 'none';
-            }
+                elPassOverlay.classList.remove('hidden'); elPassOverlay.style.display = 'flex';
+                $('#login-overlay').classList.add('hidden'); return;
+            } else { elPassOverlay.classList.add('hidden'); elPassOverlay.style.display = 'none'; }
 
-            // 2. Waiting for Firebase to initialize
-            if (!appState.firebaseReady) {
-                return; // Stay silent while Firebase checks credentials
-            }
+            if (!appState.firebaseReady) return; 
 
-            // 3. Gate 2: Google Login vs Main App
             if (appState.firebaseUser) {
-                // Logged In -> Show App
                 $('#login-overlay').classList.add('hidden');
-                
-                // Update Sidebar Profile
-                $('#user-profile-section').classList.remove('hidden');
-                $('#user-profile-section').classList.add('flex');
+                $('#user-profile-section').classList.remove('hidden'); $('#user-profile-section').classList.add('flex');
                 $('#user-avatar').src = appState.firebaseUser.photoURL || '/icon.png';
                 $('#user-name').innerText = appState.firebaseUser.displayName || 'User';
                 $('#user-email').innerText = appState.firebaseUser.email || '';
 
-                // Load Cloud Chats exactly once
                 if (!appState.chatsLoaded) {
                     loadChatsFromCloud(appState.firebaseUser);
                     appState.chatsLoaded = true;
                 }
             } else {
-                // Logged Out -> Show Login Screen
-                $('#login-overlay').classList.remove('hidden');
-                $('#login-overlay').style.display = 'flex';
-
-                // Hide Sidebar Profile
-                $('#user-profile-section').classList.add('hidden');
-                $('#user-profile-section').classList.remove('flex');
+                $('#login-overlay').classList.remove('hidden'); $('#login-overlay').style.display = 'flex';
+                $('#user-profile-section').classList.add('hidden'); $('#user-profile-section').classList.remove('flex');
                 appState.chatsLoaded = false;
             }
         }
@@ -351,18 +333,15 @@
                 db = firebase.firestore();
                 provider = new firebase.auth.GoogleAuthProvider();
                 
-                // Track auth state and update UI Master
                 auth.onAuthStateChanged((user) => {
                     appState.firebaseReady = true;
                     appState.firebaseUser = user;
                     renderUIMaster();
                 });
-                
-                // Catch redirect errors silently
                 auth.getRedirectResult().catch(() => {});
             } else {
                 console.warn("Firebase blocked by browser.");
-                appState.firebaseReady = true; // Force local mode
+                appState.firebaseReady = true; 
             }
         } catch(e) {
             console.error("Firebase init error:", e);
@@ -372,16 +351,15 @@
         // --- BULLETPROOF TEXT RENDERING ---
         const renderer = new marked.Renderer();
         window.escapeHtml = function(text) { 
-            if (text == null) return ""; // Prevents silent crash if text is missing
+            if (text == null) return ""; 
             const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; 
             return String(text).replace(/[&<>"']/g, m => map[m]); 
         };
         
         function applyKaTeX(element) {
             if (typeof renderMathInElement === 'function') { 
-                try {
-                    renderMathInElement(element, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true} ], throwOnError: false }); 
-                } catch (e) { console.error("Math skip", e); }
+                try { renderMathInElement(element, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true} ], throwOnError: false }); 
+                } catch (e) {}
             }
         }
 
@@ -460,15 +438,29 @@
             navigator.clipboard.writeText(txt.value).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); }); 
         };
 
+        // --- BULLETPROOF SPEECH SYNTHESIS ---
         window.toggleSpeech = (btn) => { 
             const msgBox = btn.closest('.relative').querySelector('.message-text');
-            let textToSpeak = msgBox.innerText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/https?:\/\/[^\s]+/g, ''); 
-            if (window.speechSynthesis.speaking) { 
-                window.speechSynthesis.cancel(); $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
-                if (currentUtteranceText === textToSpeak) { currentUtteranceText = null; return; } 
+            const clone = msgBox.cloneNode(true);
+            clone.querySelectorAll('.group\\/imgbox').forEach(el => el.remove()); // Fixes "Downloading..." text issue!
+            
+            let textToSpeak = clone.innerText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/https?:\/\/[^\s]+/g, '').trim(); 
+            
+            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) { 
+                window.speechSynthesis.cancel(); 
+                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
+                if (btn.dataset.speaking === "true") { 
+                    $$('.speaker-btn').forEach(b => b.dataset.speaking = "false");
+                    return; // Fixes the Stop Button Restart Bug!
+                } 
             }
-            currentUtteranceText = textToSpeak; const utterance = new SpeechSynthesisUtterance(textToSpeak); 
-            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; currentUtteranceText = null; };
+            
+            $$('.speaker-btn').forEach(b => b.dataset.speaking = "false");
+            btn.dataset.speaking = "true";
+            
+            const utterance = new SpeechSynthesisUtterance(textToSpeak); 
+            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; btn.dataset.speaking = "false"; };
+            utterance.onerror = () => { btn.innerHTML = SPEAKER_ICON; btn.dataset.speaking = "false"; };
             btn.innerHTML = SPEAKER_OFF_ICON; window.speechSynthesis.speak(utterance);
         };
 
@@ -557,8 +549,8 @@
             let actionButtons = '';
             if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
             
-            // FIXED: Crisp, high-contrast Light Mode Bubbles
-            const bubbleStyles = isUser ? 'bg-gray-100 border border-gray-200 dark:bg-gray-800 text-gray-900 dark:border-gray-700 dark:text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-sm' : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-sm'; 
+            // FIXED: High Contrast Aesthetic Bubbles for Light Mode!
+            const bubbleStyles = isUser ? 'bg-blue-600 dark:bg-gray-800 text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-sm' : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-sm'; 
             
             div.innerHTML = `<div class="max-w-[92%] md:max-w-[85%] flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} relative">${isUser ? actionButtons : ''}<div class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gradient-to-br from-blue-500 to-purple-600'}">${isUser ? '<svg class="h-5 w-5 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' : '<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'}</div><div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full min-w-0"><div class="prose-content ${bubbleStyles} min-w-0">${imageHtml}<div class="message-text w-full min-w-0" data-raw-content="${window.escapeHtml(displayContent)}">${isUser ? window.escapeHtml(displayContent) : window.formatText(displayContent)}</div></div>${!isUser ? actionButtons : ''}</div></div>`;
             elMessagesContainer.appendChild(div);
@@ -567,7 +559,7 @@
                 const textWithoutImages = displayContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim();
                 const actionsContainer = div.querySelector('.assistant-actions');
                 if (actionsContainer) { if (textWithoutImages.length > 0) { actionsContainer.style.display = 'flex'; } }
-                applyKaTeX(div.querySelector('.message-text')); 
+                try { applyKaTeX(div.querySelector('.message-text')); } catch(e) {}
             }
         };
 
@@ -597,8 +589,7 @@
         // --- LOGIN BUTTON LISTENERS ---
         $('#google-login-btn-main').addEventListener('click', () => { 
             if(auth) {
-                $('#google-login-btn-main').innerHTML = '<span class="animate-pulse">Redirecting...</span>';
-                auth.signInWithRedirect(provider); 
+                auth.signInWithPopup(provider).catch(err => window.showToast("Login window closed.")); 
             } else {
                 window.showToast("Cloud sync is blocked by browser."); 
             }
@@ -616,13 +607,12 @@
             if(auth) auth.createUserWithEmailAndPassword(email, pass).catch(err => window.showToast("Sign up failed: " + err.message));
         });
 
-        $('#google-logout-btn').addEventListener('click', () => { window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", () => { if(auth) auth.signOut(); }); });
+        $('#google-logout-btn').addEventListener('click', () => { window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", () => { if(auth) auth.signOut(); }); });
 
         // --- PASSWORD SYSTEM ---
         async function verifyPassword(pwd) { 
             if (!pwd) return;
             
-            // 1. Optimistic Unlock (Prevents loading screen flash)
             if(pwd === currentPassword) {
                 appState.isPasswordValid = true;
                 renderUIMaster();
@@ -630,7 +620,6 @@
                 elPassSubmit.innerText = 'Verifying...'; elPassSubmit.disabled = true; elPassError.classList.add('hidden');
             }
 
-            // 2. Background Verification
             try { 
                 const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } }); 
                 const data = await res.json().catch(() => ({ attemptsLeft: 0 }));
@@ -649,13 +638,12 @@
                 }
             } catch (err) { 
                 elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false;
-                // If network fails but password was cached, we let them stay in Optimistic Unlock mode.
             } 
         }
 
         function triggerLockdownUI() { elPassOverlay.classList.remove('hidden'); elPassOverlay.style.display = 'flex'; elPassInput.classList.add('hidden'); elPassSubmit.classList.add('hidden'); elPassError.classList.remove('hidden'); elPassError.innerHTML = "🚨 IP BANNED 🚨<br>Too many failed attempts."; }
 
-        // --- THE FIX: DEDICATED SEND BUTTON UPDATER ---
+        // --- SEND BUTTON LOGIC ---
         function updateSendButton() {
             const isEmpty = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment;
             elSendBtn.disabled = isEmpty;
@@ -739,7 +727,7 @@
         elUserInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
         elUserInput.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if (!window.isGenerating) { updateSendButton(); } });
         
-        $('#clear-chat-btn').addEventListener('click', () => { if (isTempChat) { window.showConfirmModal("Clear Temp Chat?", "Wipe messages.", () => { tempChatData.messages = []; clearMessages(); showWelcome(); }); } else { if (!currentChatId) return; window.showConfirmModal("Clear History?", "Delete messages.", () => { const chat = state.chats.find(c => c.id === currentChatId); if (chat) { chat.messages = []; saveChats(); loadChat(currentChatId); } }); } });
+        $('#clear-chat-btn').addEventListener('click', () => { if (isTempChat) { window.showConfirmModal("Clear Temp Chat?", "Wipe messages.", "Clear", () => { tempChatData.messages = []; clearMessages(); showWelcome(); }); } else { if (!currentChatId) return; window.showConfirmModal("Clear History?", "Delete messages.", "Clear", () => { const chat = state.chats.find(c => c.id === currentChatId); if (chat) { chat.messages = []; saveChats(); loadChat(currentChatId); } }); } });
         $('#new-chat-btn').addEventListener('click', () => { disableTempMode(); currentChatId = null; showWelcome(); renderSidebar(); if (window.innerWidth < 768) { $('#sidebar').classList.add('-translate-x-full'); $('#sidebar-overlay').classList.add('hidden'); } });
         $('#open-settings-btn').addEventListener('click', () => { $('#settings-modal').classList.remove('hidden'); }); 
         $('#close-settings-btn').addEventListener('click', () => { $('#settings-modal').classList.add('hidden'); });
@@ -752,7 +740,18 @@
 
         window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span class="text-gray-800 dark:text-white">Copied!</span>`; btn.classList.replace('text-gray-500', 'text-green-600'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-600', 'text-gray-500'); }, 2000); }); };
 
-        let confirmActionCallback = null; window.showConfirmModal = function(title, text, callback) { $('#confirm-modal-title').innerText = title; $('#confirm-modal-text').innerText = text; confirmActionCallback = callback; $('#confirm-modal').classList.remove('hidden'); }; window.closeConfirmModal = function() { $('#confirm-modal').classList.add('hidden'); confirmActionCallback = null; }; $('#confirm-cancel-btn').addEventListener('click', window.closeConfirmModal); $('#confirm-action-btn').addEventListener('click', () => { if (confirmActionCallback) confirmActionCallback(); window.closeConfirmModal(); });
+        // FIXED: Show Confirm Modal now correctly handles Dynamic Button Text!
+        let confirmActionCallback = null; 
+        window.showConfirmModal = function(title, text, actionBtnText, callback) { 
+            $('#confirm-modal-title').innerText = title; 
+            $('#confirm-modal-text').innerText = text; 
+            $('#confirm-action-btn').innerText = actionBtnText; // Updates the Red Button text perfectly
+            confirmActionCallback = callback; 
+            $('#confirm-modal').classList.remove('hidden'); 
+        }; 
+        window.closeConfirmModal = function() { $('#confirm-modal').classList.add('hidden'); confirmActionCallback = null; }; 
+        $('#confirm-cancel-btn').addEventListener('click', window.closeConfirmModal); 
+        $('#confirm-action-btn').addEventListener('click', () => { if (confirmActionCallback) confirmActionCallback(); window.closeConfirmModal(); });
         
         let customPromptCallback = null; window.showCustomPrompt = function(title, defaultValue, callback) { $('#custom-prompt-title').innerText = title; $('#custom-prompt-input').value = defaultValue; $('#custom-prompt-input').focus(); customPromptCallback = callback; $('#custom-prompt-modal').classList.remove('hidden'); }; window.closeCustomPrompt = function() { $('#custom-prompt-modal').classList.add('hidden'); customPromptCallback = null; }; $('#custom-prompt-cancel').addEventListener('click', window.closeCustomPrompt); $('#custom-prompt-confirm').addEventListener('click', () => { if (customPromptCallback) { customPromptCallback($('#custom-prompt-input').value); } window.closeCustomPrompt(); });
         
@@ -857,7 +856,7 @@
 
         window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
         window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`).classList.add('hidden'); } };
-        window.deleteChat = function(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`).classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (currentChatId === id) { currentChatId = null; showWelcome(); } }); };
+        window.deleteChat = function(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`).classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", "Delete", () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (currentChatId === id) { currentChatId = null; showWelcome(); } }); };
 
         // --- BOOT PROCESS ---
         function init() { 
@@ -875,9 +874,9 @@
             showWelcome(); 
             renderSidebar(); 
             
-            // Core Boot Logic
+            // Core Boot Logic (Optimistic Unlock)
             if (currentPassword) { 
-                appState.isPasswordValid = true; // Optimistic Unlock
+                appState.isPasswordValid = true; 
                 renderUIMaster();
                 verifyPassword(currentPassword); // Verify quietly in the background
             } else { 
