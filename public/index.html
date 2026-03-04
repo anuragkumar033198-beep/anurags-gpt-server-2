@@ -152,7 +152,7 @@
                         <span id="user-email" class="text-[11px] text-gray-500 dark:text-gray-400 truncate"></span>
                     </div>
                 </div>
-                <button id="google-logout-btn" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700" title="Sign Out">
+                <button id="google-logout-btn" onclick="window.signOutUser()" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700" title="Sign Out">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 </button>
             </div>
@@ -269,8 +269,9 @@
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
 
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v99_final'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v99_final'; 
+        // FIXED: Renamed storage key to force a clean slate and avoid object corruption bugs
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v100_bulletproof'; 
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v100_bulletproof'; 
         const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
         
         let state = { chats: [] }; 
@@ -287,7 +288,7 @@
         let isTempChat = false; 
         let tempChatData = { messages: [] }; 
 
-        // --- THE MASTER UI STATE MACHINE (FIXED TIMING & FORCED HIDING) ---
+        // --- THE MASTER UI STATE MACHINE ---
         let appState = {
             isPasswordValid: false,
             firebaseReady: false,
@@ -314,19 +315,15 @@
 
             // Gate 3: Display Correct App View
             if (appState.firebaseUser) {
-                // Explicitly force hide the login overlay!
                 if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; }
                 if(profileSec) { profileSec.classList.remove('hidden'); profileSec.classList.add('flex'); }
                 
                 const avatar = document.getElementById('user-avatar'); if(avatar) avatar.src = appState.firebaseUser.photoURL || '/icon.png';
                 
-                // Smart Name Extraction!
                 const uName = document.getElementById('user-name'); 
                 if(uName) {
                     let dName = appState.firebaseUser.displayName;
-                    if(!dName && appState.firebaseUser.email) {
-                        dName = appState.firebaseUser.email.split('@')[0];
-                    }
+                    if(!dName && appState.firebaseUser.email) { dName = appState.firebaseUser.email.split('@')[0]; }
                     uName.innerText = dName || 'User';
                 }
 
@@ -365,23 +362,18 @@
                 db = firebase.firestore();
                 provider = new firebase.auth.GoogleAuthProvider();
                 
-                // 1. Process Redirect Result FIRST
                 auth.getRedirectResult().then((result) => {
                     sessionStorage.removeItem('awaiting_redirect');
                     if (result && result.user) {
                         appState.firebaseReady = true;
                         appState.firebaseUser = result.user;
                         renderUIMaster();
-                    } else {
-                        resetGoogleBtn();
-                    }
+                    } else { resetGoogleBtn(); }
                 }).catch((e) => { 
-                    sessionStorage.removeItem('awaiting_redirect');
-                    resetGoogleBtn();
+                    sessionStorage.removeItem('awaiting_redirect'); resetGoogleBtn();
                     window.showToast(getCleanAuthError(e));
                 });
 
-                // 2. Listen to normal state changes
                 auth.onAuthStateChanged((user) => {
                     sessionStorage.removeItem('awaiting_redirect');
                     appState.firebaseReady = true;
@@ -394,7 +386,6 @@
                     const lBtn = document.getElementById('google-login-btn-main');
                     if (lBtn) lBtn.innerHTML = '<span class="animate-pulse">Syncing Securely...</span>';
                 }
-
             } else {
                 console.warn("Firebase blocked by browser. Running local.");
                 appState.firebaseReady = true; 
@@ -422,18 +413,12 @@
         window.openImageViewer = function(src) {
             if (!src || src.includes('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')) return;
             const modal = document.getElementById('image-viewer-modal'); const img = document.getElementById('image-viewer-img');
-            if(modal && img) {
-                img.src = src; modal.classList.remove('hidden'); void modal.offsetWidth; 
-                modal.classList.remove('opacity-0'); img.classList.remove('scale-95'); img.classList.add('scale-100');
-            }
+            if(modal && img) { img.src = src; modal.classList.remove('hidden'); void modal.offsetWidth; modal.classList.remove('opacity-0'); img.classList.remove('scale-95'); img.classList.add('scale-100'); }
         };
 
         window.closeImageViewer = function() {
             const modal = document.getElementById('image-viewer-modal'); const img = document.getElementById('image-viewer-img');
-            if(modal && img) {
-                modal.classList.add('opacity-0'); img.classList.remove('scale-100'); img.classList.add('scale-95');
-                setTimeout(() => modal.classList.add('hidden'), 300);
-            }
+            if(modal && img) { modal.classList.add('opacity-0'); img.classList.remove('scale-100'); img.classList.add('scale-95'); setTimeout(() => modal.classList.add('hidden'), 300); }
         };
 
         const civBtn = document.getElementById('close-image-viewer'); if(civBtn) civBtn.addEventListener('click', window.closeImageViewer);
@@ -456,89 +441,55 @@
         const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
         const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
 
-        // --- FULLY RESTORED SIDEBAR JS LOGIC ---
+        // --- FULLY RESTORED JS LOGIC ---
         window.toggleChatMenu = function(e, id) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${id}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${id}`); if(m) m.classList.toggle('hidden'); };
         window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
         window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`).classList.add('hidden'); } };
         window.shareChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { try { const shareUrl = `${window.location.origin}${window.location.pathname}#share=${btoa(JSON.stringify(chat))}`; navigator.clipboard.writeText(shareUrl).then(() => window.showToast("Link copied to clipboard!")).catch(() => window.showToast("Failed to copy link.")); } catch (err) { window.showToast("Chat too large to share via URL."); } document.getElementById(`menu-${id}`).classList.add('hidden'); } };
         window.deleteChat = function(e, id) { e.stopPropagation(); const m = document.getElementById(`menu-${id}`); if(m) m.classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", "Delete", () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (currentChatId === id) { currentChatId = null; showWelcome(); } }, true); };
-
         window.toggleUserMenu = function(e, msgId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${msgId}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.toggle('hidden'); };
-        
-        window.copyUserMessage = function(msgId) { 
-            const node = document.getElementById(msgId); if(!node) return;
-            const text = node.querySelector('.message-text').innerText; navigator.clipboard.writeText(text); 
-            const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden'); 
-            window.showToast("Prompt copied.", "Start new chat", () => { const nc = document.getElementById('new-chat-btn'); if(nc) nc.click(); }); 
-        };
-        
+        window.copyUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const text = node.querySelector('.message-text').innerText; navigator.clipboard.writeText(text); const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden'); window.showToast("Prompt copied.", "Start new chat", () => { const nc = document.getElementById('new-chat-btn'); if(nc) nc.click(); }); };
         window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const txtNode = node.querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(txtNode); selection.removeAllRanges(); selection.addRange(range); const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden');};
-        
-        window.editUserMessage = function(msgId) { 
-            const msgBox = document.getElementById(msgId); if(!msgBox) return; const text = msgBox.querySelector('.message-text').innerText; 
-            const img = msgBox.querySelector('img');
-            if (img && img.src.startsWith('data:image')) {
-                currentBase64Image = img.src;
-                const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } 
-                const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); 
-                const ap = document.getElementById('attachment-preview-container'); if(ap) ap.classList.remove('hidden');
-            }
-            const elUserInput = document.getElementById('user-input');
-            if(elUserInput) { elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); } 
-            const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden'); 
-            updateSendButton();
-        };
-        
+        window.editUserMessage = function(msgId) { const msgBox = document.getElementById(msgId); if(!msgBox) return; const text = msgBox.querySelector('.message-text').innerText; const img = msgBox.querySelector('img'); if (img && img.src.startsWith('data:image')) { currentBase64Image = img.src; const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); const ap = document.getElementById('attachment-preview-container'); if(ap) ap.classList.remove('hidden'); } const elUserInput = document.getElementById('user-input'); if(elUserInput) { elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); } const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden'); updateSendButton(); };
         window.shareUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const text = node.querySelector('.message-text').innerText; if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden');};
+        window.copyToClipboard = (btn) => { const msgBox = btn.closest('.relative').querySelector('.message-text'); const txt = document.createElement('textarea'); txt.value = msgBox.innerText; navigator.clipboard.writeText(txt.value).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); }); };
 
-        window.copyToClipboard = (btn) => { 
-            const msgBox = btn.closest('.relative').querySelector('.message-text'); const txt = document.createElement('textarea'); txt.value = msgBox.innerText; 
-            navigator.clipboard.writeText(txt.value).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); }); 
+        // RESTORED: Hardcoded SignOut Function
+        window.signOutUser = function() {
+            window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", () => { 
+                if(auth) {
+                    auth.signOut().then(() => {
+                        appState.firebaseUser = null;
+                        renderUIMaster();
+                        const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); 
+                        const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden');
+                    }).catch(err => { window.showToast("Sign out failed: " + err.message); });
+                } 
+            }, false);
         };
 
-        // --- BULLETPROOF SPEECH SYNTHESIS (FIXED) ---
         window.currentSpeakingId = null; 
         window.toggleSpeech = (btn) => { 
-            const msgContainer = btn.closest('.relative.group');
-            const msgId = msgContainer.id;
-            
+            const msgContainer = btn.closest('.relative.group'); const msgId = msgContainer.id;
             if (window.speechSynthesis.speaking || window.speechSynthesis.pending) { 
-                window.speechSynthesis.cancel(); 
-                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
-                
-                if (window.currentSpeakingId === msgId) { 
-                    window.currentSpeakingId = null; 
-                    return; 
-                } 
+                window.speechSynthesis.cancel(); $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
+                if (window.currentSpeakingId === msgId) { window.currentSpeakingId = null; return; } 
             }
-            
             window.currentSpeakingId = msgId;
-            const msgBox = msgContainer.querySelector('.message-text');
-            const clone = msgBox.cloneNode(true);
-            
+            const msgBox = msgContainer.querySelector('.message-text'); const clone = msgBox.cloneNode(true);
             clone.querySelectorAll('.ai-image-container').forEach(el => el.remove()); 
-            
             let textToSpeak = clone.innerText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/https?:\/\/[^\s]+/g, '').trim(); 
-            
             const utterance = new SpeechSynthesisUtterance(textToSpeak); 
             utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; window.currentSpeakingId = null; };
             utterance.onerror = () => { btn.innerHTML = SPEAKER_ICON; window.currentSpeakingId = null; };
-            btn.innerHTML = SPEAKER_OFF_ICON; 
-            window.speechSynthesis.speak(utterance);
+            btn.innerHTML = SPEAKER_OFF_ICON; window.speechSynthesis.speak(utterance);
         };
 
         const themeBtn = document.getElementById('theme-toggle-btn');
         if(themeBtn) themeBtn.addEventListener('click', () => { 
             const htmlTag = document.documentElement; const isDark = htmlTag.classList.contains('dark');
-            if (isDark) { 
-                htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); 
-            } else { 
-                htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); 
-            }
+            if (isDark) { htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light'); const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); } 
+            else { htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark'); const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); }
         });
         
         window.regenerateResponse = function(btn) { 
@@ -554,8 +505,7 @@
                 } else { lastUserText = userContent; }
                 if (lastUserText.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = lastUserText.split('\n\nUser Message: '); if (parts.length > 1) lastUserText = parts.slice(1).join('\n\nUser Message: '); }
                 chat.messages.pop(); chat.messages.pop(); if (!isTempChat) saveChats(); loadChat(chat.id || null);
-                const elUserInput = document.getElementById('user-input');
-                const elSendBtn = document.getElementById('send-btn');
+                const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn');
                 if(elUserInput) { elUserInput.value = lastUserText; elUserInput.style.height = 'auto'; elUserInput.style.height = (elUserInput.scrollHeight) + 'px'; }
                 updateSendButton(); if(elSendBtn) elSendBtn.click();
             }
@@ -573,7 +523,7 @@
             } catch (error) { window.showToast("Failed to download image."); }
         };
 
-        renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-gray-50 dark:bg-gray-900"><code class="text-sm font-mono text-gray-800 dark:text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
+        renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-300 dark:border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-gray-50 dark:bg-gray-900"><code class="text-sm font-mono text-gray-800 dark:text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
         
         window.fetchSecureImage = async function(prompt, imgEl) { 
             try { 
@@ -589,9 +539,9 @@
              if (!rawHref) rawHref = ''; let cleanHref = rawHref.replace(/&amp;/g, '&'); let safePrompt = "AI Image"; let isBase64 = cleanHref.startsWith('data:image'); 
              if (isBase64) { safePrompt = "Edited Image"; } else if (cleanHref.includes('pollinations.ai') || cleanHref.includes('/api/image')) { try { let promptPart = ""; if (cleanHref.includes('/api/image')) { promptPart = cleanHref.split('prompt=')[1].split('&')[0]; } else { let match = cleanHref.match(/\/(prompt|image|p)\/([^?&]+)/); promptPart = match && match[2] ? match[2] : "a beautiful image"; } let decodedPrompt = promptPart; try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {} decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); safePrompt = encodeURIComponent(decodedPrompt); } catch(e) {} } else { safePrompt = encodeURIComponent(cleanHref.replace(/\s+/g, '%20')); } 
              const containerStyle = "width: 280px; height: 280px; min-width: 280px; min-height: 280px;"; 
-             if (window.isGenerating && !isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-100 dark:bg-gray-900 rounded-2xl border border-gray-300 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><span class="text-blue-500 dark:text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span></div></div>`; } 
-             if (isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-100 dark:bg-gray-900 rounded-2xl border border-gray-300 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10 cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="window.openImageViewer(this.src)" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
-             return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-gray-100 dark:bg-gray-900 rounded-2xl border border-gray-300 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><div class="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" onclick="if(this.src && !this.src.startsWith('data:image/gif')) window.openImageViewer(this.src)" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10 hover:scale-[1.02]" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-white/80 dark:bg-black/60 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-white/10 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider z-20 pointer-events-none border">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
+             if (window.isGenerating && !isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-300 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><span class="text-blue-500 dark:text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span></div></div>`; } 
+             if (isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-300 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10 cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="window.openImageViewer(this.src)" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
+             return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-300 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-sm"><div class="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" onclick="if(this.src && !this.src.startsWith('data:image/gif')) window.openImageViewer(this.src)" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10 hover:scale-[1.02]" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-white/80 dark:bg-black/60 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-white/10 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider z-20 pointer-events-none border">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
         };
         
         window.formatText = function(text) { 
@@ -600,10 +550,7 @@
                 let processedText = String(text);
                 if (window.isGenerating) { processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-500 dark:text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`); }
                 return marked.parse(processedText, { renderer: renderer, breaks: true, gfm: true }); 
-            } catch (e) {
-                console.error("Markdown render error", e);
-                return window.escapeHtml(String(text));
-            }
+            } catch (e) { return window.escapeHtml(String(text)); }
         };
 
         window.appendMessageToDOM = function(role, content) {
@@ -612,26 +559,24 @@
             if (Array.isArray(content)) {
                 let textObj = content.find(c => c.type === 'text'); displayContent = textObj ? textObj.text : "";
                 let imgObj = content.find(c => c.type === 'image_url'); 
-                if (imgObj) imageHtml = `<div class="mb-3 max-w-[240px] max-h-[240px] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="window.openImageViewer('${imgObj.image_url.url}')"><img src="${imgObj.image_url.url}" class="w-full h-full object-cover"></div>`;
+                if (imgObj) imageHtml = `<div class="mb-3 max-w-[240px] max-h-[240px] rounded-xl overflow-hidden border border-gray-300 dark:border-gray-700 shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onclick="window.openImageViewer('${imgObj.image_url.url}')"><img src="${imgObj.image_url.url}" class="w-full h-full object-cover"></div>`;
             } else { displayContent = String(content || ""); }
             
             if (role === 'user' && displayContent.includes('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = displayContent.split('\n\nUser Message: '); if (parts.length > 1) displayContent = parts.slice(1).join('\n\nUser Message: '); }
-            if (role === 'user' && displayContent.includes('--- FILE CONTENT ---')) { displayContent = displayContent.split('--- END FILE CONTENT ---\n\n')[1] || displayContent; imageHtml = `<div class="flex items-center gap-2 mb-3 bg-white dark:bg-gray-700 px-3 py-2 rounded-lg text-sm font-medium text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 w-fit"><svg class="w-4 h-4 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Document Attached</div>`; }
+            if (role === 'user' && displayContent.includes('--- FILE CONTENT ---')) { displayContent = displayContent.split('--- END FILE CONTENT ---\n\n')[1] || displayContent; imageHtml = `<div class="flex items-center gap-2 mb-3 bg-white dark:bg-gray-700 px-3 py-2 rounded-lg text-sm font-medium text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 w-fit"><svg class="w-4 h-4 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Document Attached</div>`; }
             
             const isUser = role === 'user'; const msgId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             const div = document.createElement('div'); div.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'} fade-in mb-2 relative group`; div.id = msgId;
             let actionButtons = '';
-            if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
+            if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
             
-            // FIXED: High Contrast Light Mode Bubbles! AI is pure bg-white with border
+            // FIXED: Pure bg-white with shadow and dark text for AI, bg-blue-600 for User!
             const bubbleStyles = isUser 
                 ? 'bg-blue-600 dark:bg-gray-800 text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-md' 
                 : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-md'; 
             
             div.innerHTML = `<div class="max-w-[92%] md:max-w-[85%] flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} relative">${isUser ? actionButtons : ''}<div class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gradient-to-br from-blue-500 to-purple-600'}">${isUser ? '<svg class="h-5 w-5 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' : '<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'}</div><div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full min-w-0"><div class="prose-content ${bubbleStyles} min-w-0">${imageHtml}<div class="message-text w-full min-w-0" data-raw-content="${window.escapeHtml(displayContent)}">${isUser ? window.escapeHtml(displayContent) : window.formatText(displayContent)}</div></div>${!isUser ? actionButtons : ''}</div></div>`;
-            
-            const mc = document.getElementById('messages-container');
-            if(mc) mc.appendChild(div);
+            const mc = document.getElementById('messages-container'); if(mc) mc.appendChild(div);
             
             if (!isUser) { 
                 const textWithoutImages = displayContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim();
@@ -644,8 +589,21 @@
         function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm border border-gray-300 dark:border-gray-800 shadow-sm"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; const mc = document.getElementById('messages-container'); if(mc) mc.appendChild(div); scrollToBottom(); }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
-        // --- FIREBASE CLOUD SYNC SYSTEM ---
+        // --- SELF-HEALING MEMORY FIX ---
+        function loadChats() { 
+            try { 
+                const stored = localStorage.getItem(APP_STORAGE_KEY); 
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) { state.chats = parsed; } 
+                    else if (parsed && Array.isArray(parsed.chats)) { state.chats = parsed.chats; } // Recovers corrupted objects
+                    else { state.chats = []; }
+                }
+            } catch (e) { state.chats = []; } 
+        }
+
         async function saveChats() { 
+            if(!Array.isArray(state.chats)) state.chats = [];
             state.chats.sort((a, b) => (a.pinned === b.pinned) ? b.id - a.id : b.pinned ? -1 : 1); 
             try { localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); } catch (e) { } 
             if (currentUser && db) { try { await db.collection('users').doc(currentUser.uid).set({ chats: state.chats }); } catch(e) {} }
@@ -654,33 +612,18 @@
         async function loadChatsFromCloud(user) {
             try {
                 const doc = await db.collection('users').doc(user.uid).get();
-                if (doc.exists && doc.data().chats && doc.data().chats.length > 0) { state.chats = doc.data().chats; } 
+                if (doc.exists && Array.isArray(doc.data().chats) && doc.data().chats.length > 0) { state.chats = doc.data().chats; } 
                 else {
-                    const stored = localStorage.getItem(APP_STORAGE_KEY);
-                    if (stored && JSON.parse(stored).length > 0) { state.chats = JSON.parse(stored); await saveChats(); } 
-                    else { state.chats = []; }
+                    loadChats();
+                    if (state.chats.length > 0) { await saveChats(); } 
                 }
                 renderSidebar(); if (currentChatId) { loadChat(currentChatId); } else { showWelcome(); }
             } catch(e) { console.error("Cloud Load Error", e); }
         }
 
-        // --- SIGN OUT LOGIC ---
-        window.signOutUser = function() {
-            window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", () => { 
-                if(auth) {
-                    auth.signOut().then(() => {
-                        appState.firebaseUser = null;
-                        renderUIMaster();
-                        const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); 
-                        const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden');
-                    }).catch(err => {
-                        window.showToast("Sign out failed: " + err.message);
-                    });
-                } 
-            }, false);
-        };
+        function triggerLockdownUI() { const po = document.getElementById('password-overlay'); if(po) { po.classList.remove('hidden'); po.style.display = 'flex'; } const pi = document.getElementById('app-password-input'); if(pi) pi.classList.add('hidden'); const ps = document.getElementById('submit-password-btn'); if(ps) ps.classList.add('hidden'); const pe = document.getElementById('password-error'); if(pe) { pe.classList.remove('hidden'); pe.innerHTML = "🚨 IP BANNED 🚨<br>Too many failed attempts."; } }
 
-        // --- PASSWORD SYSTEM ---
+        // --- PASSWORD VERIFICATION WITH SERVER TIMEOUT PROTECTION ---
         async function verifyPassword(pwd) { 
             if (!pwd) return;
             const elPassSubmit = document.getElementById('submit-password-btn');
@@ -704,50 +647,28 @@
                     appState.isPasswordValid = true;
                     renderUIMaster();
                 } else if (res.status === 401 || res.status === 403) { 
-                    // Strict Authentication failure
                     appState.isPasswordValid = false;
                     localStorage.removeItem(PWD_STORAGE_KEY);
                     renderUIMaster();
                     if (res.status === 403) { triggerLockdownUI(); } 
                     else if(elPassError) { elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; elPassError.classList.remove('hidden'); }
-                } else {
-                    // Silent ignore on 500/504 Server errors to preserve optimistic unlock
-                }
+                } 
             } catch (err) { 
                 if(elPassSubmit) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; }
             } 
         }
 
-        function triggerLockdownUI() { 
-            const elPassOverlay = document.getElementById('password-overlay'); 
-            const elPassInput = document.getElementById('app-password-input'); 
-            const elPassSubmit = document.getElementById('submit-password-btn'); 
-            const elPassError = document.getElementById('password-error');
-            if(elPassOverlay) { elPassOverlay.classList.remove('hidden'); elPassOverlay.style.display = 'flex'; } 
-            if(elPassInput) elPassInput.classList.add('hidden'); 
-            if(elPassSubmit) elPassSubmit.classList.add('hidden'); 
-            if(elPassError) { elPassError.classList.remove('hidden'); elPassError.innerHTML = "🚨 IP BANNED 🚨<br>Too many failed attempts."; } 
-        }
-
-        // --- SEND BUTTON LOGIC ---
         function updateSendButton() {
-            const elUserInput = document.getElementById('user-input'); 
-            const elSendBtn = document.getElementById('send-btn');
+            const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn');
             if(!elUserInput || !elSendBtn) return;
             const isEmpty = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment;
             elSendBtn.disabled = isEmpty;
-            if (isEmpty) {
-                elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed";
-            } else {
-                elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-blue-600 text-white hover:bg-blue-500 shadow-md transform hover:scale-105";
-            }
+            if (isEmpty) { elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"; } 
+            else { elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-blue-600 text-white hover:bg-blue-500 shadow-md transform hover:scale-105"; }
         }
 
         async function sendMessage() {
-            const elUserInput = document.getElementById('user-input'); 
-            const elSendBtn = document.getElementById('send-btn'); 
-            const elMicBtn = document.getElementById('mic-btn'); 
-            const elWelcomeScreen = document.getElementById('welcome-screen'); 
+            const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn'); const elMicBtn = document.getElementById('mic-btn'); const elWelcomeScreen = document.getElementById('welcome-screen'); 
             if(!elUserInput || !elSendBtn) return;
             if (window.isGenerating) { if (abortController) abortController.abort(); return; }
             const text = elUserInput.value.trim(); if (!text && !currentBase64Image && !currentFileAttachment) return;
@@ -768,6 +689,7 @@
             if (currentBase64Image) { messageContent = [{ type: "text", text: text || "Analyze this image." }, { type: "image_url", image_url: { url: currentBase64Image } }]; } 
             else if (currentFileAttachment) { messageContent = `I have attached a file named "${currentFileAttachment.name}".\n\n--- FILE CONTENT ---\n${currentFileAttachment.text}\n--- END FILE CONTENT ---\n\n${text || "Please review the attached document."}`; }
             
+            if(!Array.isArray(chat.messages)) chat.messages = [];
             chat.messages.push({ role: 'user', content: messageContent }); if (!isTempChat) saveChats(); 
             window.appendMessageToDOM('user', messageContent); createLoadingIndicator(); resetAttachments();
 
@@ -814,29 +736,12 @@
             } finally { resetUIState(); }
         }
 
-        function resetUIState() { 
-            window.isGenerating = false; abortController = null; 
-            const elUserInput = document.getElementById('user-input'); 
-            const elSendBtn = document.getElementById('send-btn'); 
-            const elMicBtn = document.getElementById('mic-btn'); 
-            const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); 
-            if(elSendBtn) elSendBtn.innerHTML = SEND_ICON; 
-            if(elUserInput) { elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; } 
-            if(elMicBtn) elMicBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none'); 
-            updateSendButton(); 
-            if(elScrollToBottomBtn) { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } 
-            if(elUserInput) elUserInput.focus(); 
-            const li = document.getElementById('loading-indicator'); if (li) li.remove(); 
-        }
+        function resetUIState() { window.isGenerating = false; abortController = null; const elSendBtn = document.getElementById('send-btn'); const elUserInput = document.getElementById('user-input'); const elMicBtn = document.getElementById('mic-btn'); const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); if(elSendBtn) elSendBtn.innerHTML = SEND_ICON; if(elUserInput) { elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; } if(elMicBtn) elMicBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none'); updateSendButton(); if(elScrollToBottomBtn) { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } if(elUserInput) elUserInput.focus(); const li = document.getElementById('loading-indicator'); if (li) li.remove(); }
         
-        const elPassSubmitEvent = document.getElementById('submit-password-btn');
-        if(elPassSubmitEvent) elPassSubmitEvent.addEventListener('click', () => { const pi = document.getElementById('app-password-input'); if(pi) verifyPassword(pi.value.trim()); });
-        const elPassInputEvent = document.getElementById('app-password-input');
-        if(elPassInputEvent) elPassInputEvent.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verifyPassword(elPassInputEvent.value.trim()); } });
-        const elSendBtnEvent = document.getElementById('send-btn');
-        if(elSendBtnEvent) elSendBtnEvent.addEventListener('click', () => { sendMessage(); });
-        const elUserInputEvent = document.getElementById('user-input');
-        if(elUserInputEvent) { elUserInputEvent.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }); elUserInputEvent.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if (!window.isGenerating) { updateSendButton(); } }); }
+        const elPassSubmitEvent = document.getElementById('submit-password-btn'); if(elPassSubmitEvent) elPassSubmitEvent.addEventListener('click', () => { const pi = document.getElementById('app-password-input'); if(pi) verifyPassword(pi.value.trim()); });
+        const elPassInputEvent = document.getElementById('app-password-input'); if(elPassInputEvent) elPassInputEvent.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verifyPassword(elPassInputEvent.value.trim()); } });
+        const elSendBtnEvent = document.getElementById('send-btn'); if(elSendBtnEvent) elSendBtnEvent.addEventListener('click', () => { sendMessage(); });
+        const elUserInputEvent = document.getElementById('user-input'); if(elUserInputEvent) { elUserInputEvent.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }); elUserInputEvent.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if (!window.isGenerating) { updateSendButton(); } }); }
         
         const ccBtn = document.getElementById('clear-chat-btn'); if(ccBtn) ccBtn.addEventListener('click', () => { if (isTempChat) { window.showConfirmModal("Clear Temp Chat?", "Wipe messages.", "Clear", () => { tempChatData.messages = []; clearMessages(); showWelcome(); }, true); } else { if (!currentChatId) return; window.showConfirmModal("Clear History?", "Delete messages.", "Clear", () => { const chat = state.chats.find(c => c.id === currentChatId); if (chat) { chat.messages = []; saveChats(); loadChat(currentChatId); } }, true); } });
         const ncBtn = document.getElementById('new-chat-btn'); if(ncBtn) ncBtn.addEventListener('click', () => { disableTempMode(); currentChatId = null; showWelcome(); renderSidebar(); if (window.innerWidth < 768) { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); } });
@@ -851,6 +756,39 @@
 
         window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span class="text-gray-800 dark:text-white">Copied!</span>`; btn.classList.replace('text-gray-500', 'text-green-600'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-600', 'text-gray-500'); }, 2000); }); };
 
+        let confirmActionCallback = null; 
+        window.showConfirmModal = function(title, text, actionBtnText, callback, isDanger = true) { 
+            const t = document.getElementById('confirm-modal-title'); if(t) t.innerText = title; 
+            const tx = document.getElementById('confirm-modal-text'); if(tx) tx.innerText = text; 
+            const actionBtn = document.getElementById('confirm-action-btn');
+            if(actionBtn) actionBtn.innerText = actionBtnText; 
+            
+            const iconDiv = document.getElementById('confirm-modal-icon-container');
+            if(iconDiv && actionBtn) {
+                if(isDanger) {
+                    actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20";
+                    iconDiv.className = "w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20";
+                    iconDiv.innerHTML = `<svg class="w-8 h-8 text-red-600 dark:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                } else {
+                    actionBtn.className = "flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20";
+                    iconDiv.className = "w-16 h-16 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200 dark:border-blue-500/20";
+                    iconDiv.innerHTML = `<svg class="w-8 h-8 text-blue-600 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                }
+            }
+
+            confirmActionCallback = callback; 
+            const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.remove('hidden'); 
+        }; 
+        
+        window.closeConfirmModal = function() { const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.add('hidden'); confirmActionCallback = null; }; 
+        const ccb = document.getElementById('confirm-cancel-btn'); if(ccb) ccb.addEventListener('click', window.closeConfirmModal); 
+        const cab = document.getElementById('confirm-action-btn'); if(cab) cab.addEventListener('click', () => { if (confirmActionCallback) confirmActionCallback(); window.closeConfirmModal(); });
+        
+        let customPromptCallback = null; window.showCustomPrompt = function(title, defaultValue, callback) { const t = document.getElementById('custom-prompt-title'); if(t) t.innerText = title; const i = document.getElementById('custom-prompt-input'); if(i) { i.value = defaultValue; i.focus(); } customPromptCallback = callback; const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.remove('hidden'); }; window.closeCustomPrompt = function() { const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.add('hidden'); customPromptCallback = null; }; const cpcb = document.getElementById('custom-prompt-cancel'); if(cpcb) cpcb.addEventListener('click', window.closeCustomPrompt); const cpc = document.getElementById('custom-prompt-confirm'); if(cpc) cpc.addEventListener('click', () => { if (customPromptCallback) { const i = document.getElementById('custom-prompt-input'); if(i) customPromptCallback(i.value); } window.closeCustomPrompt(); });
+        
+        let deferredPrompt; const installPromptEl = document.getElementById('install-prompt'); const installBtn = document.getElementById('install-app-btn'); const closeInstallBtn = document.getElementById('close-install-btn');
+        if (!window.matchMedia('(display-mode: standalone)').matches) { window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; setTimeout(() => { if(installPromptEl) installPromptEl.classList.remove('translate-y-full'); }, 2000); }); if(installBtn) installBtn.addEventListener('click', async () => { if(installPromptEl) installPromptEl.classList.add('translate-y-full'); if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; } }); if(closeInstallBtn) closeInstallBtn.addEventListener('click', () => { if(installPromptEl) installPromptEl.classList.add('translate-y-full'); }); }
+        
         // --- BOOT PROCESS ---
         function init() { 
             const isDark = document.documentElement.classList.contains('dark');
