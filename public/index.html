@@ -253,6 +253,127 @@
         if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) { registration.update(); } }); }
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
+        window.showToast = function(message, actionText = null, actionCallback = null) {
+            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
+            const toast = document.createElement('div'); toast.id = 'custom-toast';
+            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
+            let html = `<span>${message}</span>`;
+            if (actionText) html += `<button id="toast-action-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">${actionText}</button>`;
+            toast.innerHTML = html; document.body.appendChild(toast);
+            if (actionText && actionCallback) { const tb = document.getElementById('toast-action-btn'); if(tb) tb.addEventListener('click', () => { actionCallback(); toast.remove(); }); }
+            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
+        };
+
+        let confirmActionCallback = null; 
+        window.showConfirmModal = function(title, text, actionBtnText, isDanger, callback) { 
+            const t = document.getElementById('confirm-modal-title'); if(t) t.innerText = title; 
+            const tx = document.getElementById('confirm-modal-text'); if(tx) tx.innerText = text; 
+            const actionBtn = document.getElementById('confirm-action-btn');
+            if(actionBtn) actionBtn.innerText = actionBtnText; 
+            
+            const iconDiv = document.getElementById('confirm-modal-icon-container');
+            if(iconDiv && actionBtn) {
+                if(isDanger) {
+                    actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20";
+                    iconDiv.className = "w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-500";
+                    iconDiv.innerHTML = `<svg id="confirm-modal-icon" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                } else {
+                    actionBtn.className = "flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20";
+                    iconDiv.className = "w-16 h-16 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-500";
+                    iconDiv.innerHTML = `<svg id="confirm-modal-icon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                }
+            }
+
+            confirmActionCallback = callback; 
+            const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.remove('hidden'); 
+        }; 
+        
+        window.closeConfirmModal = function() { const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.add('hidden'); confirmActionCallback = null; }; 
+        const ccb = document.getElementById('confirm-cancel-btn'); if(ccb) ccb.addEventListener('click', window.closeConfirmModal); 
+        const cab = document.getElementById('confirm-action-btn'); if(cab) cab.addEventListener('click', () => { if (typeof confirmActionCallback === 'function') confirmActionCallback(); window.closeConfirmModal(); });
+
+        let customPromptCallback = null; 
+        window.showCustomPrompt = function(title, defaultValue, callback) { const t = document.getElementById('custom-prompt-title'); if(t) t.innerText = title; const i = document.getElementById('custom-prompt-input'); if(i) { i.value = defaultValue; i.focus(); } customPromptCallback = callback; const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.remove('hidden'); }; 
+        window.closeCustomPrompt = function() { const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.add('hidden'); customPromptCallback = null; }; 
+        const cpcb = document.getElementById('custom-prompt-cancel'); if(cpcb) cpcb.addEventListener('click', window.closeCustomPrompt); 
+        const cpc = document.getElementById('custom-prompt-confirm'); if(cpc) cpc.addEventListener('click', () => { if (typeof customPromptCallback === 'function') { const i = document.getElementById('custom-prompt-input'); if(i) customPromptCallback(i.value); } window.closeCustomPrompt(); });
+
+        if(document.getElementById('messages-container')) document.getElementById('messages-container').addEventListener('scroll', () => { const elMessagesContainer = document.getElementById('messages-container'); const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); isUserScrolledUp = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight > 80; if(elScrollToBottomBtn) { if (isUserScrolledUp && window.isGenerating) { elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); } else { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } } });
+        if(document.getElementById('scroll-to-bottom-btn')) document.getElementById('scroll-to-bottom-btn').addEventListener('click', () => { isUserScrolledUp = false; const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); });
+        function scrollToBottom() { if (!isUserScrolledUp) { const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; } }
+
+        function disableTempMode() { isTempChat = false; const tb = document.getElementById('temp-badge'); if(tb) tb.classList.add('hidden'); const tcBtn = document.getElementById('temp-chat-toggle-btn'); if(tcBtn) tcBtn.className = 'text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors'; }
+
+        function getOrCreateChat(firstMessage) { 
+            disableTempMode(); 
+            if (currentChatId && !currentChatId.startsWith('shared-')) { 
+                const existing = state.chats.find(c => c.id === currentChatId); 
+                if (existing) return existing; 
+            } 
+            const newChat = { id: Date.now().toString(), title: firstMessage ? firstMessage.substring(0, 30) : "New Chat", messages: [], pinned: false }; 
+            state.chats.unshift(newChat); currentChatId = newChat.id; saveChats(); renderSidebar(); return newChat; 
+        }
+
+        function clearMessages() { const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) Array.from(elMessagesContainer.children).forEach(child => { if (child.id !== 'welcome-screen' && child.id !== 'scroll-to-bottom-btn') child.remove(); }); }
+        function showWelcome() { clearMessages(); const elWelcomeScreen = document.getElementById('welcome-screen'); if(elWelcomeScreen) elWelcomeScreen.classList.remove('hidden'); }
+
+        function loadChat(id) { 
+            disableTempMode(); currentChatId = id; const chat = state.chats.find(c => c.id === id); clearMessages(); 
+            const elMessagesContainer = document.getElementById('messages-container'); const elUserInput = document.getElementById('user-input'); const elMicBtn = document.getElementById('mic-btn'); const elWelcomeScreen = document.getElementById('welcome-screen');
+            if(elMessagesContainer && elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) { elMessagesContainer.previousElementSibling.remove(); if(elUserInput) { elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; } if(elMicBtn) elMicBtn.style.display = ''; const pmb = document.getElementById('plus-menu-btn'); if(pmb) pmb.style.display = ''; } 
+            if (chat && Array.isArray(chat.messages) && chat.messages.length > 0) { if(elWelcomeScreen) elWelcomeScreen.classList.add('hidden'); chat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); } else { if(elWelcomeScreen) elWelcomeScreen.classList.remove('hidden'); } 
+            renderSidebar(); 
+        }
+
+        function renderSidebar() { 
+            const hl = document.getElementById('chat-history-list');
+            if(!hl) return;
+            hl.innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>'; 
+            
+            if(!Array.isArray(state.chats)) state.chats = [];
+
+            state.chats.forEach(chat => { 
+                const isActive = chat.id === currentChatId && !isTempChat; 
+                const div = document.createElement('div'); div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-100 dark:bg-gray-800/80 text-black dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-black dark:hover:text-gray-200'}`; 
+                div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { loadChat(chat.id); } }; 
+                div.innerHTML = `<div class="flex items-center gap-3 overflow-hidden flex-1">${chat.pinned ? `<span class="text-blue-500 dark:text-blue-400 mr-2">${PIN_ICON}</span>` : ''}<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg><span class="truncate font-medium">${window.escapeHtml(chat.title)}</span></div><button class="chat-menu-trigger text-gray-500 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="window.toggleChatMenu(event, '${chat.id}')">${THREE_DOTS_VERTICAL_ICON}</button><div id="menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3">${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span></button><button onclick="window.renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Rename</span></button><button onclick="window.shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button><button onclick="window.deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${TRASH_ICON} <span>Delete</span></button></div>`; 
+                hl.appendChild(div); 
+            }); 
+        }
+
+        function setupSpeechRecognition() { const elMicBtn = document.getElementById('mic-btn'); const elUserInput = document.getElementById('user-input'); if(elMicBtn) { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); if(elUserInput) elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); if(elUserInput) elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { if(elUserInput) { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); } }; elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } }); } else { elMicBtn.style.display = 'none'; } } }
+        
+        function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
+        function loadSettings() { 
+            try {
+                const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); 
+                if (stored) settings = { ...settings, ...JSON.parse(stored) }; 
+                const spi = document.getElementById('system-prompt-input'); if(spi) spi.value = settings.systemPrompt || ''; 
+            } catch(e) {}
+        }
+
+        const fi = document.getElementById('file-input');
+        if(fi) fi.addEventListener('change', (e) => { 
+            const file = e.target.files[0]; if (!file) return; resetAttachments(); 
+            const reader = new FileReader(); reader.onload = (event) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let width = img.width; let height = img.height; const MAX_DIM = 800; if (width > height) { if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; } } else { if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; } } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); currentBase64Image = canvas.toDataURL('image/jpeg', 0.7); const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.remove('hidden'); if (!window.isGenerating) updateSendButton(); }; img.src = event.target.result; }; reader.readAsDataURL(file); 
+        });
+        
+        const gfi = document.getElementById('general-file-input');
+        if(gfi) gfi.addEventListener('change', async (e) => { 
+            const file = e.target.files[0]; if (!file) return; resetAttachments(); 
+            const fpn = document.getElementById('file-preview-name'); if(fpn) fpn.innerText = file.name; const fp = document.getElementById('file-preview'); if(fp) fp.classList.remove('hidden'); const ip = document.getElementById('image-preview'); if(ip) ip.classList.add('hidden'); const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.remove('hidden'); 
+            try { let text = file.type === 'application/pdf' ? await extractPdfText(file) : await extractTextFile(file); currentFileAttachment = { name: file.name, text: text }; if (!window.isGenerating) updateSendButton(); } catch (error) { window.showToast("Could not read file."); resetAttachments(); } 
+        });
+        
+        async function extractTextFile(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.onerror = (e) => reject(e); reader.readAsText(file); }); }
+        async function extractPdfText(file) { const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; let text = ""; for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const content = await page.getTextContent(); text += content.items.map(item => item.str).join(' ') + "\n"; } return text; }
+        
+        const rab = document.getElementById('remove-attachment-btn'); if(rab) rab.addEventListener('click', resetAttachments);
+        function resetAttachments() { currentBase64Image = null; currentFileAttachment = null; const fi = document.getElementById('file-input'); if(fi) fi.value = ''; const gfi = document.getElementById('general-file-input'); if(gfi) gfi.value = ''; const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.add('hidden'); const ip = document.getElementById('image-preview'); if(ip) ip.classList.add('hidden'); const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); if (!window.isGenerating) updateSendButton(); }
+
+        const glBtn = document.getElementById('google-logout-btn'); 
+        if(glBtn) glBtn.addEventListener('click', () => window.signOutUser());
+
         function getCleanAuthError(error) {
             const code = error.code || '';
             if (code === 'auth/email-already-in-use') return "Email already registered. Try 'Log In' instead.";
@@ -293,6 +414,7 @@
         };
         
         let currentUser = null; 
+        let isRedirecting = sessionStorage.getItem('awaiting_redirect') === 'true'; 
 
         function renderUIMaster() {
             const passOverlay = document.getElementById('password-overlay');
@@ -312,7 +434,6 @@
                 return;
             }
 
-            // REDIRECT GUARD: Ignore UI updates while jumping back from Google
             if (sessionStorage.getItem('awaiting_redirect') === 'true') {
                 if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; }
                 return; 
@@ -367,22 +488,23 @@
                 
                 auth.getRedirectResult().then((result) => {
                     sessionStorage.removeItem('awaiting_redirect');
+                    isRedirecting = false;
                     if (result && result.user) {
                         currentUser = result.user;
                         appState.firebaseUser = result.user;
                         appState.firebaseReady = true;
-                        renderUIMaster();
-                    } else {
-                        resetGoogleBtn();
-                    }
+                    } 
+                    resetGoogleBtn();
+                    renderUIMaster();
                 }).catch((e) => { 
                     sessionStorage.removeItem('awaiting_redirect');
+                    isRedirecting = false;
                     resetGoogleBtn();
+                    renderUIMaster();
                     window.showToast(getCleanAuthError(e));
                 });
 
-                auth.onAuthStateChanged((user) => {
-                    // PREVENT UI FLICKERING WHILE GOOGLE IS LOADING
+                auth.onAuthStateChanged(async (user) => {
                     if (sessionStorage.getItem('awaiting_redirect') === 'true') return; 
 
                     appState.firebaseReady = true;
@@ -391,17 +513,23 @@
                         currentUser = user;
                         appState.firebaseUser = user;
                         renderUIMaster();
+                        if (!appState.chatsLoaded && appState.isPasswordValid) {
+                            await loadChatsFromCloud(user);
+                            appState.chatsLoaded = true;
+                        }
                     } else {
-                        currentUser = null;
-                        appState.firebaseUser = null;
-                        appState.chatsLoaded = false;
-                        state.chats = []; clearMessages(); renderSidebar();
-                        resetGoogleBtn(); 
-                        renderUIMaster();
+                        if (!isRedirecting) {
+                            currentUser = null;
+                            appState.firebaseUser = null;
+                            appState.chatsLoaded = false;
+                            state.chats = []; clearMessages(); renderSidebar();
+                            resetGoogleBtn(); 
+                            renderUIMaster();
+                        }
                     }
                 });
                 
-                if (sessionStorage.getItem('awaiting_redirect') === 'true') {
+                if (isRedirecting) {
                     const lBtn = document.getElementById('google-login-btn-main');
                     if (lBtn) lBtn.innerHTML = '<span class="animate-pulse">Connecting to Google...</span>';
                 }
@@ -415,29 +543,35 @@
             appState.firebaseReady = true; 
         }
 
-        const themeBtn = document.getElementById('theme-toggle-btn');
-        if(themeBtn) themeBtn.addEventListener('click', () => { 
-            const htmlTag = document.documentElement; const isDark = htmlTag.classList.contains('dark');
-            if (isDark) { 
-                htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); 
-            } else { 
-                htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); 
-            }
-        });
-
         window.loginWithGoogle = function() {
             if(auth && provider) {
                 const btn = document.getElementById('google-login-btn-main');
-                if(btn) btn.innerHTML = '<span class="animate-pulse">Connecting to Google...</span>';
+                if(btn) btn.innerHTML = '<span class="animate-pulse">Connecting...</span>';
                 sessionStorage.setItem('awaiting_redirect', 'true');
+                isRedirecting = true;
                 auth.signInWithRedirect(provider);
             } else {
                 window.showToast("Cloud sync is blocked by browser.");
             }
+        };
+
+        window.signOutUser = function() {
+            window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", false, () => { 
+                if(auth) {
+                    auth.signOut().then(() => {
+                        currentUser = null;
+                        appState.firebaseUser = null;
+                        appState.chatsLoaded = false;
+                        state.chats = [];
+                        currentChatId = null;
+                        clearMessages();
+                        showWelcome();
+                        renderSidebar();
+                        renderUIMaster();
+                        if (window.innerWidth < 768) { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); }
+                    }).catch(e => window.showToast("Sign out failed. Try again."));
+                } 
+            });
         };
 
         const emailLoginBtn = document.getElementById('email-login-btn');
@@ -469,25 +603,6 @@
                 });
             }
         });
-
-        window.signOutUser = function() {
-            window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", false, () => { 
-                if(auth) {
-                    auth.signOut().then(() => {
-                        currentUser = null;
-                        appState.firebaseUser = null;
-                        appState.chatsLoaded = false;
-                        state.chats = [];
-                        currentChatId = null;
-                        clearMessages();
-                        showWelcome();
-                        renderSidebar();
-                        renderUIMaster();
-                        if (window.innerWidth < 768) { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); }
-                    }).catch(e => window.showToast("Sign out failed. Try again."));
-                } 
-            });
-        };
 
         const renderer = new marked.Renderer();
         window.escapeHtml = function(text) { 
@@ -540,17 +655,6 @@
         const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
         const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
 
-        window.showToast = function(message, actionText = null, actionCallback = null) {
-            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
-            const toast = document.createElement('div'); toast.id = 'custom-toast';
-            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
-            let html = `<span>${message}</span>`;
-            if (actionText) html += `<button id="toast-action-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">${actionText}</button>`;
-            toast.innerHTML = html; document.body.appendChild(toast);
-            if (actionText && actionCallback) { const tb = document.getElementById('toast-action-btn'); if(tb) tb.addEventListener('click', () => { actionCallback(); toast.remove(); }); }
-            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
-        };
-
         window.toggleChatMenu = function(e, id) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${id}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${id}`); if(m) m.classList.toggle('hidden'); };
         window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
         window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`).classList.add('hidden'); } };
@@ -563,7 +667,7 @@
             const node = document.getElementById(msgId); if(!node) return;
             const text = node.querySelector('.message-text').innerText; navigator.clipboard.writeText(text); 
             document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
-            window.showToast("Prompt copied.", "Start new chat", () => { const ncb = document.getElementById('new-chat-btn'); if(ncb) ncb.click(); }); 
+            window.showToast("Prompt copied.", "Start new chat", () => { document.getElementById('new-chat-btn').click(); }); 
         };
         
         window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const txtNode = node.querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(txtNode); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`).classList.add('hidden');};
@@ -619,6 +723,20 @@
             btn.innerHTML = SPEAKER_OFF_ICON; 
             window.speechSynthesis.speak(utterance);
         };
+
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        if(themeBtn) themeBtn.addEventListener('click', () => { 
+            const htmlTag = document.documentElement; const isDark = htmlTag.classList.contains('dark');
+            if (isDark) { 
+                htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light');
+                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); 
+                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); 
+            } else { 
+                htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark');
+                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); 
+                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); 
+            }
+        });
         
         window.regenerateResponse = function(btn) { 
             if (window.isGenerating) return; 
@@ -700,8 +818,9 @@
             let actionButtons = '';
             if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
             
+            // FIX 1: User text is now !text-white to prevent bleed-through
             const bubbleStyles = isUser 
-                ? 'bg-blue-600 dark:bg-gray-800 text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-md' 
+                ? 'bg-blue-600 dark:bg-gray-800 !text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-md' 
                 : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-md'; 
             
             div.innerHTML = `<div class="max-w-[92%] md:max-w-[85%] flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} relative">${isUser ? actionButtons : ''}<div class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gradient-to-br from-blue-500 to-purple-600'}">${isUser ? '<svg class="h-5 w-5 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' : '<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'}</div><div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full min-w-0"><div class="prose-content ${bubbleStyles} min-w-0">${imageHtml}<div class="message-text w-full min-w-0" data-raw-content="${window.escapeHtml(displayContent)}">${isUser ? window.escapeHtml(displayContent) : window.formatText(displayContent)}</div></div>${!isUser ? actionButtons : ''}</div></div>`;
@@ -718,7 +837,6 @@
         function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm border-2 border-gray-200 dark:border-gray-800 shadow-md"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; const mc = document.getElementById('messages-container'); if(mc) mc.appendChild(div); scrollToBottom(); }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
-        // --- FIX 5: ANTI-CRASH MEMORY SHIELD ---
         function loadChats() { 
             try { 
                 const stored = localStorage.getItem(APP_STORAGE_KEY); 
@@ -935,6 +1053,27 @@
         $$('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { const elUserInput = document.getElementById('user-input'); if(elUserInput) { elUserInput.value = btn.innerText.replace(/"/g, '').trim(); updateSendButton(); sendMessage(); } }); });
 
         window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span class="text-gray-800 dark:text-white">Copied!</span>`; btn.classList.replace('text-gray-500', 'text-green-600'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-600', 'text-gray-500'); }, 2000); }); };
+
+        const fi = document.getElementById('file-input');
+        if(fi) fi.addEventListener('change', (e) => { 
+            const file = e.target.files[0]; if (!file) return; resetAttachments(); 
+            const reader = new FileReader(); reader.onload = (event) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let width = img.width; let height = img.height; const MAX_DIM = 800; if (width > height) { if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; } } else { if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; } } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); currentBase64Image = canvas.toDataURL('image/jpeg', 0.7); const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.remove('hidden'); if (!window.isGenerating) updateSendButton(); }; img.src = event.target.result; }; reader.readAsDataURL(file); 
+        });
+        
+        const gfi = document.getElementById('general-file-input');
+        if(gfi) gfi.addEventListener('change', async (e) => { 
+            const file = e.target.files[0]; if (!file) return; resetAttachments(); 
+            const fpn = document.getElementById('file-preview-name'); if(fpn) fpn.innerText = file.name; const fp = document.getElementById('file-preview'); if(fp) fp.classList.remove('hidden'); const ip = document.getElementById('image-preview'); if(ip) ip.classList.add('hidden'); const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.remove('hidden'); 
+            try { let text = file.type === 'application/pdf' ? await extractPdfText(file) : await extractTextFile(file); currentFileAttachment = { name: file.name, text: text }; if (!window.isGenerating) updateSendButton(); } catch (error) { window.showToast("Could not read file."); resetAttachments(); } 
+        });
+        
+        async function extractTextFile(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.onerror = (e) => reject(e); reader.readAsText(file); }); }
+        async function extractPdfText(file) { const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; let text = ""; for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const content = await page.getTextContent(); text += content.items.map(item => item.str).join(' ') + "\n"; } return text; }
+        
+        const rab = document.getElementById('remove-attachment-btn'); if(rab) rab.addEventListener('click', resetAttachments);
+        function resetAttachments() { currentBase64Image = null; currentFileAttachment = null; const fi = document.getElementById('file-input'); if(fi) fi.value = ''; const gfi = document.getElementById('general-file-input'); if(gfi) gfi.value = ''; const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.add('hidden'); const ip = document.getElementById('image-preview'); if(ip) ip.classList.add('hidden'); const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); if (!window.isGenerating) updateSendButton(); }
+
+        function setupSpeechRecognition() { const elMicBtn = document.getElementById('mic-btn'); const elUserInput = document.getElementById('user-input'); if(elMicBtn) { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); if(elUserInput) elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); if(elUserInput) elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { if(elUserInput) { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); } }; elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } }); } else { elMicBtn.style.display = 'none'; } } }
 
         function init() { 
             const isDark = document.documentElement.classList.contains('dark');
