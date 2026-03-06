@@ -250,130 +250,16 @@
     </div>
 
     <script>
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) { registration.update(); } }); }
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        
-        window.showToast = function(message, actionText = null, actionCallback = null) {
-            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
-            const toast = document.createElement('div'); toast.id = 'custom-toast';
-            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
-            let html = `<span>${message}</span>`;
-            if (actionText) html += `<button id="toast-action-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">${actionText}</button>`;
-            toast.innerHTML = html; document.body.appendChild(toast);
-            if (actionText && actionCallback) { const tb = document.getElementById('toast-action-btn'); if(tb) tb.addEventListener('click', () => { actionCallback(); toast.remove(); }); }
-            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
-        };
-
-        let confirmActionCallback = null; 
-        window.showConfirmModal = function(title, text, actionBtnText, isDanger, callback) { 
-            const t = document.getElementById('confirm-modal-title'); if(t) t.innerText = title; 
-            const tx = document.getElementById('confirm-modal-text'); if(tx) tx.innerText = text; 
-            const actionBtn = document.getElementById('confirm-action-btn');
-            if(actionBtn) actionBtn.innerText = actionBtnText; 
-            
-            const iconDiv = document.getElementById('confirm-modal-icon-container');
-            if(iconDiv && actionBtn) {
-                if(isDanger) {
-                    actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20";
-                    iconDiv.className = "w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-500";
-                    iconDiv.innerHTML = `<svg id="confirm-modal-icon" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
-                } else {
-                    actionBtn.className = "flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20";
-                    iconDiv.className = "w-16 h-16 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-500";
-                    iconDiv.innerHTML = `<svg id="confirm-modal-icon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                }
-            }
-
-            confirmActionCallback = callback; 
-            const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.remove('hidden'); 
-        }; 
-        
-        window.closeConfirmModal = function() { const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.add('hidden'); confirmActionCallback = null; }; 
-        const ccb = document.getElementById('confirm-cancel-btn'); if(ccb) ccb.addEventListener('click', window.closeConfirmModal); 
-        const cab = document.getElementById('confirm-action-btn'); if(cab) cab.addEventListener('click', () => { if (typeof confirmActionCallback === 'function') confirmActionCallback(); window.closeConfirmModal(); });
-
-        let customPromptCallback = null; 
-        window.showCustomPrompt = function(title, defaultValue, callback) { const t = document.getElementById('custom-prompt-title'); if(t) t.innerText = title; const i = document.getElementById('custom-prompt-input'); if(i) { i.value = defaultValue; i.focus(); } customPromptCallback = callback; const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.remove('hidden'); }; 
-        window.closeCustomPrompt = function() { const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.add('hidden'); customPromptCallback = null; }; 
-        const cpcb = document.getElementById('custom-prompt-cancel'); if(cpcb) cpcb.addEventListener('click', window.closeCustomPrompt); 
-        const cpc = document.getElementById('custom-prompt-confirm'); if(cpc) cpc.addEventListener('click', () => { if (typeof customPromptCallback === 'function') { const i = document.getElementById('custom-prompt-input'); if(i) customPromptCallback(i.value); } window.closeCustomPrompt(); });
-
-        if(document.getElementById('messages-container')) document.getElementById('messages-container').addEventListener('scroll', () => { const elMessagesContainer = document.getElementById('messages-container'); const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); isUserScrolledUp = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight > 80; if(elScrollToBottomBtn) { if (isUserScrolledUp && window.isGenerating) { elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); } else { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } } });
-        if(document.getElementById('scroll-to-bottom-btn')) document.getElementById('scroll-to-bottom-btn').addEventListener('click', () => { isUserScrolledUp = false; const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); });
-        function scrollToBottom() { if (!isUserScrolledUp) { const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; } }
-
-        function disableTempMode() { isTempChat = false; const tb = document.getElementById('temp-badge'); if(tb) tb.classList.add('hidden'); const tcBtn = document.getElementById('temp-chat-toggle-btn'); if(tcBtn) tcBtn.className = 'text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors'; }
-
-        function getOrCreateChat(firstMessage) { 
-            disableTempMode(); 
-            if (currentChatId && !currentChatId.startsWith('shared-')) { 
-                const existing = state.chats.find(c => c.id === currentChatId); 
-                if (existing) return existing; 
-            } 
-            const newChat = { id: Date.now().toString(), title: firstMessage ? firstMessage.substring(0, 30) : "New Chat", messages: [], pinned: false }; 
-            state.chats.unshift(newChat); currentChatId = newChat.id; saveChats(); renderSidebar(); return newChat; 
+        // --- FIX: SERVICE WORKER & PDF.JS GUARDS TO PREVENT SCRIPT CRASH ---
+        if ('serviceWorker' in navigator) { 
+            navigator.serviceWorker.getRegistrations().then(function(registrations) { 
+                for(let registration of registrations) { registration.update(); } 
+            }).catch(() => {}); 
         }
-
-        function clearMessages() { const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) Array.from(elMessagesContainer.children).forEach(child => { if (child.id !== 'welcome-screen' && child.id !== 'scroll-to-bottom-btn') child.remove(); }); }
-        function showWelcome() { clearMessages(); const elWelcomeScreen = document.getElementById('welcome-screen'); if(elWelcomeScreen) elWelcomeScreen.classList.remove('hidden'); }
-
-        function loadChat(id) { 
-            disableTempMode(); currentChatId = id; const chat = state.chats.find(c => c.id === id); clearMessages(); 
-            const elMessagesContainer = document.getElementById('messages-container'); const elUserInput = document.getElementById('user-input'); const elMicBtn = document.getElementById('mic-btn'); const elWelcomeScreen = document.getElementById('welcome-screen');
-            if(elMessagesContainer && elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) { elMessagesContainer.previousElementSibling.remove(); if(elUserInput) { elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; } if(elMicBtn) elMicBtn.style.display = ''; const pmb = document.getElementById('plus-menu-btn'); if(pmb) pmb.style.display = ''; } 
-            if (chat && Array.isArray(chat.messages) && chat.messages.length > 0) { if(elWelcomeScreen) elWelcomeScreen.classList.add('hidden'); chat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); } else { if(elWelcomeScreen) elWelcomeScreen.classList.remove('hidden'); } 
-            renderSidebar(); 
+        if (typeof pdfjsLib !== 'undefined') { 
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; 
         }
-
-        function renderSidebar() { 
-            const hl = document.getElementById('chat-history-list');
-            if(!hl) return;
-            hl.innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>'; 
-            
-            if(!Array.isArray(state.chats)) state.chats = [];
-
-            state.chats.forEach(chat => { 
-                const isActive = chat.id === currentChatId && !isTempChat; 
-                const div = document.createElement('div'); div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-100 dark:bg-gray-800/80 text-black dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-black dark:hover:text-gray-200'}`; 
-                div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { loadChat(chat.id); } }; 
-                div.innerHTML = `<div class="flex items-center gap-3 overflow-hidden flex-1">${chat.pinned ? `<span class="text-blue-500 dark:text-blue-400 mr-2">${PIN_ICON}</span>` : ''}<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg><span class="truncate font-medium">${window.escapeHtml(chat.title)}</span></div><button class="chat-menu-trigger text-gray-500 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="window.toggleChatMenu(event, '${chat.id}')">${THREE_DOTS_VERTICAL_ICON}</button><div id="menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3">${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span></button><button onclick="window.renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Rename</span></button><button onclick="window.shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button><button onclick="window.deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${TRASH_ICON} <span>Delete</span></button></div>`; 
-                hl.appendChild(div); 
-            }); 
-        }
-
-        function setupSpeechRecognition() { const elMicBtn = document.getElementById('mic-btn'); const elUserInput = document.getElementById('user-input'); if(elMicBtn) { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); if(elUserInput) elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); if(elUserInput) elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { if(elUserInput) { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); } }; elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } }); } else { elMicBtn.style.display = 'none'; } } }
         
-        function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
-        function loadSettings() { 
-            try {
-                const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); 
-                if (stored) settings = { ...settings, ...JSON.parse(stored) }; 
-                const spi = document.getElementById('system-prompt-input'); if(spi) spi.value = settings.systemPrompt || ''; 
-            } catch(e) {}
-        }
-
-        const fi = document.getElementById('file-input');
-        if(fi) fi.addEventListener('change', (e) => { 
-            const file = e.target.files[0]; if (!file) return; resetAttachments(); 
-            const reader = new FileReader(); reader.onload = (event) => { const img = new Image(); img.onload = () => { const canvas = document.createElement('canvas'); let width = img.width; let height = img.height; const MAX_DIM = 800; if (width > height) { if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; } } else { if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; } } canvas.width = width; canvas.height = height; const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, width, height); currentBase64Image = canvas.toDataURL('image/jpeg', 0.7); const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.remove('hidden'); if (!window.isGenerating) updateSendButton(); }; img.src = event.target.result; }; reader.readAsDataURL(file); 
-        });
-        
-        const gfi = document.getElementById('general-file-input');
-        if(gfi) gfi.addEventListener('change', async (e) => { 
-            const file = e.target.files[0]; if (!file) return; resetAttachments(); 
-            const fpn = document.getElementById('file-preview-name'); if(fpn) fpn.innerText = file.name; const fp = document.getElementById('file-preview'); if(fp) fp.classList.remove('hidden'); const ip = document.getElementById('image-preview'); if(ip) ip.classList.add('hidden'); const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.remove('hidden'); 
-            try { let text = file.type === 'application/pdf' ? await extractPdfText(file) : await extractTextFile(file); currentFileAttachment = { name: file.name, text: text }; if (!window.isGenerating) updateSendButton(); } catch (error) { window.showToast("Could not read file."); resetAttachments(); } 
-        });
-        
-        async function extractTextFile(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.onerror = (e) => reject(e); reader.readAsText(file); }); }
-        async function extractPdfText(file) { const arrayBuffer = await file.arrayBuffer(); const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise; let text = ""; for (let i = 1; i <= pdf.numPages; i++) { const page = await pdf.getPage(i); const content = await page.getTextContent(); text += content.items.map(item => item.str).join(' ') + "\n"; } return text; }
-        
-        const rab = document.getElementById('remove-attachment-btn'); if(rab) rab.addEventListener('click', resetAttachments);
-        function resetAttachments() { currentBase64Image = null; currentFileAttachment = null; const fi = document.getElementById('file-input'); if(fi) fi.value = ''; const gfi = document.getElementById('general-file-input'); if(gfi) gfi.value = ''; const apc = document.getElementById('attachment-preview-container'); if(apc) apc.classList.add('hidden'); const ip = document.getElementById('image-preview'); if(ip) ip.classList.add('hidden'); const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); if (!window.isGenerating) updateSendButton(); }
-
-        const glBtn = document.getElementById('google-logout-btn'); 
-        if(glBtn) glBtn.addEventListener('click', () => window.signOutUser());
-
         function getCleanAuthError(error) {
             const code = error.code || '';
             if (code === 'auth/email-already-in-use') return "Email already registered. Try 'Log In' instead.";
@@ -412,9 +298,7 @@
             firebaseUser: null,
             chatsLoaded: false
         };
-        
         let currentUser = null; 
-        let isRedirecting = sessionStorage.getItem('awaiting_redirect') === 'true'; 
 
         function renderUIMaster() {
             const passOverlay = document.getElementById('password-overlay');
@@ -488,23 +372,21 @@
                 
                 auth.getRedirectResult().then((result) => {
                     sessionStorage.removeItem('awaiting_redirect');
-                    isRedirecting = false;
                     if (result && result.user) {
                         currentUser = result.user;
                         appState.firebaseUser = result.user;
                         appState.firebaseReady = true;
-                    } 
-                    resetGoogleBtn();
-                    renderUIMaster();
+                        renderUIMaster();
+                    } else {
+                        resetGoogleBtn();
+                    }
                 }).catch((e) => { 
                     sessionStorage.removeItem('awaiting_redirect');
-                    isRedirecting = false;
                     resetGoogleBtn();
-                    renderUIMaster();
                     window.showToast(getCleanAuthError(e));
                 });
 
-                auth.onAuthStateChanged(async (user) => {
+                auth.onAuthStateChanged((user) => {
                     if (sessionStorage.getItem('awaiting_redirect') === 'true') return; 
 
                     appState.firebaseReady = true;
@@ -513,23 +395,17 @@
                         currentUser = user;
                         appState.firebaseUser = user;
                         renderUIMaster();
-                        if (!appState.chatsLoaded && appState.isPasswordValid) {
-                            await loadChatsFromCloud(user);
-                            appState.chatsLoaded = true;
-                        }
                     } else {
-                        if (!isRedirecting) {
-                            currentUser = null;
-                            appState.firebaseUser = null;
-                            appState.chatsLoaded = false;
-                            state.chats = []; clearMessages(); renderSidebar();
-                            resetGoogleBtn(); 
-                            renderUIMaster();
-                        }
+                        currentUser = null;
+                        appState.firebaseUser = null;
+                        appState.chatsLoaded = false;
+                        state.chats = []; clearMessages(); renderSidebar();
+                        resetGoogleBtn(); 
+                        renderUIMaster();
                     }
                 });
                 
-                if (isRedirecting) {
+                if (sessionStorage.getItem('awaiting_redirect') === 'true') {
                     const lBtn = document.getElementById('google-login-btn-main');
                     if (lBtn) lBtn.innerHTML = '<span class="animate-pulse">Connecting to Google...</span>';
                 }
@@ -548,30 +424,10 @@
                 const btn = document.getElementById('google-login-btn-main');
                 if(btn) btn.innerHTML = '<span class="animate-pulse">Connecting...</span>';
                 sessionStorage.setItem('awaiting_redirect', 'true');
-                isRedirecting = true;
                 auth.signInWithRedirect(provider);
             } else {
                 window.showToast("Cloud sync is blocked by browser.");
             }
-        };
-
-        window.signOutUser = function() {
-            window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", false, () => { 
-                if(auth) {
-                    auth.signOut().then(() => {
-                        currentUser = null;
-                        appState.firebaseUser = null;
-                        appState.chatsLoaded = false;
-                        state.chats = [];
-                        currentChatId = null;
-                        clearMessages();
-                        showWelcome();
-                        renderSidebar();
-                        renderUIMaster();
-                        if (window.innerWidth < 768) { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); }
-                    }).catch(e => window.showToast("Sign out failed. Try again."));
-                } 
-            });
         };
 
         const emailLoginBtn = document.getElementById('email-login-btn');
@@ -603,6 +459,25 @@
                 });
             }
         });
+
+        window.signOutUser = function() {
+            window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", false, () => { 
+                if(auth) {
+                    auth.signOut().then(() => {
+                        currentUser = null;
+                        appState.firebaseUser = null;
+                        appState.chatsLoaded = false;
+                        state.chats = [];
+                        currentChatId = null;
+                        clearMessages();
+                        showWelcome();
+                        renderSidebar();
+                        renderUIMaster();
+                        if (window.innerWidth < 768) { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); }
+                    }).catch(e => window.showToast("Sign out failed. Try again."));
+                } 
+            });
+        };
 
         const renderer = new marked.Renderer();
         window.escapeHtml = function(text) { 
@@ -655,152 +530,79 @@
         const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
         const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
 
-        window.toggleChatMenu = function(e, id) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${id}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${id}`); if(m) m.classList.toggle('hidden'); };
-        window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
-        window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`).classList.add('hidden'); } };
-        window.shareChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { try { const shareUrl = `${window.location.origin}${window.location.pathname}#share=${btoa(JSON.stringify(chat))}`; navigator.clipboard.writeText(shareUrl).then(() => window.showToast("Link copied to clipboard!")).catch(() => window.showToast("Failed to copy link.")); } catch (err) { window.showToast("Chat too large to share via URL."); } document.getElementById(`menu-${id}`).classList.add('hidden'); } };
-        window.deleteChat = function(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`).classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", "Delete", true, () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (currentChatId === id) { currentChatId = null; showWelcome(); } }); };
-
-        window.toggleUserMenu = function(e, msgId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${msgId}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.toggle('hidden'); };
-        
-        window.copyUserMessage = function(msgId) { 
-            const node = document.getElementById(msgId); if(!node) return;
-            const text = node.querySelector('.message-text').innerText; navigator.clipboard.writeText(text); 
-            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
-            window.showToast("Prompt copied.", "Start new chat", () => { document.getElementById('new-chat-btn').click(); }); 
-        };
-        
-        window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const txtNode = node.querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(txtNode); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`).classList.add('hidden');};
-        
-        window.editUserMessage = function(msgId) { 
-            const msgBox = document.getElementById(msgId); if(!msgBox) return; const text = msgBox.querySelector('.message-text').innerText; 
-            const img = msgBox.querySelector('img');
-            if (img && img.src.startsWith('data:image')) {
-                currentBase64Image = img.src;
-                const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } 
-                const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); 
-                const ap = document.getElementById('attachment-preview-container'); if(ap) ap.classList.remove('hidden');
-            }
-            const elUserInput = document.getElementById('user-input');
-            if(elUserInput) { elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); } 
-            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
-            updateSendButton();
-        };
-        
-        window.shareUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const text = node.querySelector('.message-text').innerText; if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`).classList.add('hidden');};
-
-        window.copyToClipboard = (btn) => { 
-            const msgBox = btn.closest('.relative').querySelector('.message-text'); const txt = document.createElement('textarea'); txt.value = msgBox.innerText; 
-            navigator.clipboard.writeText(txt.value).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); }); 
+        window.showToast = function(message, actionText = null, actionCallback = null) {
+            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
+            const toast = document.createElement('div'); toast.id = 'custom-toast';
+            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
+            let html = `<span>${message}</span>`;
+            if (actionText) html += `<button id="toast-action-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">${actionText}</button>`;
+            toast.innerHTML = html; document.body.appendChild(toast);
+            if (actionText && actionCallback) { const tb = document.getElementById('toast-action-btn'); if(tb) tb.addEventListener('click', () => { actionCallback(); toast.remove(); }); }
+            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
         };
 
-        window.currentSpeakingId = null; 
-        window.toggleSpeech = (btn) => { 
-            const msgContainer = btn.closest('.relative.group');
-            const msgId = msgContainer.id;
+        let confirmActionCallback = null; 
+        window.showConfirmModal = function(title, text, actionBtnText, isDanger, callback) { 
+            const t = document.getElementById('confirm-modal-title'); if(t) t.innerText = title; 
+            const tx = document.getElementById('confirm-modal-text'); if(tx) tx.innerText = text; 
+            const actionBtn = document.getElementById('confirm-action-btn');
+            if(actionBtn) actionBtn.innerText = actionBtnText; 
             
-            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) { 
-                window.speechSynthesis.cancel(); 
-                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
-                
-                if (window.currentSpeakingId === msgId) { 
-                    window.currentSpeakingId = null; 
-                    return; 
-                } 
+            const iconDiv = document.getElementById('confirm-modal-icon-container');
+            if(iconDiv && actionBtn) {
+                if(isDanger) {
+                    actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20";
+                    iconDiv.className = "w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-500";
+                    iconDiv.innerHTML = `<svg id="confirm-modal-icon" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                } else {
+                    actionBtn.className = "flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20";
+                    iconDiv.className = "w-16 h-16 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-500";
+                    iconDiv.innerHTML = `<svg id="confirm-modal-icon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                }
             }
-            
-            window.currentSpeakingId = msgId;
-            const msgBox = msgContainer.querySelector('.message-text');
-            const clone = msgBox.cloneNode(true);
-            
-            clone.querySelectorAll('.ai-image-container').forEach(el => el.remove()); 
-            
-            let textToSpeak = clone.innerText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/https?:\/\/[^\s]+/g, '').trim(); 
-            
-            const utterance = new SpeechSynthesisUtterance(textToSpeak); 
-            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; window.currentSpeakingId = null; };
-            utterance.onerror = () => { btn.innerHTML = SPEAKER_ICON; window.currentSpeakingId = null; };
-            btn.innerHTML = SPEAKER_OFF_ICON; 
-            window.speechSynthesis.speak(utterance);
-        };
 
-        const themeBtn = document.getElementById('theme-toggle-btn');
-        if(themeBtn) themeBtn.addEventListener('click', () => { 
-            const htmlTag = document.documentElement; const isDark = htmlTag.classList.contains('dark');
-            if (isDark) { 
-                htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); 
-            } else { 
-                htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); 
-            }
-        });
+            confirmActionCallback = callback; 
+            const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.remove('hidden'); 
+        }; 
         
-        window.regenerateResponse = function(btn) { 
-            if (window.isGenerating) return; 
-            let chat = isTempChat ? tempChatData : state.chats.find(c => c.id === currentChatId);
-            if (!chat || !Array.isArray(chat.messages) || chat.messages.length < 2) return;
-            if (chat.messages[chat.messages.length - 1].role === 'assistant' && chat.messages[chat.messages.length - 2].role === 'user') {
-                const userContent = chat.messages[chat.messages.length - 2].content; let lastUserText = "";
-                if (Array.isArray(userContent)) {
-                    let textObj = userContent.find(c => c.type === 'text'); let imgObj = userContent.find(c => c.type === 'image_url');
-                    if (textObj) lastUserText = textObj.text;
-                    if (imgObj) { currentBase64Image = imgObj.image_url.url; const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } const ap = document.getElementById('attachment-preview-container'); if(ap) ap.classList.remove('hidden'); }
-                } else { lastUserText = userContent; }
-                if (lastUserText.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = lastUserText.split('\n\nUser Message: '); if (parts.length > 1) lastUserText = parts.slice(1).join('\n\nUser Message: '); }
-                chat.messages.pop(); chat.messages.pop(); if (!isTempChat) saveChats(); loadChat(chat.id || null);
-                const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn');
-                if(elUserInput) { elUserInput.value = lastUserText; elUserInput.style.height = 'auto'; elUserInput.style.height = (elUserInput.scrollHeight) + 'px'; }
-                updateSendButton(); if(elSendBtn) elSendBtn.click();
-            }
-        };
-        window.regenerateImageBtn = window.regenerateResponse; 
+        window.closeConfirmModal = function() { const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.add('hidden'); confirmActionCallback = null; }; 
+        const ccb = document.getElementById('confirm-cancel-btn'); if(ccb) ccb.addEventListener('click', window.closeConfirmModal); 
+        const cab = document.getElementById('confirm-action-btn'); if(cab) cab.addEventListener('click', () => { if (typeof confirmActionCallback === 'function') confirmActionCallback(); window.closeConfirmModal(); });
 
-        window.downloadImageBtn = async function(btn) { 
-            try { 
-                const imgContainer = btn.closest('.relative.group\\/imgbox') || btn.parentElement.parentElement; 
-                const imgTag = imgContainer.querySelector('img[data-prompt]'); 
-                if (!imgTag || !imgTag.src) throw new Error("Image source not found."); 
-                const response = await fetch(imgTag.src); const blob = await response.blob(); const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = blobUrl; a.download = `AnuragsGPT-Image-${Date.now()}.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
-                const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); 
-            } catch (error) { window.showToast("Failed to download image."); }
-        };
+        let customPromptCallback = null; 
+        window.showCustomPrompt = function(title, defaultValue, callback) { const t = document.getElementById('custom-prompt-title'); if(t) t.innerText = title; const i = document.getElementById('custom-prompt-input'); if(i) { i.value = defaultValue; i.focus(); } customPromptCallback = callback; const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.remove('hidden'); }; 
+        window.closeCustomPrompt = function() { const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.add('hidden'); customPromptCallback = null; }; 
+        const cpcb = document.getElementById('custom-prompt-cancel'); if(cpcb) cpcb.addEventListener('click', window.closeCustomPrompt); 
+        const cpc = document.getElementById('custom-prompt-confirm'); if(cpc) cpc.addEventListener('click', () => { if (typeof customPromptCallback === 'function') { const i = document.getElementById('custom-prompt-input'); if(i) customPromptCallback(i.value); } window.closeCustomPrompt(); });
 
-        renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-gray-50 dark:bg-gray-900"><code class="text-sm font-mono text-gray-800 dark:text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
-        
-        window.fetchSecureImage = async function(prompt, imgEl) { 
-            try { 
-                const pwd = encodeURIComponent(currentPassword); const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}`); 
-                if (!res.ok) throw new Error("Unknown Backend Error"); 
-                const blob = await res.blob(); imgEl.src = URL.createObjectURL(blob); 
-                if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none'; imgEl.style.opacity = '1'; 
-            } catch (e) { imgEl.parentElement.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#1f2937;padding:1rem;text-align:center;"><span style="font-size:2rem;margin-bottom:0.5rem;">⚠️</span><div style="color:#f87171;font-weight:bold;font-size:1rem;">Image Failed</div><div style="color:#9ca3af;font-size:0.7rem;margin-top:0.5rem;word-break:break-all;">${window.escapeHtml(e.message)}</div></div>`; }
-        };
+        if(document.getElementById('messages-container')) document.getElementById('messages-container').addEventListener('scroll', () => { const elMessagesContainer = document.getElementById('messages-container'); const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); isUserScrolledUp = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight > 80; if(elScrollToBottomBtn) { if (isUserScrolledUp && window.isGenerating) { elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); } else { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } } });
+        if(document.getElementById('scroll-to-bottom-btn')) document.getElementById('scroll-to-bottom-btn').addEventListener('click', () => { isUserScrolledUp = false; const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); });
+        function scrollToBottom() { if (!isUserScrolledUp) { const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; } }
 
-        renderer.image = function(arg1, arg2, arg3) { 
-             let rawHref = typeof arg1 === 'object' ? arg1.href : arg1; const text = typeof arg1 === 'object' ? arg1.text : arg3;
-             if (!rawHref) rawHref = ''; let cleanHref = rawHref.replace(/&amp;/g, '&'); let safePrompt = "AI Image"; let isBase64 = cleanHref.startsWith('data:image'); 
-             if (isBase64) { safePrompt = "Edited Image"; } else if (cleanHref.includes('pollinations.ai') || cleanHref.includes('/api/image')) { try { let promptPart = ""; if (cleanHref.includes('/api/image')) { promptPart = cleanHref.split('prompt=')[1].split('&')[0]; } else { let match = cleanHref.match(/\/(prompt|image|p)\/([^?&]+)/); promptPart = match && match[2] ? match[2] : "a beautiful image"; } let decodedPrompt = promptPart; try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {} decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); safePrompt = encodeURIComponent(decodedPrompt); } catch(e) {} } else { safePrompt = encodeURIComponent(cleanHref.replace(/\s+/g, '%20')); } 
-             const containerStyle = "width: 280px; height: 280px; min-width: 280px; min-height: 280px;"; 
-             if (window.isGenerating && !isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-md"><span class="text-blue-500 dark:text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span></div></div>`; } 
-             if (isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-md"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10 cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="window.openImageViewer(this.src)" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
-             return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-md"><div class="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" onclick="if(this.src && !this.src.startsWith('data:image/gif')) window.openImageViewer(this.src)" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10 hover:scale-[1.02]" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-white/80 dark:bg-black/60 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-white/10 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider z-20 pointer-events-none shadow-sm">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
-        };
-        
-        window.formatText = function(text) { 
-            if (!text) return ""; 
-            try {
-                let processedText = String(text);
-                if (window.isGenerating) { processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-500 dark:text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`); }
-                return marked.parse(processedText, { renderer: renderer, breaks: true, gfm: true }); 
-            } catch (e) {
-                return window.escapeHtml(String(text));
-            }
-        };
+        function disableTempMode() { isTempChat = false; const tb = document.getElementById('temp-badge'); if(tb) tb.classList.add('hidden'); const tcBtn = document.getElementById('temp-chat-toggle-btn'); if(tcBtn) tcBtn.className = 'text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors'; }
 
+        function getOrCreateChat(firstMessage) { 
+            disableTempMode(); 
+            if (currentChatId && !currentChatId.startsWith('shared-')) { 
+                const existing = state.chats.find(c => c.id === currentChatId); 
+                if (existing) return existing; 
+            } 
+            const newChat = { id: Date.now().toString(), title: firstMessage ? firstMessage.substring(0, 30) : "New Chat", messages: [], pinned: false }; 
+            state.chats.unshift(newChat); currentChatId = newChat.id; saveChats(); renderSidebar(); return newChat; 
+        }
+
+        function clearMessages() { const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) Array.from(elMessagesContainer.children).forEach(child => { if (child.id !== 'welcome-screen' && child.id !== 'scroll-to-bottom-btn') child.remove(); }); }
+        function showWelcome() { clearMessages(); const elWelcomeScreen = document.getElementById('welcome-screen'); if(elWelcomeScreen) elWelcomeScreen.classList.remove('hidden'); }
+
+        function loadChat(id) { 
+            disableTempMode(); currentChatId = id; const chat = state.chats.find(c => c.id === id); clearMessages(); 
+            const elMessagesContainer = document.getElementById('messages-container'); const elUserInput = document.getElementById('user-input'); const elMicBtn = document.getElementById('mic-btn'); const elWelcomeScreen = document.getElementById('welcome-screen');
+            if(elMessagesContainer && elMessagesContainer.previousElementSibling && elMessagesContainer.previousElementSibling.textContent.includes('Viewing shared chat')) { elMessagesContainer.previousElementSibling.remove(); if(elUserInput) { elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; } if(elMicBtn) elMicBtn.style.display = ''; const pmb = document.getElementById('plus-menu-btn'); if(pmb) pmb.style.display = ''; } 
+            if (chat && Array.isArray(chat.messages) && chat.messages.length > 0) { if(elWelcomeScreen) elWelcomeScreen.classList.add('hidden'); chat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content)); scrollToBottom(); } else { if(elWelcomeScreen) elWelcomeScreen.classList.remove('hidden'); } 
+            renderSidebar(); 
+        }
+
+        // --- FIX 1: USER BUBBLE !TEXT-WHITE ---
         window.appendMessageToDOM = function(role, content) {
             if(role === 'system') return; 
             let displayContent = ""; let imageHtml = "";
@@ -818,7 +620,6 @@
             let actionButtons = '';
             if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
             
-            // FIX 1: User text is now !text-white to prevent bleed-through
             const bubbleStyles = isUser 
                 ? 'bg-blue-600 dark:bg-gray-800 !text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-md' 
                 : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-md'; 
@@ -834,225 +635,57 @@
             }
         };
 
-        function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm border-2 border-gray-200 dark:border-gray-800 shadow-md"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; const mc = document.getElementById('messages-container'); if(mc) mc.appendChild(div); scrollToBottom(); }
-        function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
-
-        function loadChats() { 
-            try { 
-                const stored = localStorage.getItem(APP_STORAGE_KEY); 
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed)) { state.chats = parsed; } 
-                    else if (parsed && Array.isArray(parsed.chats)) { state.chats = parsed.chats; } 
-                    else { state.chats = []; }
-                }
-            } catch (e) { state.chats = []; } 
-            
-            if(!Array.isArray(state.chats)) state.chats = [];
-        }
-
-        async function saveChats() { 
-            try {
-                if(!Array.isArray(state.chats)) state.chats = [];
-                state.chats.sort((a, b) => (a.pinned === b.pinned) ? b.id - a.id : b.pinned ? -1 : 1); 
-                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); 
-                if (currentUser && db) { await db.collection('users').doc(currentUser.uid).set({ chats: state.chats }); }
-            } catch (e) { console.error("Save Error", e); }
-        }
-
-        async function loadChatsFromCloud(user) {
-            try {
-                const doc = await db.collection('users').doc(user.uid).get();
-                if (doc.exists && Array.isArray(doc.data().chats) && doc.data().chats.length > 0) { state.chats = doc.data().chats; } 
-                else {
-                    loadChats();
-                    if (state.chats.length > 0) { await saveChats(); } 
-                }
-            } catch(e) { 
-                console.error("Cloud Load Error", e); 
-                loadChats(); 
-            } finally {
-                if(!Array.isArray(state.chats)) state.chats = [];
-                renderSidebar(); 
-                if (currentChatId) { loadChat(currentChatId); } else { showWelcome(); }
-            }
-        }
-
-        async function verifyPassword(pwd, isSilentBoot = false) { 
-            if (!pwd) return;
-            const elPassSubmit = document.getElementById('submit-password-btn');
-            const elPassError = document.getElementById('password-error');
-            const elPassOverlay = document.getElementById('password-overlay');
-            
-            if(pwd === currentPassword || isSilentBoot) {
-                appState.isPasswordValid = true;
-                if(elPassOverlay) { elPassOverlay.classList.add('hidden'); elPassOverlay.style.display = 'none'; }
-                renderUIMaster();
-            } else {
-                if(elPassSubmit) { elPassSubmit.innerText = 'Verifying...'; elPassSubmit.disabled = true; }
-                if(elPassError) elPassError.classList.add('hidden');
-            }
-
-            try { 
-                const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } }); 
-                const data = await res.json().catch(() => ({ attemptsLeft: 0 }));
-                if(elPassSubmit) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; }
-
-                if (res.ok) { 
-                    currentPassword = pwd; localStorage.setItem(PWD_STORAGE_KEY, pwd); 
-                    appState.isPasswordValid = true;
-                    if(elPassOverlay) { elPassOverlay.classList.add('hidden'); elPassOverlay.style.display = 'none'; }
-                    renderUIMaster();
-                    if (currentUser) loadChatsFromCloud(currentUser);
-                } else if (res.status === 401 || res.status === 403) { 
-                    if (!isSilentBoot) {
-                        currentPassword = '';
-                        localStorage.removeItem(PWD_STORAGE_KEY);
-                    }
-                    appState.isPasswordValid = isSilentBoot ? true : false;
-                    renderUIMaster();
-                    if(!isSilentBoot && elPassOverlay) { elPassOverlay.classList.remove('hidden'); elPassOverlay.style.display = 'flex'; }
-                    if (res.status === 403) { triggerLockdownUI(); } 
-                    else if (!isSilentBoot && elPassError) { 
-                        elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; 
-                        elPassError.classList.remove('hidden'); 
-                    }
-                }
-            } catch (err) { 
-                if(elPassSubmit) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; }
-            } 
-        }
-
-        function triggerLockdownUI() { const po = document.getElementById('password-overlay'); if(po) { po.classList.remove('hidden'); po.style.display = 'flex'; } const pi = document.getElementById('app-password-input'); if(pi) pi.classList.add('hidden'); const ps = document.getElementById('submit-password-btn'); if(ps) ps.classList.add('hidden'); const pe = document.getElementById('password-error'); if(pe) { pe.classList.remove('hidden'); pe.innerHTML = "🚨 IP BANNED 🚨<br>Too many failed attempts."; } }
-
-        function updateSendButton() {
-            const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn');
-            if(!elUserInput || !elSendBtn) return;
-            const isEmpty = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment;
-            elSendBtn.disabled = isEmpty;
-            if (isEmpty) {
-                elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed";
-            } else {
-                elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-blue-600 text-white hover:bg-blue-500 shadow-md transform hover:scale-105";
-            }
-        }
-
-        async function sendMessage() {
-            const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn'); const elMicBtn = document.getElementById('mic-btn'); const elWelcomeScreen = document.getElementById('welcome-screen'); 
-            if(!elUserInput || !elSendBtn) return;
-            if (window.isGenerating) { if (abortController) abortController.abort(); return; }
-            const text = elUserInput.value.trim(); if (!text && !currentBase64Image && !currentFileAttachment) return;
-            window.isGenerating = true; abortController = new AbortController();
-            if(elMicBtn) elMicBtn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
-            
-            const lowerText = text.toLowerCase();
-            const isEditRequest = currentBase64Image && (lowerText.includes('edit') || lowerText.includes('change') || lowerText.includes('make') || lowerText.includes('turn') || lowerText.includes('add') || lowerText.includes('remove') || lowerText.includes('replace') || lowerText.includes('swap'));
-            if (isEditRequest) { elUserInput.placeholder = "Anurag's GPT is editing the image..."; } else if (lowerText.includes('draw') || lowerText.includes('generate') || lowerText.includes('image') || lowerText.includes('picture')) { elUserInput.placeholder = "Anurag's GPT is generating..."; } else { elUserInput.placeholder = "Anurag's GPT is typing..."; }
-            
-            elUserInput.value = ''; elUserInput.style.height = 'auto'; elUserInput.disabled = true; 
-            elSendBtn.innerHTML = STOP_ICON; elSendBtn.disabled = false; elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-red-600 text-white hover:bg-red-500";
-            if(elWelcomeScreen) elWelcomeScreen.classList.add('hidden');
-            
-            let chat; if (isTempChat) { chat = tempChatData; } else { chat = getOrCreateChat(text || "Document Analysis"); }
-            let messageContent = text;
-            
-            if (currentBase64Image) { messageContent = [{ type: "text", text: text || "Analyze this image." }, { type: "image_url", image_url: { url: currentBase64Image } }]; } 
-            else if (currentFileAttachment) { messageContent = `I have attached a file named "${currentFileAttachment.name}".\n\n--- FILE CONTENT ---\n${currentFileAttachment.text}\n--- END FILE CONTENT ---\n\n${text || "Please review the attached document."}`; }
-            
-            if(!Array.isArray(chat.messages)) chat.messages = [];
-            chat.messages.push({ role: 'user', content: messageContent }); if (!isTempChat) saveChats(); 
-            window.appendMessageToDOM('user', messageContent); createLoadingIndicator(); resetAttachments();
-
-            try {
-                let payloadMessages = chat.messages.map(m => ({ role: m.role, content: m.content }));
-                let response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json", "x-app-password": currentPassword }, body: JSON.stringify({ messages: payloadMessages, customSystemPrompt: settings.systemPrompt }), signal: abortController.signal });
-                
-                if (response.status === 401) { currentPassword = ''; appState.isPasswordValid = false; localStorage.removeItem(PWD_STORAGE_KEY); renderUIMaster(); const errData = await response.json().catch(() => ({ attemptsLeft: 0 })); const elPassError = document.getElementById('password-error'); if(elPassError) { elPassError.innerText = `Incorrect password. ${errData.attemptsLeft} attempts remaining.`; elPassError.classList.remove('hidden'); } throw new Error("Incorrect Password."); }
-                if (response.status === 403) { triggerLockdownUI(); throw new Error("IP BANNED"); }
-                if (!response.ok) { const errData = await response.json().catch(() => ({ error: "API Connection Failed" })); throw new Error(errData.error || "API Connection Failed"); }
-
-                const reader = response.body.getReader(); const decoder = new TextDecoder(); let aiContent = ""; let buffer = ""; let isFirstToken = true; let lastTextContainer = null; let lastActionButtons = null;
-                const elMessagesContainer = document.getElementById('messages-container');
-                while (true) {
-                    const { done, value } = await reader.read(); if (done) break;
-                    buffer += decoder.decode(value, { stream: true }); let boundary = buffer.indexOf('\n\n');
-                    while (boundary !== -1) {
-                        const message = buffer.substring(0, boundary); buffer = buffer.substring(boundary + 2);
-                        if (message.startsWith('data: ')) {
-                            const dataStr = message.slice(6); if (dataStr === '[DONE]') break;
-                            try { 
-                                const data = JSON.parse(dataStr); const deltaContent = data.choices[0]?.delta?.content || "";
-                                if (deltaContent) {
-                                    aiContent += deltaContent; 
-                                    if (isFirstToken) { 
-                                        removeLoadingIndicator(); window.appendMessageToDOM('assistant', ''); 
-                                        if(elMessagesContainer) { const textContainers = elMessagesContainer.querySelectorAll('.message-text'); lastTextContainer = textContainers[textContainers.length - 1]; lastActionButtons = lastTextContainer.closest('.flex-col').querySelector('.assistant-actions'); if(lastActionButtons) lastActionButtons.style.display = 'none'; } isFirstToken = false; 
-                                    }
-                                    if(lastTextContainer) { lastTextContainer.innerHTML = window.formatText(aiContent); scrollToBottom(); }
-                                }
-                            } catch (e) {} 
-                        }
-                        boundary = buffer.indexOf('\n\n');
-                    }
-                }
-                window.isGenerating = false; 
-                if (lastTextContainer) { lastTextContainer.innerHTML = window.formatText(aiContent); try { applyKaTeX(lastTextContainer); } catch(e){} scrollToBottom(); }
-                chat.messages.push({ role: 'assistant', content: aiContent }); if (!isTempChat) saveChats();
-                if(lastActionButtons) { const textWithoutImages = aiContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim(); if(textWithoutImages.length > 0) { lastActionButtons.style.display = 'flex'; } else { lastActionButtons.style.display = 'none'; } }
-            } catch (error) {
-                window.isGenerating = false; removeLoadingIndicator();
-                if (error.name === 'AbortError') { window.appendMessageToDOM('assistant', "*🛑 You stopped this response.*"); } 
-                else if (error.message !== "Incorrect Password." && error.message !== "IP BANNED") { window.appendMessageToDOM('assistant', `⚠️ **Error:** ${error.message}`); }
-            } finally { resetUIState(); }
-        }
-
-        function resetUIState() { window.isGenerating = false; abortController = null; const elSendBtn = document.getElementById('send-btn'); const elUserInput = document.getElementById('user-input'); const elMicBtn = document.getElementById('mic-btn'); const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); if(elSendBtn) elSendBtn.innerHTML = SEND_ICON; if(elUserInput) { elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; } if(elMicBtn) elMicBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none'); updateSendButton(); if(elScrollToBottomBtn) { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } if(elUserInput) elUserInput.focus(); const li = document.getElementById('loading-indicator'); if (li) li.remove(); }
-        
-        const elPassSubmitEvent = document.getElementById('submit-password-btn'); if(elPassSubmitEvent) elPassSubmitEvent.addEventListener('click', () => { const pi = document.getElementById('app-password-input'); if(pi) verifyPassword(pi.value.trim()); });
-        const elPassInputEvent = document.getElementById('app-password-input'); if(elPassInputEvent) elPassInputEvent.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verifyPassword(elPassInputEvent.value.trim()); } });
-        const elSendBtnEvent = document.getElementById('send-btn'); if(elSendBtnEvent) elSendBtnEvent.addEventListener('click', () => { sendMessage(); });
-        const elUserInputEvent = document.getElementById('user-input'); if(elUserInputEvent) { elUserInputEvent.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }); elUserInputEvent.addEventListener('input', function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; if (!window.isGenerating) { updateSendButton(); } }); }
-        
-        const ccBtn = document.getElementById('clear-chat-btn'); if(ccBtn) ccBtn.addEventListener('click', () => { if (isTempChat) { window.showConfirmModal("Clear Temp Chat?", "Wipe messages.", "Clear", true, () => { tempChatData.messages = []; clearMessages(); showWelcome(); }); } else { if (!currentChatId) return; window.showConfirmModal("Clear History?", "Delete messages.", "Clear", true, () => { const chat = state.chats.find(c => c.id === currentChatId); if (chat) { chat.messages = []; saveChats(); loadChat(currentChatId); } }); } });
-        const ncBtn = document.getElementById('new-chat-btn'); if(ncBtn) ncBtn.addEventListener('click', () => { disableTempMode(); currentChatId = null; showWelcome(); renderSidebar(); if (window.innerWidth < 768) { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); } });
-        const osBtn = document.getElementById('open-settings-btn'); if(osBtn) osBtn.addEventListener('click', () => { const sm = document.getElementById('settings-modal'); if(sm) sm.classList.remove('hidden'); }); 
-        const csBtn = document.getElementById('close-settings-btn'); if(csBtn) csBtn.addEventListener('click', () => { const sm = document.getElementById('settings-modal'); if(sm) sm.classList.add('hidden'); });
-        const ssBtn = document.getElementById('save-settings-btn'); if(ssBtn) ssBtn.addEventListener('click', () => { const spi = document.getElementById('system-prompt-input'); if(spi) settings.systemPrompt = spi.value.trim(); saveSettings(); const sm = document.getElementById('settings-modal'); if(sm) sm.classList.add('hidden'); });
-        
-        const laBtn = document.getElementById('lock-app-btn'); 
-        if(laBtn) laBtn.addEventListener('click', () => { 
-            currentPassword = ''; 
-            appState.isPasswordValid = false; 
-            localStorage.removeItem(PWD_STORAGE_KEY);
-            
-            const sm = document.getElementById('settings-modal'); 
-            if(sm) sm.classList.add('hidden'); 
-            
-            const api = document.getElementById('app-password-input'); 
-            if(api) api.value = ''; 
-            
-            const pe = document.getElementById('password-error'); 
-            if(pe) { pe.classList.add('hidden'); pe.innerText = ''; }
-            
-            state.chats = []; 
-            currentChatId = null; 
-            clearMessages(); 
-            renderSidebar(); 
-            
-            const passOverlay = document.getElementById('password-overlay');
-            const loginOverlay = document.getElementById('login-overlay');
-            if(passOverlay) { passOverlay.classList.remove('hidden'); passOverlay.style.display = 'flex'; }
-            if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; }
-            
-            if(api) setTimeout(() => api.focus(), 100);
+        // --- NEW: MISSING ATTACHMENT MENU EVENT LISTENERS (FIX 2) ---
+        const plusBtn = document.getElementById('plus-menu-btn');
+        if(plusBtn) plusBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const menu = document.getElementById('attachment-menu');
+            if(menu) menu.classList.toggle('hidden');
         });
 
-        const mmBtn = document.getElementById('mobile-menu-btn'); if(mmBtn) mmBtn.addEventListener('click', () => { const sb = document.getElementById('sidebar'); if(sb) sb.classList.remove('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.remove('hidden'); });
-        const so = document.getElementById('sidebar-overlay'); if(so) so.addEventListener('click', () => { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); so.classList.add('hidden'); });
-        
-        $$('.suggestion-btn').forEach(btn => { btn.addEventListener('click', () => { const elUserInput = document.getElementById('user-input'); if(elUserInput) { elUserInput.value = btn.innerText.replace(/"/g, '').trim(); updateSendButton(); sendMessage(); } }); });
+        const menuFileBtn = document.getElementById('menu-file-btn');
+        if(menuFileBtn) menuFileBtn.addEventListener('click', () => {
+            document.getElementById('general-file-input').click();
+            document.getElementById('attachment-menu').classList.add('hidden');
+        });
 
-        window.copyCodeBlock = (btn) => { const preContainer = btn.closest('.relative').querySelector('.raw-code-content'); navigator.clipboard.writeText(preContainer.textContent).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span class="text-gray-800 dark:text-white">Copied!</span>`; btn.classList.replace('text-gray-500', 'text-green-600'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.replace('text-green-600', 'text-gray-500'); }, 2000); }); };
+        const menuPhotoBtn = document.getElementById('menu-photo-btn');
+        if(menuPhotoBtn) menuPhotoBtn.addEventListener('click', () => {
+            document.getElementById('file-input').click();
+            document.getElementById('attachment-menu').classList.add('hidden');
+        });
+
+        const menuCreateImageBtn = document.getElementById('menu-create-image-btn');
+        if(menuCreateImageBtn) menuCreateImageBtn.addEventListener('click', () => {
+            const ui = document.getElementById('user-input');
+            if(ui) { ui.value = 'Generate an image of '; ui.focus(); updateSendButton(); }
+            document.getElementById('attachment-menu').classList.add('hidden');
+        });
+
+        // Close menus when clicking outside
+        document.addEventListener('click', () => {
+            const menu = document.getElementById('attachment-menu');
+            if(menu) menu.classList.add('hidden');
+            $$('.chat-menu-dropdown').forEach(m => m.classList.add('hidden'));
+        });
+
+        // Temp chat toggle functionality 
+        const tempToggleBtn = document.getElementById('temp-chat-toggle-btn');
+        if(tempToggleBtn) tempToggleBtn.addEventListener('click', () => {
+            isTempChat = !isTempChat;
+            const badge = document.getElementById('temp-badge');
+            if(badge) badge.classList.toggle('hidden', !isTempChat);
+            const btn = document.getElementById('temp-chat-toggle-btn');
+            if(btn) btn.className = isTempChat 
+                ? 'text-purple-600 dark:text-purple-400 text-sm flex items-center gap-1.5 transition-colors'
+                : 'text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors';
+            if(isTempChat) { tempChatData = { messages: [] }; clearMessages(); showWelcome(); }
+            else { disableTempMode(); clearMessages(); showWelcome(); }
+            if (window.innerWidth < 768) { 
+                const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); 
+                const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); 
+            }
+        });
 
         const fi = document.getElementById('file-input');
         if(fi) fi.addEventListener('change', (e) => { 
