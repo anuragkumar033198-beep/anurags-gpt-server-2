@@ -101,7 +101,7 @@
             </h1>
             
             <div class="w-full bg-white dark:bg-gray-900 p-6 rounded-[2rem] shadow-2xl flex flex-col gap-4 border border-gray-200 dark:border-gray-800">
-                <button id="google-login-btn-main" onclick="window.loginWithGoogle()" class="flex items-center justify-center gap-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white w-full py-3.5 rounded-xl transition-all shadow-sm font-bold text-sm active:scale-[0.98]">
+                <button id="google-login-btn-main" class="flex items-center justify-center gap-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white w-full py-3.5 rounded-xl transition-all shadow-sm font-bold text-sm active:scale-[0.98]">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
                     Continue with Google
                 </button>
@@ -152,7 +152,7 @@
                         <span id="user-email" class="text-[11px] text-gray-500 dark:text-gray-400 truncate"></span>
                     </div>
                 </div>
-                <button id="google-logout-btn" onclick="window.signOutUser()" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700" title="Sign Out">
+                <button id="google-logout-btn" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700" title="Sign Out">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 </button>
             </div>
@@ -253,6 +253,17 @@
         if ('serviceWorker' in navigator) { navigator.serviceWorker.getRegistrations().then(function(registrations) { for(let registration of registrations) { registration.update(); } }); }
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         
+        function getCleanAuthError(error) {
+            const code = error.code || '';
+            if (code === 'auth/email-already-in-use') return "Email already registered. Try 'Log In' instead.";
+            if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') return "Incorrect email or password. Did you sign up using Google?";
+            if (code === 'auth/weak-password') return "Password should be at least 6 characters.";
+            if (code === 'auth/invalid-email') return "Please enter a valid email address.";
+            if (code === 'auth/network-request-failed') return "Network error. Please check your internet connection.";
+            if (code === 'auth/account-exists-with-different-credential') return "Use the 'Continue with Google' button for this email.";
+            return "Authentication failed. Please try again.";
+        }
+
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
 
@@ -274,9 +285,8 @@
         let isTempChat = false; 
         let tempChatData = { messages: [] }; 
 
-        // THE MASTER UI STATE MACHINE
         let appState = {
-            isPasswordValid: !!currentPassword, // FIX 2: Instantly bypasses password screen if stored
+            isPasswordValid: false,
             firebaseReady: false,
             firebaseUser: null,
             chatsLoaded: false
@@ -297,6 +307,12 @@
             }
 
             if (!appState.firebaseReady) return; 
+
+            // FIX: If we are returning from Google, stay on the Login screen until Auth resolves!
+            if (sessionStorage.getItem('awaiting_redirect') === 'true') {
+                if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; }
+                return;
+            }
 
             if (appState.firebaseUser) {
                 if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; }
@@ -324,11 +340,6 @@
             }
         }
 
-        function resetGoogleBtn() {
-            const btn = document.getElementById('google-login-btn-main');
-            if(btn) btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`;
-        }
-
         let auth = null, db = null, provider = null;
         try {
             if (typeof firebase !== 'undefined') {
@@ -347,15 +358,25 @@
                 
                 auth.getRedirectResult().then((result) => {
                     sessionStorage.removeItem('awaiting_redirect');
-                    if (!result || !result.user) resetGoogleBtn();
-                }).catch((e) => { 
+                    if (result && result.user) {
+                        currentUser = result.user;
+                        appState.firebaseUser = result.user;
+                        appState.firebaseReady = true;
+                        renderUIMaster();
+                    } else {
+                        const btn = document.getElementById('google-login-btn-main');
+                        if(btn && btn.innerHTML.includes('Connecting')) {
+                            btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`;
+                        }
+                    }
+                }).catch((error) => { 
                     sessionStorage.removeItem('awaiting_redirect');
-                    resetGoogleBtn();
-                    window.showToast("Login error: " + e.message);
+                    const btn = document.getElementById('google-login-btn-main');
+                    if(btn) btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`;
+                    window.showToast("Login error: " + error.message); 
                 });
 
-                // FIX 1: Allow Firebase to constantly process the user in the background!
-                auth.onAuthStateChanged((user) => {
+                auth.onAuthStateChanged(async (user) => {
                     sessionStorage.removeItem('awaiting_redirect');
                     appState.firebaseReady = true;
                     
@@ -367,15 +388,14 @@
                         currentUser = null;
                         appState.firebaseUser = null;
                         appState.chatsLoaded = false;
-                        renderUIMaster();
                         state.chats = []; clearMessages(); renderSidebar();
-                        resetGoogleBtn(); 
+                        renderUIMaster();
                     }
                 });
-                
+
                 if (sessionStorage.getItem('awaiting_redirect') === 'true') {
                     const lBtn = document.getElementById('google-login-btn-main');
-                    if (lBtn) lBtn.innerHTML = '<span class="animate-pulse">Syncing Securely...</span>';
+                    if (lBtn) lBtn.innerHTML = '<span class="animate-pulse">Connecting to Google...</span>';
                 }
 
             } else {
@@ -387,18 +407,47 @@
             appState.firebaseReady = true; 
         }
 
-        window.loginWithGoogle = function() {
-            if(auth && provider) {
-                const btn = document.getElementById('google-login-btn-main');
-                if(btn) btn.innerHTML = '<span class="animate-pulse">Connecting...</span>';
-                sessionStorage.setItem('awaiting_redirect', 'true');
-                auth.signInWithRedirect(provider);
-            } else {
-                window.showToast("Cloud sync is blocked by browser.");
-            }
-        };
+        // --- GLOBAL EVENT LISTENERS FOR AUTH BUTTONS ---
+        const googleLoginBtn = document.getElementById('google-login-btn-main');
+        if(googleLoginBtn) googleLoginBtn.addEventListener('click', () => {
+            if(!auth || !provider) return window.showToast("Cloud sync is blocked by browser.");
+            googleLoginBtn.innerHTML = '<span class="animate-pulse">Connecting to Google...</span>';
+            sessionStorage.setItem('awaiting_redirect', 'true');
+            auth.signInWithRedirect(provider);
+        });
 
-        window.signOutUser = function() {
+        const emailLoginBtn = document.getElementById('email-login-btn');
+        if(emailLoginBtn) emailLoginBtn.addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            if(!email || !password) return window.showToast("Please enter email and password.");
+            if(auth) {
+                const originalText = emailLoginBtn.innerText;
+                emailLoginBtn.innerText = 'Logging in...';
+                auth.signInWithEmailAndPassword(email, password).catch(err => {
+                    emailLoginBtn.innerText = originalText;
+                    window.showToast(getCleanAuthError(err));
+                });
+            }
+        });
+
+        const emailSignupBtn = document.getElementById('email-signup-btn');
+        if(emailSignupBtn) emailSignupBtn.addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            if(!email || !password) return window.showToast("Please enter email and password.");
+            if(auth) {
+                const originalText = emailSignupBtn.innerText;
+                emailSignupBtn.innerText = 'Creating account...';
+                auth.createUserWithEmailAndPassword(email, password).catch(err => {
+                    emailSignupBtn.innerText = originalText;
+                    window.showToast(getCleanAuthError(err));
+                });
+            }
+        });
+
+        const logoutBtn = document.getElementById('google-logout-btn');
+        if(logoutBtn) logoutBtn.addEventListener('click', () => {
             window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", false, () => { 
                 if(auth) {
                     auth.signOut().then(() => {
@@ -415,7 +464,7 @@
                     }).catch(e => window.showToast("Sign out failed. Try again."));
                 } 
             });
-        };
+        });
 
         const renderer = new marked.Renderer();
         window.escapeHtml = function(text) { 
@@ -468,17 +517,6 @@
         const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
         const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
 
-        window.showToast = function(message, actionText = null, actionCallback = null) {
-            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
-            const toast = document.createElement('div'); toast.id = 'custom-toast';
-            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
-            let html = `<span>${message}</span>`;
-            if (actionText) html += `<button id="toast-action-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">${actionText}</button>`;
-            toast.innerHTML = html; document.body.appendChild(toast);
-            if (actionText && actionCallback) { const tb = document.getElementById('toast-action-btn'); if(tb) tb.addEventListener('click', () => { actionCallback(); toast.remove(); }); }
-            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
-        };
-
         window.toggleChatMenu = function(e, id) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${id}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${id}`); if(m) m.classList.toggle('hidden'); };
         window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
         window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`).classList.add('hidden'); } };
@@ -491,7 +529,7 @@
             const node = document.getElementById(msgId); if(!node) return;
             const text = node.querySelector('.message-text').innerText; navigator.clipboard.writeText(text); 
             document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
-            window.showToast("Prompt copied.", "Start new chat", () => { const ncb = document.getElementById('new-chat-btn'); if(ncb) ncb.click(); }); 
+            window.showToast("Prompt copied.", "Start new chat", () => { document.getElementById('new-chat-btn').click(); }); 
         };
         
         window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const txtNode = node.querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(txtNode); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`).classList.add('hidden');};
@@ -547,6 +585,20 @@
             btn.innerHTML = SPEAKER_OFF_ICON; 
             window.speechSynthesis.speak(utterance);
         };
+
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        if(themeBtn) themeBtn.addEventListener('click', () => { 
+            const htmlTag = document.documentElement; const isDark = htmlTag.classList.contains('dark');
+            if (isDark) { 
+                htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light');
+                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); 
+                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); 
+            } else { 
+                htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark');
+                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); 
+                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); 
+            }
+        });
         
         window.regenerateResponse = function(btn) { 
             if (window.isGenerating) return; 
@@ -595,6 +647,7 @@
              if (!rawHref) rawHref = ''; let cleanHref = rawHref.replace(/&amp;/g, '&'); let safePrompt = "AI Image"; let isBase64 = cleanHref.startsWith('data:image'); 
              if (isBase64) { safePrompt = "Edited Image"; } else if (cleanHref.includes('pollinations.ai') || cleanHref.includes('/api/image')) { try { let promptPart = ""; if (cleanHref.includes('/api/image')) { promptPart = cleanHref.split('prompt=')[1].split('&')[0]; } else { let match = cleanHref.match(/\/(prompt|image|p)\/([^?&]+)/); promptPart = match && match[2] ? match[2] : "a beautiful image"; } let decodedPrompt = promptPart; try { decodedPrompt = decodeURIComponent(promptPart); } catch(e) {} decodedPrompt = decodedPrompt.replace(/["')\]}]+$/, '').trim(); safePrompt = encodeURIComponent(decodedPrompt); } catch(e) {} } else { safePrompt = encodeURIComponent(cleanHref.replace(/\s+/g, '%20')); } 
              const containerStyle = "width: 280px; height: 280px; min-width: 280px; min-height: 280px;"; 
+             // FIX 4: Light Mode Image Border
              if (window.isGenerating && !isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-md"><span class="text-blue-500 dark:text-blue-400 text-sm font-bold tracking-wider uppercase animate-pulse">🎨 Designing Image...</span></div></div>`; } 
              if (isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-md"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10 cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="window.openImageViewer(this.src)" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
              return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-md"><div class="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" onclick="if(this.src && !this.src.startsWith('data:image/gif')) window.openImageViewer(this.src)" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10 hover:scale-[1.02]" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-white/80 dark:bg-black/60 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-white/10 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider z-20 pointer-events-none shadow-sm">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
@@ -628,7 +681,10 @@
             let actionButtons = '';
             if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
             
-            const bubbleStyles = isUser ? 'bg-blue-600 dark:bg-gray-800 text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-md' : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-md'; 
+            // FIX 4: High Contrast Aesthetic Bubbles for Light Mode! User=Blue, AI=White with distinct borders
+            const bubbleStyles = isUser 
+                ? 'bg-blue-600 dark:bg-gray-800 text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-md' 
+                : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-md'; 
             
             div.innerHTML = `<div class="max-w-[92%] md:max-w-[85%] flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} relative">${isUser ? actionButtons : ''}<div class="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${isUser ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gradient-to-br from-blue-500 to-purple-600'}">${isUser ? '<svg class="h-5 w-5 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>' : '<svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>'}</div><div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} w-full min-w-0"><div class="prose-content ${bubbleStyles} min-w-0">${imageHtml}<div class="message-text w-full min-w-0" data-raw-content="${window.escapeHtml(displayContent)}">${isUser ? window.escapeHtml(displayContent) : window.formatText(displayContent)}</div></div>${!isUser ? actionButtons : ''}</div></div>`;
             const mc = document.getElementById('messages-container'); if(mc) mc.appendChild(div);
@@ -644,6 +700,7 @@
         function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm border-2 border-gray-200 dark:border-gray-800 shadow-md"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; const mc = document.getElementById('messages-container'); if(mc) mc.appendChild(div); scrollToBottom(); }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
 
+        // --- FIX 5: ANTI-CRASH MEMORY LOAD ---
         function loadChats() { 
             try { 
                 const stored = localStorage.getItem(APP_STORAGE_KEY); 
@@ -682,6 +739,23 @@
             }
         }
 
+        function renderSidebar() { 
+            const hl = document.getElementById('chat-history-list');
+            if(!hl) return;
+            hl.innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>'; 
+            
+            // ANTI-CRASH VEST: Ensures the memory format never breaks the loop
+            if(!Array.isArray(state.chats)) state.chats = []; 
+
+            state.chats.forEach(chat => { 
+                const isActive = chat.id === currentChatId && !isTempChat; 
+                const div = document.createElement('div'); div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-100 dark:bg-gray-800/80 text-black dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-black dark:hover:text-gray-200'}`; 
+                div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { loadChat(chat.id); } }; 
+                div.innerHTML = `<div class="flex items-center gap-3 overflow-hidden flex-1">${chat.pinned ? `<span class="text-blue-500 dark:text-blue-400 mr-2">${PIN_ICON}</span>` : ''}<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg><span class="truncate font-medium">${window.escapeHtml(chat.title)}</span></div><button class="chat-menu-trigger text-gray-500 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="window.toggleChatMenu(event, '${chat.id}')">${THREE_DOTS_VERTICAL_ICON}</button><div id="menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3">${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span></button><button onclick="window.renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Rename</span></button><button onclick="window.shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button><button onclick="window.deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${TRASH_ICON} <span>Delete</span></button></div>`; 
+                hl.appendChild(div); 
+            }); 
+        }
+
         async function verifyPassword(pwd, isSilentBoot = false) { 
             if (!pwd) return;
             const elPassSubmit = document.getElementById('submit-password-btn');
@@ -715,10 +789,7 @@
                     renderUIMaster();
                     if(elPassOverlay) { elPassOverlay.classList.remove('hidden'); elPassOverlay.style.display = 'flex'; }
                     if (res.status === 403) { triggerLockdownUI(); } 
-                    else if (elPassError) { 
-                        elPassError.innerText = isSilentBoot ? "Session expired. Please enter password." : `Incorrect password. ${data.attemptsLeft} attempts remaining.`; 
-                        elPassError.classList.remove('hidden'); 
-                    }
+                    else if (!isSilentBoot && elPassError) { elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; elPassError.classList.remove('hidden'); }
                 }
             } catch (err) { 
                 if(elPassSubmit) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; }
