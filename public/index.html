@@ -101,7 +101,7 @@
             </h1>
             
             <div class="w-full bg-white dark:bg-gray-900 p-6 rounded-[2rem] shadow-2xl flex flex-col gap-4 border border-gray-200 dark:border-gray-800">
-                <button id="google-login-btn-main" onclick="window.loginWithGoogle()" class="flex items-center justify-center gap-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white w-full py-3.5 rounded-xl transition-all shadow-sm font-bold text-sm active:scale-[0.98]">
+                <button id="google-login-btn-main" class="flex items-center justify-center gap-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-900 dark:text-white w-full py-3.5 rounded-xl transition-all shadow-sm font-bold text-sm active:scale-[0.98]">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
                     Continue with Google
                 </button>
@@ -152,7 +152,7 @@
                         <span id="user-email" class="text-[11px] text-gray-500 dark:text-gray-400 truncate"></span>
                     </div>
                 </div>
-                <button id="google-logout-btn" onclick="window.signOutUser()" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700" title="Sign Out">
+                <button id="google-logout-btn" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors shrink-0 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700" title="Sign Out">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 </button>
             </div>
@@ -357,7 +357,14 @@
                 
                 auth.getRedirectResult().then((result) => {
                     sessionStorage.removeItem('awaiting_redirect');
-                    if (!result || !result.user) resetGoogleBtn();
+                    if (result && result.user) {
+                        appState.firebaseReady = true;
+                        appState.firebaseUser = result.user;
+                        currentUser = result.user;
+                        renderUIMaster();
+                    } else {
+                        resetGoogleBtn();
+                    }
                 }).catch((e) => { 
                     sessionStorage.removeItem('awaiting_redirect');
                     resetGoogleBtn();
@@ -396,18 +403,60 @@
             appState.firebaseReady = true; 
         }
 
-        window.loginWithGoogle = function() {
-            if(auth && provider) {
-                const btn = document.getElementById('google-login-btn-main');
-                if(btn) btn.innerHTML = '<span class="animate-pulse">Connecting...</span>';
-                sessionStorage.setItem('awaiting_redirect', 'true');
-                auth.signInWithRedirect(provider);
-            } else {
-                window.showToast("Cloud sync is blocked by browser.");
+        const themeBtn = document.getElementById('theme-toggle-btn');
+        if(themeBtn) themeBtn.addEventListener('click', () => { 
+            const htmlTag = document.documentElement; const isDark = htmlTag.classList.contains('dark');
+            if (isDark) { 
+                htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light');
+                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); 
+                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); 
+            } else { 
+                htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark');
+                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); 
+                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); 
             }
-        };
+        });
 
-        window.signOutUser = function() {
+        const googleLoginBtn = document.getElementById('google-login-btn-main');
+        if(googleLoginBtn) googleLoginBtn.addEventListener('click', () => {
+            if(!auth || !provider) return window.showToast("Cloud sync is blocked by browser.");
+            googleLoginBtn.innerHTML = '<span class="animate-pulse">Connecting to Google...</span>';
+            sessionStorage.setItem('awaiting_redirect', 'true');
+            auth.signInWithRedirect(provider);
+        });
+
+        const emailLoginBtn = document.getElementById('email-login-btn');
+        if(emailLoginBtn) emailLoginBtn.addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            if(!email || !password) return window.showToast("Please enter email and password.");
+            if(auth) {
+                const originalText = emailLoginBtn.innerText;
+                emailLoginBtn.innerText = 'Logging in...';
+                auth.signInWithEmailAndPassword(email, password).catch(err => {
+                    emailLoginBtn.innerText = originalText;
+                    window.showToast(getCleanAuthError(err));
+                });
+            }
+        });
+
+        const emailSignupBtn = document.getElementById('email-signup-btn');
+        if(emailSignupBtn) emailSignupBtn.addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            if(!email || !password) return window.showToast("Please enter email and password.");
+            if(auth) {
+                const originalText = emailSignupBtn.innerText;
+                emailSignupBtn.innerText = 'Creating account...';
+                auth.createUserWithEmailAndPassword(email, password).catch(err => {
+                    emailSignupBtn.innerText = originalText;
+                    window.showToast(getCleanAuthError(err));
+                });
+            }
+        });
+
+        const logoutBtn = document.getElementById('google-logout-btn');
+        if(logoutBtn) logoutBtn.addEventListener('click', () => {
             window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", false, () => { 
                 if(auth) {
                     auth.signOut().then(() => {
@@ -424,7 +473,7 @@
                     }).catch(e => window.showToast("Sign out failed. Try again."));
                 } 
             });
-        };
+        });
 
         const renderer = new marked.Renderer();
         window.escapeHtml = function(text) { 
@@ -477,22 +526,33 @@
         const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
         const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
 
+        window.showToast = function(message, actionText = null, actionCallback = null) {
+            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
+            const toast = document.createElement('div'); toast.id = 'custom-toast';
+            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
+            let html = `<span>${message}</span>`;
+            if (actionText) html += `<button id="toast-action-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">${actionText}</button>`;
+            toast.innerHTML = html; document.body.appendChild(toast);
+            if (actionText && actionCallback) { const tb = document.getElementById('toast-action-btn'); if(tb) tb.addEventListener('click', () => { actionCallback(); toast.remove(); }); }
+            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
+        };
+
         window.toggleChatMenu = function(e, id) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${id}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${id}`); if(m) m.classList.toggle('hidden'); };
         window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
         window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`).classList.add('hidden'); } };
         window.shareChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { try { const shareUrl = `${window.location.origin}${window.location.pathname}#share=${btoa(JSON.stringify(chat))}`; navigator.clipboard.writeText(shareUrl).then(() => window.showToast("Link copied to clipboard!")).catch(() => window.showToast("Failed to copy link.")); } catch (err) { window.showToast("Chat too large to share via URL."); } document.getElementById(`menu-${id}`).classList.add('hidden'); } };
-        window.deleteChat = function(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`).classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", "Delete", true, () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (currentChatId === id) { currentChatId = null; showWelcome(); } }); };
+        window.deleteChat = function(e, id) { e.stopPropagation(); const m = document.getElementById(`menu-${id}`); if(m) m.classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", "Delete", true, () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (currentChatId === id) { currentChatId = null; showWelcome(); } }); };
 
         window.toggleUserMenu = function(e, msgId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${msgId}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.toggle('hidden'); };
         
         window.copyUserMessage = function(msgId) { 
             const node = document.getElementById(msgId); if(!node) return;
             const text = node.querySelector('.message-text').innerText; navigator.clipboard.writeText(text); 
-            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
-            window.showToast("Prompt copied.", "Start new chat", () => { const nc = document.getElementById('new-chat-btn'); if(nc) nc.click(); }); 
+            const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden'); 
+            window.showToast("Prompt copied.", "Start new chat", () => { const ncb = document.getElementById('new-chat-btn'); if(ncb) ncb.click(); }); 
         };
         
-        window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const txtNode = node.querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(txtNode); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`).classList.add('hidden');};
+        window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const txtNode = node.querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(txtNode); selection.removeAllRanges(); selection.addRange(range); const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden');};
         
         window.editUserMessage = function(msgId) { 
             const msgBox = document.getElementById(msgId); if(!msgBox) return; const text = msgBox.querySelector('.message-text').innerText; 
@@ -505,11 +565,11 @@
             }
             const elUserInput = document.getElementById('user-input');
             if(elUserInput) { elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); } 
-            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
+            const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden'); 
             updateSendButton();
         };
         
-        window.shareUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const text = node.querySelector('.message-text').innerText; if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`).classList.add('hidden');};
+        window.shareUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const text = node.querySelector('.message-text').innerText; if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.add('hidden');};
 
         window.copyToClipboard = (btn) => { 
             const msgBox = btn.closest('.relative').querySelector('.message-text'); const txt = document.createElement('textarea'); txt.value = msgBox.innerText; 
@@ -545,20 +605,6 @@
             btn.innerHTML = SPEAKER_OFF_ICON; 
             window.speechSynthesis.speak(utterance);
         };
-
-        const themeBtn = document.getElementById('theme-toggle-btn');
-        if(themeBtn) themeBtn.addEventListener('click', () => { 
-            const htmlTag = document.documentElement; const isDark = htmlTag.classList.contains('dark');
-            if (isDark) { 
-                htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); 
-            } else { 
-                htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); 
-            }
-        });
         
         window.regenerateResponse = function(btn) { 
             if (window.isGenerating) return; 
@@ -640,7 +686,6 @@
             let actionButtons = '';
             if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
             
-            // FIX 4: High Contrast Aesthetic Bubbles for Light Mode! User=Blue, AI=White with distinct borders
             const bubbleStyles = isUser 
                 ? 'bg-blue-600 dark:bg-gray-800 text-white rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-md' 
                 : 'text-gray-900 dark:text-gray-200 px-5 py-4 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl rounded-tl-sm w-full relative pr-14 min-w-[120px] shadow-md'; 
@@ -697,7 +742,6 @@
             }
         }
 
-        // --- FIX 2: VERIFY PASSWORD LOGIC ---
         async function verifyPassword(pwd, isSilentBoot = false) { 
             if (!pwd) return;
             const elPassSubmit = document.getElementById('submit-password-btn');
@@ -748,8 +792,11 @@
             if(!elUserInput || !elSendBtn) return;
             const isEmpty = elUserInput.value.trim() === '' && !currentBase64Image && !currentFileAttachment;
             elSendBtn.disabled = isEmpty;
-            if (isEmpty) { elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"; } 
-            else { elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-blue-600 text-white hover:bg-blue-500 shadow-md transform hover:scale-105"; }
+            if (isEmpty) {
+                elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed";
+            } else {
+                elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-blue-600 text-white hover:bg-blue-500 shadow-md transform hover:scale-105";
+            }
         }
 
         async function sendMessage() {
@@ -834,17 +881,15 @@
         const csBtn = document.getElementById('close-settings-btn'); if(csBtn) csBtn.addEventListener('click', () => { const sm = document.getElementById('settings-modal'); if(sm) sm.classList.add('hidden'); });
         const ssBtn = document.getElementById('save-settings-btn'); if(ssBtn) ssBtn.addEventListener('click', () => { const spi = document.getElementById('system-prompt-input'); if(spi) settings.systemPrompt = spi.value.trim(); saveSettings(); const sm = document.getElementById('settings-modal'); if(sm) sm.classList.add('hidden'); });
         
-        // --- FIX 2 & 4: LOCK APP BUTTON ---
+        // --- FIX: LOCK APP LISTENER ---
         const laBtn = document.getElementById('lock-app-btn'); if(laBtn) laBtn.addEventListener('click', () => { 
             currentPassword = ''; 
             appState.isPasswordValid = false; 
             localStorage.removeItem(PWD_STORAGE_KEY); 
-            state.chats = []; 
-            currentChatId = null;
-            clearMessages();
             const sm = document.getElementById('settings-modal'); if(sm) sm.classList.add('hidden'); 
             const api = document.getElementById('app-password-input'); if(api) api.value = ''; 
             const pe = document.getElementById('password-error'); if(pe) pe.classList.add('hidden'); 
+            state.chats = []; currentChatId = null; clearMessages(); renderSidebar(); // Purge view memory on lock!
             renderUIMaster(); 
         });
 
@@ -871,13 +916,11 @@
             renderSidebar(); 
             
             if (currentPassword) { 
-                const po = document.getElementById('password-overlay');
-                if(po) { po.classList.add('hidden'); po.style.display = 'none'; }
                 appState.isPasswordValid = true; 
+                renderUIMaster();
                 verifyPassword(currentPassword, true); 
             } else { 
-                const po = document.getElementById('password-overlay');
-                if(po) { po.classList.remove('hidden'); po.style.display = 'flex'; }
+                renderUIMaster(); 
             }
         }
         
