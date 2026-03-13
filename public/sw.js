@@ -1,9 +1,9 @@
-const CACHE_NAME = 'anurags-gpt-cache-v2';
+const CACHE_NAME = 'anurags-gpt-cache-v3';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon-transparent.png'
+  '/icon-512.png'
 ];
 
 // 1. Install & Cache
