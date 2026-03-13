@@ -97,7 +97,7 @@
     <div id="login-overlay" class="fixed inset-0 bg-[#fff5e1] dark:bg-gray-950 z-[90] flex-col items-center justify-center p-6 hidden overflow-y-auto">
         <div class="w-full max-w-sm flex flex-col items-center text-center space-y-10 fade-in py-8">
             <h1 class="text-3xl md:text-4xl font-bold text-blue-700 dark:text-blue-500 flex items-center justify-center gap-2 tracking-tight">
-                <span id="dynamic-login-text" style="transition: opacity 0.3s ease-in-out;">Let’s collaborate</span><span class="w-3 h-3 bg-blue-700 dark:bg-blue-500 rounded-full mt-1"></span>
+                <span id="dynamic-login-text" style="transition: opacity 0.3s ease-in-out;">Let's collaborate</span><span class="w-3 h-3 bg-blue-700 dark:bg-blue-500 rounded-full mt-1"></span>
             </h1>
             
             <div class="w-full bg-white dark:bg-gray-900 p-6 rounded-[2rem] shadow-2xl flex flex-col gap-4 border border-gray-200 dark:border-gray-800">
@@ -250,6 +250,7 @@
     </div>
 
     <script>
+        // --- 1. GUARDS ---
         if ('serviceWorker' in navigator) { 
             navigator.serviceWorker.getRegistrations().then(function(registrations) { 
                 for(let registration of registrations) { registration.update(); } 
@@ -258,7 +259,17 @@
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
-        
+
+        // --- 2. UTILS ---
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => document.querySelectorAll(selector);
+
+        window.escapeHtml = function(text) { 
+            if (text == null) return ""; 
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; 
+            return String(text).replace(/[&<>"']/g, m => map[m]); 
+        };
+
         function getCleanAuthError(error) {
             const code = error.code || '';
             if (code === 'auth/email-already-in-use') return "Email already registered. Try 'Log In' instead.";
@@ -270,257 +281,35 @@
             return "Authentication failed. Please try again.";
         }
 
-        const $ = (selector) => document.querySelector(selector);
-        const $$ = (selector) => document.querySelectorAll(selector);
-
-        const APP_STORAGE_KEY = 'ai_chat_app_data_v11'; 
-        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v11'; 
-        const PWD_STORAGE_KEY = 'ai_chat_auth_pwd'; 
-        
-        let state = { chats: [] }; 
-        let currentChatId = null;
-        let settings = { systemPrompt: '' }; 
-        let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
-        
-        let currentBase64Image = null; 
-        let currentFileAttachment = null; 
-        window.isGenerating = false; 
-        let abortController = null;
-        let isUserScrolledUp = false; 
-        let recognition = null; 
-        let isTempChat = false; 
-        let tempChatData = { messages: [] }; 
-
-        let appState = {
-            isPasswordValid: false,
-            firebaseReady: false,
-            firebaseUser: null,
-            chatsLoaded: false
-        };
-        let currentUser = null; 
-        let nullUserTimer = null; 
-
-        function renderUIMaster() {
-            const passOverlay = document.getElementById('password-overlay');
-            const loginOverlay = document.getElementById('login-overlay');
-            const profileSec = document.getElementById('user-profile-section');
-
-            if (!appState.isPasswordValid) {
-                if(passOverlay) { passOverlay.classList.remove('hidden'); passOverlay.style.display = 'flex'; }
-                if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; }
-                return;
-            } else { 
-                if(passOverlay) { passOverlay.classList.add('hidden'); passOverlay.style.display = 'none'; }
-            }
-
-            if (!appState.firebaseReady) {
-                if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; }
-                return;
-            }
-
-            if (sessionStorage.getItem('awaiting_redirect') === 'true') {
-                if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; }
-                return; 
-            }
-
-            if (appState.firebaseUser) {
-                if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; }
-                if(profileSec) { profileSec.style.display = 'flex'; profileSec.classList.remove('hidden'); } 
-                
-                const avatar = document.getElementById('user-avatar'); if(avatar) avatar.src = appState.firebaseUser.photoURL || '/icon.png';
-                
-                const uName = document.getElementById('user-name'); 
-                if(uName) {
-                    let dName = appState.firebaseUser.displayName;
-                    if(!dName && appState.firebaseUser.email) { dName = appState.firebaseUser.email.split('@')[0]; }
-                    uName.innerText = dName || 'User';
-                }
-
-                const uEmail = document.getElementById('user-email'); if(uEmail) uEmail.innerText = appState.firebaseUser.email || '';
-
-                if (!appState.chatsLoaded) {
-                    loadChatsFromCloud(appState.firebaseUser);
-                    appState.chatsLoaded = true;
-                }
-            } else {
-                if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; }
-                if(profileSec) { profileSec.style.display = 'none'; profileSec.classList.add('hidden'); } 
-                appState.chatsLoaded = false;
-            }
-        }
-
-        function resetGoogleBtn() {
-            const btn = document.getElementById('google-login-btn-main');
-            if(btn) btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`;
-        }
-
-        let auth = null, db = null, provider = null;
-        try {
-            if (typeof firebase !== 'undefined') {
-                const firebaseConfig = {
-                    apiKey: "AIzaSyCW15zuR-6IKVfmsfyiZlaZ5D5ZmIpdy9E", // ⚠️ PASTE YOUR BRAND NEW API KEY RIGHT HERE!
-                    authDomain: "anurags-gpt-cloud.firebaseapp.com",
-                    projectId: "anurags-gpt-cloud",
-                    storageBucket: "anurags-gpt-cloud.firebasestorage.app",
-                    messagingSenderId: "344168996440",
-                    appId: "1:344168996440:web:9d8a06007c21e293f7f42d"
-                };
-                firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
-                db = firebase.firestore();
-                provider = new firebase.auth.GoogleAuthProvider();
-                
-                auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
-                
-                auth.getRedirectResult().then((result) => {
-                    sessionStorage.removeItem('awaiting_redirect');
-                    if (result && result.user) {
-                        currentUser = result.user;
-                        appState.firebaseUser = result.user;
-                        appState.firebaseReady = true;
-                        renderUIMaster();
-                    } else {
-                        resetGoogleBtn();
-                    }
-                }).catch((e) => { 
-                    sessionStorage.removeItem('awaiting_redirect');
-                    resetGoogleBtn();
-                    window.showToast(getCleanAuthError(e));
-                });
-
-                auth.onAuthStateChanged((user) => {
-                    if (sessionStorage.getItem('awaiting_redirect') === 'true') return; 
-
-                    appState.firebaseReady = true;
-                    
-                    if (user) {
-                        if (nullUserTimer) { clearTimeout(nullUserTimer); nullUserTimer = null; }
-                        currentUser = user;
-                        appState.firebaseUser = user;
-                        renderUIMaster();
-                    } else {
-                        nullUserTimer = setTimeout(() => {
-                            if (appState.firebaseUser) return;
-                            currentUser = null;
-                            appState.firebaseUser = null;
-                            appState.chatsLoaded = false;
-                            state.chats = []; clearMessages(); renderSidebar();
-                            resetGoogleBtn(); 
-                            renderUIMaster();
-                        }, 800);
-                    }
-                });
-
-            } else {
-                console.warn("Firebase blocked by browser. Running local.");
-                appState.firebaseReady = true; 
-            }
-        } catch(e) {
-            console.error("Firebase init error:", e);
-            appState.firebaseReady = true; 
-        }
-
-        const themeBtn = document.getElementById('theme-toggle-btn');
-        if(themeBtn) themeBtn.addEventListener('click', () => { 
-            const htmlTag = document.documentElement; const isDark = htmlTag.classList.contains('dark');
-            if (isDark) { 
-                htmlTag.classList.remove('dark'); localStorage.setItem('anurags_gpt_theme', 'light');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.add('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.remove('hidden'); 
-            } else { 
-                htmlTag.classList.add('dark'); localStorage.setItem('anurags_gpt_theme', 'dark');
-                const tL = document.getElementById('theme-icon-light'); if(tL) tL.classList.remove('hidden'); 
-                const tD = document.getElementById('theme-icon-dark'); if(tD) tD.classList.add('hidden'); 
-            }
-        });
-
-        window.loginWithGoogle = function() {
-            if(auth && provider) {
-                const btn = document.getElementById('google-login-btn-main');
-                if(btn) btn.innerHTML = '<span class="animate-pulse">Connecting...</span>';
-                sessionStorage.setItem('awaiting_redirect', 'true');
-                auth.signInWithRedirect(provider);
-            } else {
-                window.showToast("Cloud sync is blocked by browser.");
-            }
+        window.showToast = function(message, actionText = null, actionCallback = null) {
+            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
+            const toast = document.createElement('div'); toast.id = 'custom-toast';
+            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
+            let html = `<span>${message}</span>`;
+            if (actionText) html += `<button id="toast-action-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">${actionText}</button>`;
+            toast.innerHTML = html; document.body.appendChild(toast);
+            if (actionText && actionCallback) { const tb = document.getElementById('toast-action-btn'); if(tb) tb.addEventListener('click', () => { actionCallback(); toast.remove(); }); }
+            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
         };
 
-        const glBtn = document.getElementById('google-login-btn-main');
-        if (glBtn) glBtn.addEventListener('click', window.loginWithGoogle);
-
-        const emailLoginBtn = document.getElementById('email-login-btn');
-        if(emailLoginBtn) emailLoginBtn.addEventListener('click', async () => {
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
-            if(!email || !password) return window.showToast("Please enter email and password.");
-            if(auth) {
-                const originalText = emailLoginBtn.innerText;
-                emailLoginBtn.innerText = 'Logging in...';
-                auth.signInWithEmailAndPassword(email, password).catch(err => {
-                    emailLoginBtn.innerText = originalText;
-                    window.showToast(getCleanAuthError(err));
-                });
-            }
-        });
-
-        const emailSignupBtn = document.getElementById('email-signup-btn');
-        if(emailSignupBtn) emailSignupBtn.addEventListener('click', async () => {
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
-            if(!email || !password) return window.showToast("Please enter email and password.");
-            if(auth) {
-                const originalText = emailSignupBtn.innerText;
-                emailSignupBtn.innerText = 'Creating account...';
-                auth.createUserWithEmailAndPassword(email, password).catch(err => {
-                    emailSignupBtn.innerText = originalText;
-                    window.showToast(getCleanAuthError(err));
-                });
-            }
-        });
-
-        window.signOutUser = function() {
-            window.showConfirmModal("Sign Out?", "Your chats are safely saved in the cloud.", "Sign Out", () => { 
-                if(auth) {
-                    auth.signOut().then(() => {
-                        currentUser = null;
-                        appState.firebaseUser = null;
-                        appState.chatsLoaded = false;
-                        state.chats = [];
-                        currentChatId = null;
-                        clearMessages();
-                        showWelcome();
-                        renderSidebar();
-                        renderUIMaster();
-                        if (window.innerWidth < 768) { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); }
-                    }).catch(e => window.showToast("Sign out failed. Try again."));
-                } 
-            }, false);
-        };
-
-        const loBtn = document.getElementById('google-logout-btn');
-        if (loBtn) loBtn.addEventListener('click', window.signOutUser);
-
-        const renderer = new marked.Renderer();
-        try {
-            marked.setOptions({
-                renderer: renderer,
-                breaks: true,
-                gfm: true
-            });
-        } catch (e) {}
-
-        window.escapeHtml = function(text) { 
-            if (text == null) return ""; 
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }; 
-            return String(text).replace(/[&<>"']/g, m => map[m]); 
-        };
-        
         function applyKaTeX(element) {
             if (typeof renderMathInElement === 'function') { 
-                try { renderMathInElement(element, { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}, {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true} ], throwOnError: false }); 
-                } catch (e) {}
+                try { renderMathInElement(element, { delimiters: [ 
+                    {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false},
+                    {left: '\\(', right: '\\)', display: false}, {left: '\\[', right: '\\]', display: true}
+                ], throwOnError: false }); } catch (e) {}
             }
         }
+
+        window.formatText = function(text) { 
+            if (!text) return ""; 
+            try {
+                let processedText = String(text);
+                if (window.isGenerating) { processedText = processedText.replace(/!\[[^\]]*\]?\([^)]*$/, `<div class="text-blue-500 dark:text-blue-400 text-sm font-bold animate-pulse mt-2 py-2">🎨 Designing Image...</div>`); }
+                if (typeof marked !== 'undefined') return marked.parse(processedText); 
+            } catch (e) {}
+            return window.escapeHtml(String(text)).replace(/\n/g, '<br>');
+        };
 
         window.openImageViewer = function(src) {
             if (!src || src.includes('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')) return;
@@ -538,202 +327,16 @@
                 setTimeout(() => modal.classList.add('hidden'), 300);
             }
         };
-
-        const civBtn = document.getElementById('close-image-viewer'); if(civBtn) civBtn.addEventListener('click', window.closeImageViewer);
-        const ivMod = document.getElementById('image-viewer-modal'); if(ivMod) ivMod.addEventListener('click', (e) => { if (e.target === ivMod || e.target === document.getElementById('image-viewer-img')) window.closeImageViewer(); });
-        
-        const DOWNLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`;
-        const REGENERATE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
-        const REGENERATE_RESPONSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" /></svg>`;
-        const THREE_DOTS_VERTICAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12a.75.75 0 110-1.5.75.75 0 010 1.5zM12 17.25a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>`;
-        const PIN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0111.186 0z" /></svg>`;
-        const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>`;
-        const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`;
-        const SHARE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.287.696.287 1.093a2.25 2.25 0 01-.287 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>`;
-        const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
-        const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
-        const CLIPBOARD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>`;
-        const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-green-600 dark:text-green-500"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
-        const SPEAKER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" /></svg>`;
-        const SPEAKER_OFF_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-blue-600 dark:text-blue-500 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>`;
-        const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
-        const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" /></svg>`;
-
-        window.showToast = function(message, actionText = null, actionCallback = null) {
-            const oldToast = document.getElementById('custom-toast'); if (oldToast) oldToast.remove();
-            const toast = document.createElement('div'); toast.id = 'custom-toast';
-            toast.className = 'fixed bottom-24 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-600 text-white px-5 py-3 rounded-2xl shadow-2xl z-[200] flex items-center gap-4 fade-in text-sm font-medium';
-            let html = `<span>${message}</span>`;
-            if (actionText) html += `<button id="toast-action-btn" class="bg-blue-600 hover:bg-blue-500 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">${actionText}</button>`;
-            toast.innerHTML = html; document.body.appendChild(toast);
-            if (actionText && actionCallback) { const tb = document.getElementById('toast-action-btn'); if(tb) tb.addEventListener('click', () => { actionCallback(); toast.remove(); }); }
-            setTimeout(() => { if(document.body.contains(toast)) toast.remove(); }, 4000);
-        };
-
-        let confirmActionCallback = null; 
-        window.showConfirmModal = function(title, text, actionBtnText, callback, isDanger = true) { 
-            const t = document.getElementById('confirm-modal-title'); if(t) t.innerText = title; 
-            const tx = document.getElementById('confirm-modal-text'); if(tx) tx.innerText = text; 
-            const actionBtn = document.getElementById('confirm-action-btn');
-            if(actionBtn) actionBtn.innerText = actionBtnText; 
-            
-            const iconDiv = document.getElementById('confirm-modal-icon-container');
-            if(iconDiv && actionBtn) {
-                if(isDanger) {
-                    actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20";
-                    iconDiv.className = "w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-500";
-                    iconDiv.innerHTML = `<svg id="confirm-modal-icon" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
-                } else {
-                    actionBtn.className = "flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20";
-                    iconDiv.className = "w-16 h-16 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-500";
-                    iconDiv.innerHTML = `<svg id="confirm-modal-icon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-                }
-            }
-
-            confirmActionCallback = callback; 
-            const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.remove('hidden'); 
-        }; 
-        
-        window.closeConfirmModal = function() { const cm = document.getElementById('confirm-modal'); if(cm) cm.classList.add('hidden'); confirmActionCallback = null; }; 
-        const ccb = document.getElementById('confirm-cancel-btn'); if(ccb) ccb.addEventListener('click', window.closeConfirmModal); 
-        const cab = document.getElementById('confirm-action-btn'); if(cab) cab.addEventListener('click', () => { if (typeof confirmActionCallback === 'function') confirmActionCallback(); window.closeConfirmModal(); });
-
-        let customPromptCallback = null; 
-        window.showCustomPrompt = function(title, defaultValue, callback) { const t = document.getElementById('custom-prompt-title'); if(t) t.innerText = title; const i = document.getElementById('custom-prompt-input'); if(i) { i.value = defaultValue; i.focus(); } customPromptCallback = callback; const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.remove('hidden'); }; 
-        window.closeCustomPrompt = function() { const cm = document.getElementById('custom-prompt-modal'); if(cm) cm.classList.add('hidden'); customPromptCallback = null; }; 
-        const cpcb = document.getElementById('custom-prompt-cancel'); if(cpcb) cpcb.addEventListener('click', window.closeCustomPrompt); 
-        const cpc = document.getElementById('custom-prompt-confirm'); if(cpc) cpc.addEventListener('click', () => { if (typeof customPromptCallback === 'function') { const i = document.getElementById('custom-prompt-input'); if(i) customPromptCallback(i.value); } window.closeCustomPrompt(); });
-
-        if(document.getElementById('messages-container')) {
-            document.getElementById('messages-container').addEventListener('scroll', () => { 
-                const elMessagesContainer = document.getElementById('messages-container'); 
-                const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); 
-                isUserScrolledUp = elMessagesContainer.scrollHeight - elMessagesContainer.scrollTop - elMessagesContainer.clientHeight > 80; 
-                if(elScrollToBottomBtn) { 
-                    if (isUserScrolledUp) { 
-                        elScrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); 
-                        elScrollToBottomBtn.classList.add('opacity-100', 'translate-y-0'); 
-                    } else { 
-                        elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); 
-                        elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); 
-                    } 
-                } 
-            });
-        }
-        if(document.getElementById('scroll-to-bottom-btn')) document.getElementById('scroll-to-bottom-btn').addEventListener('click', () => { isUserScrolledUp = false; const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) elMessagesContainer.scrollTo({ top: elMessagesContainer.scrollHeight, behavior: 'smooth' }); });
-        
-        function scrollToBottom() { if (!isUserScrolledUp) { const elMessagesContainer = document.getElementById('messages-container'); if(elMessagesContainer) elMessagesContainer.scrollTop = elMessagesContainer.scrollHeight; } }
-
-        window.toggleChatMenu = function(e, id) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${id}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${id}`); if(m) m.classList.toggle('hidden'); };
-        window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
-        window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`).classList.add('hidden'); } };
-        window.shareChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { try { const shareUrl = `${window.location.origin}${window.location.pathname}#share=${btoa(JSON.stringify(chat))}`; navigator.clipboard.writeText(shareUrl).then(() => window.showToast("Link copied to clipboard!")).catch(() => window.showToast("Failed to copy link.")); } catch (err) { window.showToast("Chat too large to share via URL."); } document.getElementById(`menu-${id}`).classList.add('hidden'); } };
-        window.deleteChat = function(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`).classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", "Delete", () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (currentChatId === id) { currentChatId = null; showWelcome(); } }, true); };
-
-        window.toggleUserMenu = function(e, msgId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(menu => { if (menu.id !== `menu-${msgId}`) menu.classList.add('hidden'); }); const m = document.getElementById(`menu-${msgId}`); if(m) m.classList.toggle('hidden'); };
-        
-        window.copyUserMessage = function(msgId) { 
-            const node = document.getElementById(msgId); if(!node) return;
-            const text = node.querySelector('.message-text').innerText; navigator.clipboard.writeText(text); 
-            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
-            window.showToast("Prompt copied.", "Start new chat", () => { const ncb = document.getElementById('new-chat-btn'); if(ncb) ncb.click(); }); 
-        };
-        
-        window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const txtNode = node.querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(txtNode); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`).classList.add('hidden');};
-        
-        window.editUserMessage = function(msgId) { 
-            const msgBox = document.getElementById(msgId); if(!msgBox) return; const text = msgBox.querySelector('.message-text').innerText; 
-            const img = msgBox.querySelector('img');
-            if (img && img.src.startsWith('data:image')) {
-                currentBase64Image = img.src;
-                const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } 
-                const fp = document.getElementById('file-preview'); if(fp) fp.classList.add('hidden'); 
-                const ap = document.getElementById('attachment-preview-container'); if(ap) ap.classList.remove('hidden');
-            }
-            const elUserInput = document.getElementById('user-input');
-            if(elUserInput) { elUserInput.value = text; elUserInput.focus(); elUserInput.dispatchEvent(new Event('input')); } 
-            document.getElementById(`menu-${msgId}`).classList.add('hidden'); 
-            updateSendButton();
-        };
-        
-        window.shareUserMessage = function(msgId) { const node = document.getElementById(msgId); if(!node) return; const text = node.querySelector('.message-text').innerText; if (navigator.share) { navigator.share({ title: 'Prompt from Anurag\'s GPT', text: text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`).classList.add('hidden');};
-
-        window.copyToClipboard = (btn) => { 
-            const msgBox = btn.closest('.relative').querySelector('.message-text'); const txt = document.createElement('textarea'); txt.value = msgBox.innerText; 
-            navigator.clipboard.writeText(txt.value).then(() => { const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); }); 
-        };
-
-        window.currentSpeakingId = null; 
-        window.toggleSpeech = (btn) => { 
-            const msgContainer = btn.closest('.relative.group');
-            const msgId = msgContainer.id;
-            
-            if (window.speechSynthesis.speaking || window.speechSynthesis.pending) { 
-                window.speechSynthesis.cancel(); 
-                $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); 
-                
-                if (window.currentSpeakingId === msgId) { 
-                    window.currentSpeakingId = null; 
-                    return; 
-                } 
-            }
-            
-            window.currentSpeakingId = msgId;
-            const msgBox = msgContainer.querySelector('.message-text');
-            const clone = msgBox.cloneNode(true);
-            
-            clone.querySelectorAll('.ai-image-container').forEach(el => el.remove()); 
-            
-            let textToSpeak = clone.innerText.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').replace(/https?:\/\/[^\s]+/g, '').trim(); 
-            
-            const utterance = new SpeechSynthesisUtterance(textToSpeak); 
-            utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; window.currentSpeakingId = null; };
-            utterance.onerror = () => { btn.innerHTML = SPEAKER_ICON; window.currentSpeakingId = null; };
-            btn.innerHTML = SPEAKER_OFF_ICON; 
-            window.speechSynthesis.speak(utterance);
-        };
-        
-        window.regenerateResponse = function(btn) { 
-            if (window.isGenerating) return; 
-            let chat = isTempChat ? tempChatData : state.chats.find(c => c.id === currentChatId);
-            if (!chat || !Array.isArray(chat.messages) || chat.messages.length < 2) return;
-            if (chat.messages[chat.messages.length - 1].role === 'assistant' && chat.messages[chat.messages.length - 2].role === 'user') {
-                const userContent = chat.messages[chat.messages.length - 2].content; let lastUserText = "";
-                if (Array.isArray(userContent)) {
-                    let textObj = userContent.find(c => c.type === 'text'); let imgObj = userContent.find(c => c.type === 'image_url');
-                    if (textObj) lastUserText = textObj.text;
-                    if (imgObj) { currentBase64Image = imgObj.image_url.url; const ip = document.getElementById('image-preview'); if(ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } const ap = document.getElementById('attachment-preview-container'); if(ap) ap.classList.remove('hidden'); }
-                } else { lastUserText = userContent; }
-                if (lastUserText.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = lastUserText.split('\n\nUser Message: '); if (parts.length > 1) lastUserText = parts.slice(1).join('\n\nUser Message: '); }
-                chat.messages.pop(); chat.messages.pop(); if (!isTempChat) saveChats(); loadChat(chat.id || null);
-                const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn');
-                if(elUserInput) { elUserInput.value = lastUserText; elUserInput.style.height = 'auto'; elUserInput.style.height = (elUserInput.scrollHeight) + 'px'; }
-                updateSendButton(); if(elSendBtn) elSendBtn.click();
-            }
-        };
-        window.regenerateImageBtn = window.regenerateResponse; 
-
-        window.downloadImageBtn = async function(btn) { 
-            try { 
-                const imgContainer = btn.closest('.relative.group\\/imgbox') || btn.parentElement.parentElement; 
-                const imgTag = imgContainer.querySelector('img[data-prompt]'); 
-                if (!imgTag || !imgTag.src) throw new Error("Image source not found."); 
-                const response = await fetch(imgTag.src); const blob = await response.blob(); const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = blobUrl; a.download = `AnuragsGPT-Image-${Date.now()}.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
-                const originalHTML = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = originalHTML, 2000); 
-            } catch (error) { window.showToast("Failed to download image."); }
-        };
-
-        renderer.code = function(arg1, arg2) { const codeText = typeof arg1 === 'object' ? arg1.text : arg1; const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code'; return `<div class="relative group/code mb-4 mt-2 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-gray-50 dark:bg-gray-900"><code class="text-sm font-mono text-gray-800 dark:text-gray-300 block raw-code-content language-${lang}">${codeText}</code></pre></div>`;};
-        
         window.fetchSecureImage = async function(prompt, imgEl) { 
             try { 
-                const pwd = encodeURIComponent(currentPassword); const res = await fetch(`/api/image?prompt=${prompt}&pwd=${pwd}`); 
+                const res = await fetch(`/api/image?prompt=${prompt}`, { headers: { 'x-app-password': currentPassword } }); 
                 if (!res.ok) throw new Error("Unknown Backend Error"); 
                 const blob = await res.blob(); imgEl.src = URL.createObjectURL(blob); 
                 if (imgEl.previousElementSibling) imgEl.previousElementSibling.style.display = 'none'; imgEl.style.opacity = '1'; 
             } catch (e) { imgEl.parentElement.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;background:#1f2937;padding:1rem;text-align:center;"><span style="font-size:2rem;margin-bottom:0.5rem;">⚠️</span><div style="color:#f87171;font-weight:bold;font-size:1rem;">Image Failed</div><div style="color:#9ca3af;font-size:0.7rem;margin-top:0.5rem;word-break:break-all;">${window.escapeHtml(e.message)}</div></div>`; }
         };
+
+        const renderer = new marked.Renderer();
 
         renderer.image = function(arg1, arg2, arg3) { 
              let rawHref = typeof arg1 === 'object' ? arg1.href : arg1; const text = typeof arg1 === 'object' ? arg1.text : arg3;
@@ -744,8 +347,9 @@
              if (isBase64) { return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-md"><img src="${cleanHref}" alt="${window.escapeHtml(text || 'Edited Image')}" data-prompt="${safePrompt}" data-is-edit="true" class="absolute inset-0 w-full h-full object-cover z-10 cursor-pointer hover:scale-[1.02] transition-transform duration-300" onclick="window.openImageViewer(this.src)" loading="lazy"><div class="absolute bottom-3 right-3 bg-blue-600/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold text-white tracking-wider z-20 pointer-events-none shadow-md">AI EDITED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" data-is-edit="true" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`; } 
              return `<div class="my-4 relative ai-image-container group/imgbox" style="${containerStyle}"><div class="w-full h-full relative bg-white dark:bg-gray-900 rounded-2xl border-2 border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col items-center justify-center shadow-md"><div class="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-gray-800 z-0"><svg class="w-8 h-8 text-blue-500 animate-spin mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span class="text-xs text-blue-500 dark:text-blue-400 font-bold tracking-wider uppercase animate-pulse">Downloading...</span></div><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-prompt="${safePrompt}" onload="if(!window.isGenerating && !this.dataset.loaded){ this.dataset.loaded='true'; window.fetchSecureImage('${safePrompt}', this); }" onclick="if(this.src && !this.src.startsWith('data:image/gif')) window.openImageViewer(this.src)" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 cursor-pointer z-10 hover:scale-[1.02]" loading="lazy" style="opacity: 0;"><div class="absolute bottom-3 right-3 bg-white/80 dark:bg-black/60 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-white/10 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold tracking-wider z-20 pointer-events-none shadow-sm">AI GENERATED</div></div><div class="absolute top-3 right-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover/imgbox:opacity-100 transition-opacity z-20"><button onclick="window.downloadImageBtn(this)" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Download Image">${DOWNLOAD_ICON}</button><button onclick="window.regenerateImageBtn(this)" data-prompt="${safePrompt}" class="bg-white/90 dark:bg-gray-700/90 text-gray-800 dark:text-white p-1.5 rounded-lg text-xs font-medium shadow-sm flex items-center justify-center backdrop-blur-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600" title="Generate Again">${REGENERATE_ICON}</button></div></div>`;
         };
+
+        // --- 11. TEXT PARSING & MESSAGE DOM ---
         
-        // FIX 1: USER TEXT COLOR SPECIFICITY
         window.appendMessageToDOM = function(role, content) {
             if(role === 'system') return; 
             let displayContent = ""; let imageHtml = "";
@@ -761,7 +365,7 @@
             const isUser = role === 'user'; const msgId = `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             const div = document.createElement('div'); div.className = `flex w-full ${isUser ? 'justify-end' : 'justify-start'} fade-in mb-2 relative group`; div.id = msgId;
             let actionButtons = '';
-            if (!isUser) { actionButtons = `<div class="mt-2 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions" style="display:none;"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
+            if (!isUser) { actionButtons = `<div class="mt-2 hidden gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 assistant-actions"><button onclick="window.toggleSpeech(this)" class="speaker-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Read Aloud">${SPEAKER_ICON}</button><button onclick="window.copyToClipboard(this)" class="copy-btn text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Copy Full Message">${CLIPBOARD_ICON}</button><button onclick="window.regenerateResponse(this)" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white p-1.5 rounded-lg text-xs font-medium transition-colors" title="Regenerate Response">${REGENERATE_RESPONSE_ICON}</button></div>`; } else { actionButtons = `<button class="user-menu-trigger absolute top-2 -left-10 text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:text-gray-300 p-1.5 rounded-lg transition-colors bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm z-10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100" onclick="window.toggleUserMenu(event, '${msgId}')">${THREEDOTS_HORIZONTAL_ICON}</button><div id="menu-${msgId}" class="chat-menu-dropdown hidden absolute right-[calc(100%+10px)] top-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.copyUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3">${CLIPBOARD_ICON} <span>Copy</span></button><button onclick="window.selectUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SELECT_TEXT_ICON} <span>Select Text</span></button><button onclick="window.editUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Edit Message</span></button><button onclick="window.shareUserMessage('${msgId}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button></div>`; }
             
             const bubbleStyles = isUser 
                 ? 'bg-blue-600 dark:bg-gray-800 rounded-3xl rounded-tr-sm px-5 py-3.5 shadow-md' 
@@ -775,118 +379,20 @@
             if (!isUser) { 
                 const textWithoutImages = displayContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim();
                 const actionsContainer = div.querySelector('.assistant-actions');
-                if (actionsContainer) { if (textWithoutImages.length > 0) { actionsContainer.style.display = 'flex'; } }
+                if (actionsContainer) { 
+                    if (textWithoutImages.length > 0) { 
+                        actionsContainer.classList.remove('hidden');
+                        actionsContainer.classList.add('flex');
+                    } 
+                }
                 try { applyKaTeX(div.querySelector('.message-text')); } catch(e) {}
             }
             return div;
         };
 
+        // --- 12. STREAMING & UI ENGINE ---
         function createLoadingIndicator() { const div = document.createElement('div'); div.id = 'loading-indicator'; div.className = 'flex w-full justify-start fade-in mb-2'; div.innerHTML = `<div class="max-w-[85%] flex gap-3"><div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse-slow"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div><div class="flex items-center gap-1.5 h-8 px-4 bg-white dark:bg-gray-900 rounded-2xl rounded-tl-sm border-2 border-gray-200 dark:border-gray-800 shadow-md"><div class="w-1.5 h-1.5 bg-blue-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-purple-500 rounded-full typing-dot"></div><div class="w-1.5 h-1.5 bg-pink-500 rounded-full typing-dot"></div></div></div>`; const mc = document.getElementById('messages-container'); if(mc) mc.appendChild(div); scrollToBottom(); }
         function removeLoadingIndicator() { const ind = document.getElementById('loading-indicator'); if (ind) ind.remove(); }
-
-        function loadChats() { 
-            try { 
-                const stored = localStorage.getItem(APP_STORAGE_KEY); 
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed)) { state.chats = parsed; } 
-                    else if (parsed && Array.isArray(parsed.chats)) { state.chats = parsed.chats; } 
-                    else { state.chats = []; }
-                }
-            } catch (e) { state.chats = []; } 
-            
-            if(!Array.isArray(state.chats)) state.chats = [];
-        }
-
-        async function saveChats() { 
-            try {
-                if(!Array.isArray(state.chats)) state.chats = [];
-                state.chats.sort((a, b) => (a.pinned === b.pinned) ? b.id - a.id : b.pinned ? -1 : 1); 
-                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats)); 
-                if (currentUser && db) { await db.collection('users').doc(currentUser.uid).set({ chats: state.chats }); }
-            } catch (e) { console.error("Save Error", e); }
-        }
-
-        async function loadChatsFromCloud(user) {
-            try {
-                const doc = await db.collection('users').doc(user.uid).get();
-                if (doc.exists && Array.isArray(doc.data().chats) && doc.data().chats.length > 0) { state.chats = doc.data().chats; } 
-                else {
-                    loadChats();
-                    if (state.chats.length > 0) { await saveChats(); } 
-                }
-            } catch(e) { 
-                console.error("Cloud Load Error", e); 
-                loadChats(); 
-            } finally {
-                if(!Array.isArray(state.chats)) state.chats = [];
-                renderSidebar(); 
-                if (currentChatId) { loadChat(currentChatId); } else { showWelcome(); }
-            }
-        }
-
-        function renderSidebar() { 
-            const hl = document.getElementById('chat-history-list');
-            if(!hl) return;
-            hl.innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>'; 
-            
-            if(!Array.isArray(state.chats)) state.chats = [];
-
-            state.chats.forEach(chat => { 
-                const isActive = chat.id === currentChatId && !isTempChat; 
-                const div = document.createElement('div'); div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-100 dark:bg-gray-800/80 text-black dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-black dark:hover:text-gray-200'}`; 
-                div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) { loadChat(chat.id); } }; 
-                div.innerHTML = `<div class="flex items-center gap-3 overflow-hidden flex-1">${chat.pinned ? `<span class="text-blue-500 dark:text-blue-400 mr-2">${PIN_ICON}</span>` : ''}<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg><span class="truncate font-medium">${window.escapeHtml(chat.title)}</span></div><button class="chat-menu-trigger text-gray-500 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="window.toggleChatMenu(event, '${chat.id}')">${THREE_DOTS_VERTICAL_ICON}</button><div id="menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.togglePinChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3">${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span></button><button onclick="window.renameChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 dark:hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Rename</span></button><button onclick="window.shareChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button><button onclick="window.deleteChat(event, '${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${TRASH_ICON} <span>Delete</span></button></div>`; 
-                hl.appendChild(div); 
-            }); 
-        }
-
-        async function verifyPassword(pwd, isSilentBoot = false) { 
-            if (!pwd) return;
-            const elPassSubmit = document.getElementById('submit-password-btn');
-            const elPassError = document.getElementById('password-error');
-            const elPassOverlay = document.getElementById('password-overlay');
-            
-            if(pwd === currentPassword || isSilentBoot) {
-                appState.isPasswordValid = true;
-                if(elPassOverlay) { elPassOverlay.classList.add('hidden'); elPassOverlay.style.display = 'none'; }
-                renderUIMaster();
-            } else {
-                if(elPassSubmit) { elPassSubmit.innerText = 'Verifying...'; elPassSubmit.disabled = true; }
-                if(elPassError) elPassError.classList.add('hidden');
-            }
-
-            try { 
-                const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } }); 
-                const data = await res.json().catch(() => ({ attemptsLeft: 0 }));
-                if(elPassSubmit) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; }
-
-                if (res.ok) { 
-                    currentPassword = pwd; localStorage.setItem(PWD_STORAGE_KEY, pwd); 
-                    appState.isPasswordValid = true;
-                    if(elPassOverlay) { elPassOverlay.classList.add('hidden'); elPassOverlay.style.display = 'none'; }
-                    renderUIMaster();
-                    if (currentUser) loadChatsFromCloud(currentUser);
-                } else if (res.status === 401 || res.status === 403) { 
-                    if (!isSilentBoot) {
-                        currentPassword = '';
-                        localStorage.removeItem(PWD_STORAGE_KEY);
-                    }
-                    appState.isPasswordValid = isSilentBoot ? true : false;
-                    renderUIMaster();
-                    if(!isSilentBoot && elPassOverlay) { elPassOverlay.classList.remove('hidden'); elPassOverlay.style.display = 'flex'; }
-                    if (res.status === 403) { triggerLockdownUI(); } 
-                    else if (!isSilentBoot && elPassError) { 
-                        elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; 
-                        elPassError.classList.remove('hidden'); 
-                    }
-                }
-            } catch (err) { 
-                if(elPassSubmit) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; }
-            } 
-        }
-
-        function triggerLockdownUI() { const po = document.getElementById('password-overlay'); if(po) { po.classList.remove('hidden'); po.style.display = 'flex'; } const pi = document.getElementById('app-password-input'); if(pi) pi.classList.add('hidden'); const ps = document.getElementById('submit-password-btn'); if(ps) ps.classList.add('hidden'); const pe = document.getElementById('password-error'); if(pe) { pe.classList.remove('hidden'); pe.innerHTML = "🚨 IP BANNED 🚨<br>Too many failed attempts."; } }
 
         function updateSendButton() {
             const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn');
@@ -899,6 +405,8 @@
                 elSendBtn.className = "absolute right-2 bottom-2 p-2 rounded-full transition-all duration-300 shadow-sm flex items-center justify-center h-9 w-9 bg-blue-600 text-white hover:bg-blue-500 shadow-md transform hover:scale-105";
             }
         }
+
+        function resetUIState() { window.isGenerating = false; abortController = null; const elSendBtn = document.getElementById('send-btn'); const elUserInput = document.getElementById('user-input'); const elMicBtn = document.getElementById('mic-btn'); const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); if(elSendBtn) elSendBtn.innerHTML = SEND_ICON; if(elUserInput) { elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; } if(elMicBtn) elMicBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none'); updateSendButton(); if(elScrollToBottomBtn) { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } if(elUserInput) elUserInput.focus(); const li = document.getElementById('loading-indicator'); if (li) li.remove(); isUserScrolledUp = false; }
 
         async function sendMessage() {
             const elUserInput = document.getElementById('user-input'); const elSendBtn = document.getElementById('send-btn'); const elMicBtn = document.getElementById('mic-btn'); const elWelcomeScreen = document.getElementById('welcome-screen'); 
@@ -949,7 +457,16 @@
                                     aiContent += deltaContent; 
                                     if (isFirstToken) { 
                                         removeLoadingIndicator(); window.appendMessageToDOM('assistant', ''); 
-                                        if(elMessagesContainer) { const textContainers = elMessagesContainer.querySelectorAll('.message-text'); lastTextContainer = textContainers[textContainers.length - 1]; lastActionButtons = lastTextContainer.closest('.flex-col').querySelector('.assistant-actions'); if(lastActionButtons) lastActionButtons.style.display = 'none'; } isFirstToken = false; 
+                                        if(elMessagesContainer) { 
+                                            const textContainers = elMessagesContainer.querySelectorAll('.message-text'); 
+                                            lastTextContainer = textContainers[textContainers.length - 1]; 
+                                            lastActionButtons = lastTextContainer.closest('.flex-col').querySelector('.assistant-actions'); 
+                                            if(lastActionButtons) { 
+                                                lastActionButtons.classList.add('hidden'); 
+                                                lastActionButtons.classList.remove('flex'); 
+                                            } 
+                                        } 
+                                        isFirstToken = false; 
                                     }
                                     if(lastTextContainer) { lastTextContainer.innerHTML = window.formatText(aiContent); scrollToBottom(); }
                                 }
@@ -961,16 +478,371 @@
                 window.isGenerating = false; 
                 if (lastTextContainer) { lastTextContainer.innerHTML = window.formatText(aiContent); try { applyKaTeX(lastTextContainer); } catch(e){} scrollToBottom(); }
                 chat.messages.push({ role: 'assistant', content: aiContent }); if (!isTempChat) saveChats();
-                if(lastActionButtons) { const textWithoutImages = aiContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim(); if(textWithoutImages.length > 0) { lastActionButtons.style.display = 'flex'; } else { lastActionButtons.style.display = 'none'; } }
+                if(lastActionButtons) { const textWithoutImages = aiContent.replace(/!\[.*?\]\([^)]+\)/g, '').replace(/https:\/\/[a-zA-Z0-9.\-]*pollinations\.ai[^\s]*/g, '').trim(); if(textWithoutImages.length > 0) { lastActionButtons.classList.remove('hidden'); lastActionButtons.classList.add('flex'); } else { lastActionButtons.classList.add('hidden'); lastActionButtons.classList.remove('flex'); } }
             } catch (error) {
                 window.isGenerating = false; removeLoadingIndicator();
                 if (error.name === 'AbortError') { window.appendMessageToDOM('assistant', "*🛑 You stopped this response.*"); } 
                 else if (error.message !== "Incorrect Password." && error.message !== "IP BANNED") { window.appendMessageToDOM('assistant', `⚠️ **Error:** ${error.message}`); }
             } finally { resetUIState(); }
+                    }
+                // ============================================================
+        // --- INJECTED: ALL MISSING CODE (added above existing Part 3) ---
+        // ============================================================
+
+        // --- STORAGE KEY CONSTANTS (must be first — currentPassword depends on PWD_STORAGE_KEY) ---
+        const APP_STORAGE_KEY = 'ai_chat_app_data_v11';
+        const SETTINGS_STORAGE_KEY = 'ai_chat_app_settings_v11';
+        const PWD_STORAGE_KEY = 'ai_chat_auth_pwd';
+
+        // --- STATE VARIABLES ---
+        let state = { chats: [] };
+        let currentChatId = null;
+        let settings = { systemPrompt: '' };
+        let currentPassword = localStorage.getItem(PWD_STORAGE_KEY) || '';
+        let currentBase64Image = null;
+        let currentFileAttachment = null;
+        window.isGenerating = false;
+        let abortController = null;
+        let isUserScrolledUp = false;
+        let recognition = null;
+        let isTempChat = false;
+        let tempChatData = { messages: [] };
+        let appState = { isPasswordValid: false, firebaseReady: false, firebaseUser: null, chatsLoaded: false };
+        let currentUser = null;
+        let nullUserTimer = null;
+        let loginTextInterval = null;
+        let deferredInstallPrompt = null;
+        let auth = null, db = null, provider = null;
+        let currentSpeechUtterance = null;
+        window.currentSpeakingId = null;
+        let confirmActionCallback = null;
+        let customPromptCallback = null;
+
+        // --- ICON CONSTANTS ---
+        const PIN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0111.186 0z" /></svg>`;
+        const THREE_DOTS_VERTICAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12a.75.75 0 110-1.5.75.75 0 010 1.5zM12 17.25a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>`;
+        const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" /></svg>`;
+        const SHARE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.287.696.287 1.093a2.25 2.25 0 01-.287 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>`;
+        const TRASH_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>`;
+        const CHECK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-green-600 dark:text-green-500"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>`;
+        const CLIPBOARD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>`;
+        const DOWNLOAD_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>`;
+        const REGENERATE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
+        const REGENERATE_RESPONSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" /></svg>`;
+        const SPEAKER_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" /></svg>`;
+        const SPEAKER_OFF_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-blue-600 dark:text-blue-500 animate-pulse"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>`;
+        const THREEDOTS_HORIZONTAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM17.25 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>`;
+        const SELECT_TEXT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5" /></svg>`;
+        const SEND_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>`;
+        const STOP_ICON = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2" ry="2"></rect></svg>`;
+
+        // --- renderer.code (registered before marked.setOptions) ---
+        renderer.code = function(arg1, arg2) {
+            const codeText = typeof arg1 === 'object' ? arg1.text : arg1;
+            const lang = (typeof arg1 === 'object' ? arg1.lang : arg2) || 'code';
+            const safeCode = window.escapeHtml(codeText);
+            return `<div class="relative group/code mb-4 mt-2 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"><div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">${lang}</span><button onclick="window.copyCodeBlock(this)" class="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white flex items-center gap-1.5 text-xs font-medium transition-colors p-1" title="Copy Code">${CLIPBOARD_ICON} <span>Copy Code</span></button></div><pre class="p-4 overflow-x-auto m-0 bg-gray-50 dark:bg-gray-900"><code class="text-sm font-mono text-gray-800 dark:text-gray-300 block raw-code-content language-${lang}">${safeCode}</code></pre></div>`;
+        };
+
+        // --- Register renderer with marked AFTER both renderer.code and renderer.image are set ---
+        try { marked.setOptions({ renderer: renderer, breaks: true, gfm: true }); } catch(e) {}
+
+        // --- SCROLL ---
+        function scrollToBottom(force = false) {
+            if (!isUserScrolledUp || force) {
+                const mc = document.getElementById('messages-container');
+                if (mc) mc.scrollTo({ top: mc.scrollHeight, behavior: force ? 'auto' : 'smooth' });
+            }
+        }
+        const mcEl = document.getElementById('messages-container');
+        if (mcEl) mcEl.addEventListener('scroll', () => {
+            const mc = document.getElementById('messages-container');
+            const btn = document.getElementById('scroll-to-bottom-btn');
+            if (!mc) return;
+            isUserScrolledUp = mc.scrollHeight - mc.scrollTop - mc.clientHeight > 80;
+            if (btn) {
+                if (isUserScrolledUp) { btn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4'); btn.classList.add('opacity-100', 'translate-y-0'); }
+                else { btn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); btn.classList.remove('opacity-100', 'translate-y-0'); }
+            }
+        });
+        const stbBtn = document.getElementById('scroll-to-bottom-btn');
+        if (stbBtn) stbBtn.addEventListener('click', () => {
+            isUserScrolledUp = false;
+            const mc = document.getElementById('messages-container');
+            if (mc) mc.scrollTo({ top: mc.scrollHeight, behavior: 'smooth' });
+        });
+
+        // --- IMAGE VIEWER LISTENERS ---
+        const civBtn = document.getElementById('close-image-viewer');
+        if (civBtn) civBtn.addEventListener('click', window.closeImageViewer);
+        const ivModal = document.getElementById('image-viewer-modal');
+        if (ivModal) ivModal.addEventListener('click', function(e) { if (e.target === this) window.closeImageViewer(); });
+
+        // --- PWA INSTALL PROMPT ---
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const prompt = document.getElementById('install-prompt');
+            if (prompt) setTimeout(() => { prompt.classList.remove('translate-y-full'); prompt.classList.add('translate-y-0'); }, 2000);
+        });
+        const installAppBtn = document.getElementById('install-app-btn');
+        if (installAppBtn) installAppBtn.addEventListener('click', async () => {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                await deferredInstallPrompt.userChoice;
+                deferredInstallPrompt = null;
+                const p = document.getElementById('install-prompt');
+                if (p) { p.classList.add('translate-y-full'); p.classList.remove('translate-y-0'); }
+            }
+        });
+        const closeInstallBtn = document.getElementById('close-install-btn');
+        if (closeInstallBtn) closeInstallBtn.addEventListener('click', () => {
+            const p = document.getElementById('install-prompt');
+            if (p) { p.classList.add('translate-y-full'); p.classList.remove('translate-y-0'); }
+        });
+
+        // --- THEME TOGGLE ---
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if (themeToggleBtn) themeToggleBtn.addEventListener('click', () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('anurags_gpt_theme', isDark ? 'dark' : 'light');
+            const tl = document.getElementById('theme-icon-light');
+            const td = document.getElementById('theme-icon-dark');
+            if (tl) tl.classList.toggle('hidden', !isDark);
+            if (td) td.classList.toggle('hidden', isDark);
+        });
+
+        // --- CONFIRM MODAL ---
+        window.showConfirmModal = function(title, text, actionBtnText, callback, isDanger = true) {
+            const t = document.getElementById('confirm-modal-title'); if (t) t.innerText = title;
+            const tx = document.getElementById('confirm-modal-text'); if (tx) tx.innerText = text;
+            const actionBtn = document.getElementById('confirm-action-btn');
+            if (actionBtn) actionBtn.innerText = actionBtnText;
+            const iconDiv = document.getElementById('confirm-modal-icon-container');
+            if (iconDiv && actionBtn) {
+                if (isDanger) {
+                    actionBtn.className = "flex-1 bg-red-600 hover:bg-red-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-red-500/20";
+                    iconDiv.className = "w-16 h-16 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-500";
+                    iconDiv.innerHTML = `<svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                } else {
+                    actionBtn.className = "flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20";
+                    iconDiv.className = "w-16 h-16 bg-blue-100 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-500";
+                    iconDiv.innerHTML = `<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                }
+            }
+            confirmActionCallback = callback;
+            const cm = document.getElementById('confirm-modal');
+            if (cm) cm.classList.remove('hidden');
+        };
+        window.closeConfirmModal = function() {
+            const cm = document.getElementById('confirm-modal');
+            if (cm) cm.classList.add('hidden');
+            confirmActionCallback = null;
+        };
+        const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
+        if (confirmCancelBtn) confirmCancelBtn.addEventListener('click', window.closeConfirmModal);
+        const confirmActionBtn = document.getElementById('confirm-action-btn');
+        if (confirmActionBtn) confirmActionBtn.addEventListener('click', () => { if (typeof confirmActionCallback === 'function') confirmActionCallback(); window.closeConfirmModal(); });
+        const confirmModalEl = document.getElementById('confirm-modal');
+        if (confirmModalEl) confirmModalEl.addEventListener('click', (e) => { if (e.target === confirmModalEl) window.closeConfirmModal(); });
+
+        // --- CUSTOM PROMPT MODAL ---
+        window.showCustomPrompt = function(title, defaultValue, callback) {
+            const t = document.getElementById('custom-prompt-title'); if (t) t.innerText = title;
+            const i = document.getElementById('custom-prompt-input'); if (i) i.value = defaultValue;
+            customPromptCallback = callback;
+            const cm = document.getElementById('custom-prompt-modal');
+            if (cm) { cm.classList.remove('hidden'); cm.classList.add('flex'); setTimeout(() => { if (i) i.focus(); }, 50); }
+        };
+        window.closeCustomPrompt = function() {
+            const cm = document.getElementById('custom-prompt-modal');
+            if (cm) { cm.classList.add('hidden'); cm.classList.remove('flex'); }
+            customPromptCallback = null;
+        };
+        const cpCancelBtn = document.getElementById('custom-prompt-cancel');
+        if (cpCancelBtn) cpCancelBtn.addEventListener('click', window.closeCustomPrompt);
+        const cpConfirmBtn = document.getElementById('custom-prompt-confirm');
+        if (cpConfirmBtn) cpConfirmBtn.addEventListener('click', () => {
+            if (typeof customPromptCallback === 'function') {
+                const i = document.getElementById('custom-prompt-input');
+                if (i) customPromptCallback(i.value);
+            }
+            window.closeCustomPrompt();
+        });
+
+        // --- STORAGE & CHAT PERSISTENCE ---
+        function loadChats() {
+            try {
+                const s = localStorage.getItem(APP_STORAGE_KEY);
+                if (s) { const p = JSON.parse(s); state.chats = Array.isArray(p) ? p : (p && Array.isArray(p.chats) ? p.chats : []); }
+            } catch(e) { state.chats = []; }
+            if (!Array.isArray(state.chats)) state.chats = [];
+        }
+        async function saveChats() {
+            try {
+                if (!Array.isArray(state.chats)) state.chats = [];
+                state.chats.sort((a, b) => (a.pinned === b.pinned) ? b.id - a.id : b.pinned ? -1 : 1);
+                localStorage.setItem(APP_STORAGE_KEY, JSON.stringify(state.chats));
+                if (currentUser && db) { await db.collection('users').doc(currentUser.uid).set({ chats: state.chats }); }
+            } catch(e) { console.error("Save Error", e); }
+        }
+        async function loadChatsFromCloud(user) {
+            if (!db) { loadChats(); if (!Array.isArray(state.chats)) state.chats = []; renderSidebar(); if (currentChatId) loadChat(currentChatId); else showWelcome(); return; }
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (doc.exists && Array.isArray(doc.data().chats) && doc.data().chats.length > 0) {
+                    state.chats = doc.data().chats;
+                } else { loadChats(); if (state.chats.length > 0) await saveChats(); }
+            } catch(e) { console.error("Cloud Load Error", e); loadChats(); }
+            finally { if (!Array.isArray(state.chats)) state.chats = []; renderSidebar(); if (currentChatId) loadChat(currentChatId); else showWelcome(); }
+        }
+        function loadSettings() {
+            try {
+                const s = localStorage.getItem(SETTINGS_STORAGE_KEY);
+                if (s) settings = { ...settings, ...JSON.parse(s) };
+                const spi = document.getElementById('system-prompt-input');
+                if (spi) spi.value = settings.systemPrompt || '';
+            } catch(e) {}
+        }
+        function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
+
+        // --- CHAT HELPERS ---
+        function clearMessages() {
+            const mc = document.getElementById('messages-container');
+            if (mc) Array.from(mc.children).forEach(child => { if (child.id !== 'welcome-screen' && child.id !== 'scroll-to-bottom-btn' && child.id !== 'loading-indicator') child.remove(); });
+        }
+        function showWelcome() { clearMessages(); const ws = document.getElementById('welcome-screen'); if (ws) ws.classList.remove('hidden'); }
+        function disableTempMode() {
+            isTempChat = false;
+            const tb = document.getElementById('temp-badge'); if (tb) tb.classList.add('hidden');
+            const tcBtn = document.getElementById('temp-chat-toggle-btn');
+            if (tcBtn) tcBtn.className = 'text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors';
+        }
+        function getOrCreateChat(firstMessage) {
+            disableTempMode();
+            if (currentChatId) { const ex = state.chats.find(c => c.id === currentChatId); if (ex) return ex; }
+            const nc = { id: Date.now().toString(), title: firstMessage ? firstMessage.substring(0, 30) : "New Chat", messages: [], pinned: false };
+            state.chats.unshift(nc); currentChatId = nc.id; saveChats(); renderSidebar(); return nc;
+        }
+        function loadChat(id) {
+            isUserScrolledUp = false; disableTempMode(); currentChatId = id;
+            const chat = state.chats.find(c => c.id === id); clearMessages();
+            const ws = document.getElementById('welcome-screen');
+            if (chat && Array.isArray(chat.messages) && chat.messages.length > 0) {
+                if (ws) ws.classList.add('hidden');
+                chat.messages.forEach(msg => window.appendMessageToDOM(msg.role, msg.content));
+                scrollToBottom(true);
+            } else { if (ws) ws.classList.remove('hidden'); }
+            renderSidebar();
         }
 
-        function resetUIState() { window.isGenerating = false; abortController = null; const elSendBtn = document.getElementById('send-btn'); const elUserInput = document.getElementById('user-input'); const elMicBtn = document.getElementById('mic-btn'); const elScrollToBottomBtn = document.getElementById('scroll-to-bottom-btn'); if(elSendBtn) elSendBtn.innerHTML = SEND_ICON; if(elUserInput) { elUserInput.disabled = false; elUserInput.placeholder = "Message Anurag's GPT..."; } if(elMicBtn) elMicBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none'); updateSendButton(); if(elScrollToBottomBtn) { elScrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'); elScrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0'); } if(elUserInput) elUserInput.focus(); const li = document.getElementById('loading-indicator'); if (li) li.remove(); }
-        
+        // --- SIDEBAR RENDER ---
+        function renderSidebar() {
+            const hl = document.getElementById('chat-history-list'); if (!hl) return;
+            hl.innerHTML = '<div class="px-4 py-3 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Recent Chats</div>';
+            if (!Array.isArray(state.chats)) state.chats = [];
+            state.chats.forEach(chat => {
+                const isActive = chat.id === currentChatId && !isTempChat;
+                const div = document.createElement('div');
+                div.className = `group relative flex items-center justify-between px-3 py-2.5 mx-2 rounded-xl cursor-pointer text-sm transition-all mb-1 ${isActive ? 'bg-gray-100 dark:bg-gray-800/80 text-black dark:text-white shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-black dark:hover:text-gray-200'}`;
+                div.onclick = (e) => { if (!e.target.closest('.chat-menu-trigger') && !e.target.closest('.chat-menu-dropdown')) loadChat(chat.id); };
+                div.innerHTML = `<div class="flex items-center gap-3 overflow-hidden flex-1">${chat.pinned ? `<span class="text-blue-500 dark:text-blue-400">${PIN_ICON}</span>` : ''}<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0 ${isActive && !chat.pinned ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg><span class="truncate font-medium">${window.escapeHtml(chat.title)}</span></div><button class="chat-menu-trigger text-gray-500 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 p-1.5 rounded-lg transition-all" onclick="window.toggleChatMenu(event,'${chat.id}')">${THREE_DOTS_VERTICAL_ICON}</button><div id="menu-${chat.id}" class="chat-menu-dropdown hidden absolute right-0 top-full mt-1 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden flex flex-col py-1"><button onclick="window.togglePinChat(event,'${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3">${PIN_ICON} <span>${chat.pinned ? 'Unpin' : 'Pin'}</span></button><button onclick="window.renameChat(event,'${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${EDIT_ICON} <span>Rename</span></button><button onclick="window.shareChat(event,'${chat.id}')" class="text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${SHARE_ICON} <span>Share</span></button><button onclick="window.deleteChat(event,'${chat.id}')" class="text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 flex items-center gap-3 border-t border-gray-100 dark:border-gray-800">${TRASH_ICON} <span>Delete</span></button></div>`;
+                hl.appendChild(div);
+            });
+        }
+
+        // --- CHAT MENU ACTIONS ---
+        window.toggleChatMenu = function(e, id) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(m => { if (m.id !== `menu-${id}`) m.classList.add('hidden'); }); const m = document.getElementById(`menu-${id}`); if (m) m.classList.toggle('hidden'); };
+        window.togglePinChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { chat.pinned = !chat.pinned; saveChats(); renderSidebar(); } };
+        window.renameChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { window.showCustomPrompt("Rename Chat", chat.title, (newTitle) => { if (newTitle && newTitle.trim() !== "") { chat.title = newTitle.trim(); saveChats(); renderSidebar(); } }); document.getElementById(`menu-${id}`)?.classList.add('hidden'); } };
+        window.shareChat = function(e, id) { e.stopPropagation(); const chat = state.chats.find(c => c.id === id); if (chat) { try { const shareUrl = `${window.location.origin}${window.location.pathname}#share=${btoa(JSON.stringify(chat))}`; navigator.clipboard.writeText(shareUrl).then(() => window.showToast("Link copied to clipboard!")).catch(() => window.showToast("Failed to copy link.")); } catch(err) { window.showToast("Chat too large to share via URL."); } document.getElementById(`menu-${id}`)?.classList.add('hidden'); } };
+        window.deleteChat = function(e, id) { e.stopPropagation(); document.getElementById(`menu-${id}`)?.classList.add('hidden'); window.showConfirmModal("Delete Chat?", "This action is permanent.", "Delete", () => { state.chats = state.chats.filter(c => c.id !== id); saveChats(); renderSidebar(); if (currentChatId === id) { currentChatId = null; showWelcome(); } }, true); };
+
+        // --- USER MESSAGE ACTIONS ---
+        window.toggleUserMenu = function(e, msgId) { e.stopPropagation(); $$('.chat-menu-dropdown').forEach(m => { if (m.id !== `menu-${msgId}`) m.classList.add('hidden'); }); const m = document.getElementById(`menu-${msgId}`); if (m) m.classList.toggle('hidden'); };
+        window.copyUserMessage = function(msgId) { const node = document.getElementById(msgId); if (!node) return; navigator.clipboard.writeText(node.querySelector('.message-text').innerText); document.getElementById(`menu-${msgId}`)?.classList.add('hidden'); window.showToast("Prompt copied.", "Start new chat", () => { document.getElementById('new-chat-btn')?.click(); }); };
+        window.selectUserMessage = function(msgId) { const node = document.getElementById(msgId); if (!node) return; const txtNode = node.querySelector('.message-text'); const selection = window.getSelection(); const range = document.createRange(); range.selectNodeContents(txtNode); selection.removeAllRanges(); selection.addRange(range); document.getElementById(`menu-${msgId}`)?.classList.add('hidden'); };
+        window.editUserMessage = function(msgId) { const msgBox = document.getElementById(msgId); if (!msgBox) return; const text = msgBox.querySelector('.message-text').innerText; const img = msgBox.querySelector('img'); if (img && img.src.startsWith('data:image')) { currentBase64Image = img.src; const ip = document.getElementById('image-preview'); if (ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } const fp = document.getElementById('file-preview'); if (fp) fp.classList.add('hidden'); const ap = document.getElementById('attachment-preview-container'); if (ap) ap.classList.remove('hidden'); } const ui = document.getElementById('user-input'); if (ui) { ui.value = text; ui.focus(); ui.dispatchEvent(new Event('input')); } document.getElementById(`menu-${msgId}`)?.classList.add('hidden'); updateSendButton(); };
+        window.shareUserMessage = function(msgId) { const node = document.getElementById(msgId); if (!node) return; const text = node.querySelector('.message-text').innerText; if (navigator.share) { navigator.share({ title: "Prompt from Anurag's GPT", text }).catch(console.error); } else { window.copyUserMessage(msgId); } document.getElementById(`menu-${msgId}`)?.classList.add('hidden'); };
+
+        // --- ASSISTANT MESSAGE ACTIONS ---
+        window.copyCodeBlock = function(btn) { const pre = btn.closest('.relative')?.querySelector('.raw-code-content'); if (!pre) return; navigator.clipboard.writeText(pre.textContent).then(() => { const orig = btn.innerHTML; btn.innerHTML = `${CHECK_ICON} <span>Copied!</span>`; setTimeout(() => btn.innerHTML = orig, 2000); }); };
+        window.copyToClipboard = function(btn) { const msgBox = btn.closest('.relative').querySelector('.message-text'); navigator.clipboard.writeText(msgBox.innerText).then(() => { const orig = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = orig, 2000); }); };
+        window.toggleSpeech = function(btn) { const msgContainer = btn.closest('.relative.group'); const msgId = msgContainer.id; if (window.speechSynthesis.speaking || window.speechSynthesis.pending) { window.speechSynthesis.cancel(); $$('.speaker-btn').forEach(b => b.innerHTML = SPEAKER_ICON); if (window.currentSpeakingId === msgId) { window.currentSpeakingId = null; currentSpeechUtterance = null; return; } } window.currentSpeakingId = msgId; const clone = msgContainer.querySelector('.message-text').cloneNode(true); clone.querySelectorAll('.ai-image-container').forEach(el => el.remove()); let textToSpeak = clone.innerText.replace(/[\u{1F600}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').replace(/https?:\/\/[^\s]+/g, '').trim(); const utterance = new SpeechSynthesisUtterance(textToSpeak); utterance.onend = () => { btn.innerHTML = SPEAKER_ICON; window.currentSpeakingId = null; currentSpeechUtterance = null; }; utterance.onerror = () => { btn.innerHTML = SPEAKER_ICON; window.currentSpeakingId = null; currentSpeechUtterance = null; }; currentSpeechUtterance = utterance; btn.innerHTML = SPEAKER_OFF_ICON; window.speechSynthesis.speak(utterance); };
+        window.regenerateResponse = function(btn) { if (window.isGenerating) return; let chat = isTempChat ? tempChatData : state.chats.find(c => c.id === currentChatId); if (!chat || !Array.isArray(chat.messages) || chat.messages.length < 2) return; if (chat.messages[chat.messages.length-1].role === 'assistant' && chat.messages[chat.messages.length-2].role === 'user') { const userContent = chat.messages[chat.messages.length-2].content; let lastUserText = ""; if (Array.isArray(userContent)) { const t = userContent.find(c => c.type==='text'); const i = userContent.find(c => c.type==='image_url'); if (t) lastUserText = t.text; if (i) { currentBase64Image = i.image_url.url; const ip = document.getElementById('image-preview'); if (ip) { ip.src = currentBase64Image; ip.classList.remove('hidden'); } const ap = document.getElementById('attachment-preview-container'); if (ap) ap.classList.remove('hidden'); } } else { lastUserText = userContent; } if (lastUserText.startsWith('[STRICT SYSTEM INSTRUCTIONS:')) { const parts = lastUserText.split('\n\nUser Message: '); if (parts.length > 1) lastUserText = parts.slice(1).join('\n\nUser Message: '); } chat.messages.pop(); chat.messages.pop(); if (!isTempChat) saveChats(); if (chat.id) loadChat(chat.id); const ui = document.getElementById('user-input'); if (ui) { ui.value = lastUserText; ui.style.height = 'auto'; ui.style.height = (ui.scrollHeight) + 'px'; } updateSendButton(); document.getElementById('send-btn')?.click(); } };
+        window.regenerateImageBtn = window.regenerateResponse;
+        window.downloadImageBtn = async function(btn) { try { const imgContainer = btn.closest('.ai-image-container'); const imgTag = imgContainer?.querySelector('img[data-prompt]'); if (!imgTag || !imgTag.src) throw new Error("Image source not found."); const response = await fetch(imgTag.src); const blob = await response.blob(); const blobUrl = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = blobUrl; a.download = `AnuragsGPT-Image-${Date.now()}.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl); const orig = btn.innerHTML; btn.innerHTML = CHECK_ICON; setTimeout(() => btn.innerHTML = orig, 2000); } catch(error) { window.showToast("Failed to download image."); } };
+
+        // --- AUTH FUNCTIONS ---
+        function resetGoogleBtn() {
+            const btn = document.getElementById('google-login-btn-main');
+            if (btn) { btn.disabled = false; btn.innerHTML = `<svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Continue with Google`; }
+        }
+        window.loginWithGoogle = function() {
+            if (!auth) return window.showToast("Auth not ready. Please wait.");
+            const btn = document.getElementById('google-login-btn-main');
+            if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse font-bold">Redirecting...</span>`; }
+            sessionStorage.setItem('awaiting_redirect', 'true');
+            auth.signInWithRedirect(provider).catch((e) => { sessionStorage.removeItem('awaiting_redirect'); resetGoogleBtn(); window.showToast(getCleanAuthError(e)); });
+        };
+        window.signOutUser = function() {
+            window.showConfirmModal("Sign Out?", "You will be signed out of your account.", "Sign Out", () => {
+                if (auth) { auth.signOut().then(() => { currentUser = null; appState.firebaseUser = null; appState.chatsLoaded = false; state.chats = []; currentChatId = null; clearMessages(); renderSidebar(); showWelcome(); renderUIMaster(); }).catch(e => window.showToast(getCleanAuthError(e))); }
+            }, false);
+        };
+
+        // ============================================================
+        // --- END OF INJECTED CODE — existing Part 3 code unchanged below ---
+        // ============================================================
+
+        async function verifyPassword(pwd, isSilentBoot = false) { 
+            if (!pwd) return;
+            const elPassSubmit = document.getElementById('submit-password-btn');
+            const elPassError = document.getElementById('password-error');
+            const elPassOverlay = document.getElementById('password-overlay');
+            
+            if(pwd === currentPassword || isSilentBoot) {
+                appState.isPasswordValid = true;
+                if(elPassOverlay) { elPassOverlay.classList.add('hidden'); elPassOverlay.style.display = 'none'; }
+                renderUIMaster();
+            } else {
+                if(elPassSubmit) { elPassSubmit.innerText = 'Verifying...'; elPassSubmit.disabled = true; }
+                if(elPassError) elPassError.classList.add('hidden');
+            }
+
+            try { 
+                const res = await fetch('/api/verify', { method: 'POST', headers: { 'x-app-password': pwd } }); 
+                const data = await res.json().catch(() => ({ attemptsLeft: 0 }));
+                if(elPassSubmit) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; }
+
+                if (res.ok) { 
+                    currentPassword = pwd; localStorage.setItem(PWD_STORAGE_KEY, pwd); 
+                    appState.isPasswordValid = true;
+                    if(elPassOverlay) { elPassOverlay.classList.add('hidden'); elPassOverlay.style.display = 'none'; }
+                    renderUIMaster();
+                    if (currentUser) loadChatsFromCloud(currentUser);
+                } else if (res.status === 401 || res.status === 403) { 
+                    if (!isSilentBoot) {
+                        currentPassword = '';
+                        localStorage.removeItem(PWD_STORAGE_KEY);
+                    }
+                    appState.isPasswordValid = isSilentBoot ? true : false;
+                    renderUIMaster();
+                    if(!isSilentBoot && elPassOverlay) { elPassOverlay.classList.remove('hidden'); elPassOverlay.style.display = 'flex'; }
+                    if (res.status === 403) { triggerLockdownUI(); } 
+                    else if (!isSilentBoot && elPassError) { 
+                        elPassError.innerText = `Incorrect password. ${data.attemptsLeft} attempts remaining.`; 
+                        elPassError.classList.remove('hidden'); 
+                    }
+                }
+            } catch (err) { 
+                if(elPassSubmit) { elPassSubmit.innerText = 'Unlock App'; elPassSubmit.disabled = false; }
+            } 
+        }
+
+        function triggerLockdownUI() { const po = document.getElementById('password-overlay'); if(po) { po.classList.remove('hidden'); po.style.display = 'flex'; } const pi = document.getElementById('app-password-input'); if(pi) pi.classList.add('hidden'); const ps = document.getElementById('submit-password-btn'); if(ps) ps.classList.add('hidden'); const pe = document.getElementById('password-error'); if(pe) { pe.classList.remove('hidden'); pe.innerHTML = "🚨 IP BANNED 🚨<br>Too many failed attempts."; } }
+
+        // --- 13. UI EVENT LISTENERS ---
         const elPassSubmitEvent = document.getElementById('submit-password-btn'); if(elPassSubmitEvent) elPassSubmitEvent.addEventListener('click', () => { const pi = document.getElementById('app-password-input'); if(pi) verifyPassword(pi.value.trim()); });
         const elPassInputEvent = document.getElementById('app-password-input'); if(elPassInputEvent) elPassInputEvent.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); verifyPassword(elPassInputEvent.value.trim()); } });
         const elSendBtnEvent = document.getElementById('send-btn'); if(elSendBtnEvent) elSendBtnEvent.addEventListener('click', () => { sendMessage(); });
@@ -981,18 +853,8 @@
         const osBtn = document.getElementById('open-settings-btn'); if(osBtn) osBtn.addEventListener('click', () => { const sm = document.getElementById('settings-modal'); if(sm) sm.classList.remove('hidden'); }); 
         const csBtn = document.getElementById('close-settings-btn'); if(csBtn) csBtn.addEventListener('click', () => { const sm = document.getElementById('settings-modal'); if(sm) sm.classList.add('hidden'); });
         
-        function loadSettings() { 
-            try {
-                const stored = localStorage.getItem(SETTINGS_STORAGE_KEY); 
-                if (stored) settings = { ...settings, ...JSON.parse(stored) }; 
-                const spi = document.getElementById('system-prompt-input'); if(spi) spi.value = settings.systemPrompt || ''; 
-            } catch(e) {}
-        }
-        function saveSettings() { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings)); }
-
         const ssBtn = document.getElementById('save-settings-btn'); if(ssBtn) ssBtn.addEventListener('click', () => { const spi = document.getElementById('system-prompt-input'); if(spi) settings.systemPrompt = spi.value.trim(); saveSettings(); const sm = document.getElementById('settings-modal'); if(sm) sm.classList.add('hidden'); });
         
-        // --- FIX 2: LOCK BUTTON BYPASSES RENDERUIMASTER ---
         const laBtn = document.getElementById('lock-app-btn'); 
         if(laBtn) laBtn.addEventListener('click', () => { 
             currentPassword = ''; 
@@ -1070,8 +932,8 @@
             const badge = document.getElementById('temp-badge');
             if(badge) badge.classList.toggle('hidden', !isTempChat);
             if(tempToggleBtn) tempToggleBtn.className = isTempChat 
-                ? 'text-purple-600 dark:text-purple-400 text-sm flex items-center gap-1.5 transition-colors'
-                : 'text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors';
+                ? 'text-purple-600 dark:text-purple-400 text-sm flex items-center gap-1.5 transition-colors p-1.5 rounded-lg bg-purple-50 dark:bg-purple-900/20'
+                : 'text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1.5 transition-colors p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800';
             if(isTempChat) { tempChatData = { messages: [] }; currentChatId = null; clearMessages(); showWelcome(); renderSidebar(); }
             else { disableTempMode(); currentChatId = null; clearMessages(); showWelcome(); renderSidebar(); }
             if (window.innerWidth < 768) { const sb = document.getElementById('sidebar'); if(sb) sb.classList.add('-translate-x-full'); const so = document.getElementById('sidebar-overlay'); if(so) so.classList.add('hidden'); }
@@ -1098,16 +960,195 @@
 
         function setupSpeechRecognition() { const elMicBtn = document.getElementById('mic-btn'); const elUserInput = document.getElementById('user-input'); if(elMicBtn) { if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) { recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.continuous = false; recognition.interimResults = false; recognition.lang = 'en-US'; recognition.onstart = () => { elMicBtn.classList.add('mic-active'); if(elUserInput) elUserInput.placeholder = "Listening..."; }; recognition.onend = () => { elMicBtn.classList.remove('mic-active'); if(elUserInput) elUserInput.placeholder = "Message Anurag's GPT..."; }; recognition.onresult = (event) => { if(elUserInput) { elUserInput.value += (elUserInput.value ? ' ' : '') + event.results[0][0].transcript; elUserInput.dispatchEvent(new Event('input')); elUserInput.focus(); } }; elMicBtn.addEventListener('click', () => { if (elMicBtn.classList.contains('mic-active')) { recognition.stop(); } else { recognition.start(); } }); } else { elMicBtn.style.display = 'none'; } } }
 
+        function startLoginAnimation() {
+            const el = document.getElementById('dynamic-login-text');
+            if (!el) return;
+            if (loginTextInterval) { clearInterval(loginTextInterval); loginTextInterval = null; }
+            const phrases = ["Let's collaborate", "Let's brainstorm", "Let's explore", "Let's create"];
+            let idx = 0;
+            loginTextInterval = setInterval(() => {
+                el.style.opacity = 0;
+                setTimeout(() => {
+                    idx = (idx + 1) % phrases.length;
+                    el.innerText = phrases[idx];
+                    el.style.opacity = 1;
+                }, 300);
+            }, 3000);
+        }
+
+        function stopLoginAnimation() {
+            if (loginTextInterval) { clearInterval(loginTextInterval); loginTextInterval = null; }
+        }
+
+        function renderUIMaster() {
+            const passOverlay = document.getElementById('password-overlay');
+            const loginOverlay = document.getElementById('login-overlay');
+            const profileSec = document.getElementById('user-profile-section');
+
+            if (!appState.isPasswordValid) {
+                if(passOverlay) { passOverlay.classList.remove('hidden'); passOverlay.style.display = 'flex'; }
+                if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; stopLoginAnimation(); }
+                return;
+            } else { 
+                if(passOverlay) { passOverlay.classList.add('hidden'); passOverlay.style.display = 'none'; }
+            }
+
+            if (!appState.firebaseReady) {
+                if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; stopLoginAnimation(); }
+                return;
+            }
+
+            if (sessionStorage.getItem('awaiting_redirect') === 'true') {
+                if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; startLoginAnimation(); }
+                return; 
+            }
+
+            if (appState.firebaseUser) {
+                if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; stopLoginAnimation(); }
+                if(profileSec) { profileSec.style.display = 'flex'; profileSec.classList.remove('hidden'); } 
+                
+                const avatar = document.getElementById('user-avatar'); if(avatar) avatar.src = appState.firebaseUser.photoURL || '/icon.png';
+                
+                const uName = document.getElementById('user-name'); 
+                if(uName) {
+                    let dName = appState.firebaseUser.displayName;
+                    if(!dName && appState.firebaseUser.email) { dName = appState.firebaseUser.email.split('@')[0]; }
+                    uName.innerText = dName || 'User';
+                }
+
+                const uEmail = document.getElementById('user-email'); if(uEmail) uEmail.innerText = appState.firebaseUser.email || '';
+
+                if (!appState.chatsLoaded) {
+                    loadChatsFromCloud(appState.firebaseUser);
+                    appState.chatsLoaded = true;
+                }
+            } else {
+                if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; startLoginAnimation(); }
+                if(profileSec) { profileSec.style.display = 'none'; profileSec.classList.add('hidden'); } 
+                appState.chatsLoaded = false;
+            }
+        }
+
+        // --- 14. FIREBASE INIT ---
+        try {
+            if (typeof firebase !== 'undefined') {
+                const firebaseConfig = {
+                    apiKey: "AIzaSyCW15zuR-6IKVfmsfyiZlaZ5D5ZmIpdy9E", // ⚠️ PASTE YOUR BRAND NEW API KEY RIGHT HERE!
+                    authDomain: "anurags-gpt-cloud.firebaseapp.com",
+                    projectId: "anurags-gpt-cloud",
+                    storageBucket: "anurags-gpt-cloud.firebasestorage.app",
+                    messagingSenderId: "344168996440",
+                    appId: "1:344168996440:web:9d8a06007c21e293f7f42d"
+                };
+                firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                db = firebase.firestore();
+                provider = new firebase.auth.GoogleAuthProvider();
+
+                auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(console.error);
+                
+                auth.getRedirectResult().then((result) => {
+                    sessionStorage.removeItem('awaiting_redirect');
+                    if (nullUserTimer) { clearTimeout(nullUserTimer); nullUserTimer = null; }
+                    if (result && result.user) {
+                        currentUser = result.user;
+                        appState.firebaseUser = result.user;
+                        appState.firebaseReady = true;
+                        renderUIMaster();
+                    } else {
+                        appState.firebaseReady = true; // FIX: Ensure firebase ready is true even on null result
+                        resetGoogleBtn();
+                        renderUIMaster();
+                    }
+                }).catch((e) => { 
+                    sessionStorage.removeItem('awaiting_redirect');
+                    if (nullUserTimer) { clearTimeout(nullUserTimer); nullUserTimer = null; }
+                    appState.firebaseReady = true;
+                    resetGoogleBtn();
+                    window.showToast(getCleanAuthError(e));
+                    renderUIMaster();
+                });
+
+                auth.onAuthStateChanged((user) => {
+                    if (sessionStorage.getItem('awaiting_redirect') === 'true') return; 
+
+                    appState.firebaseReady = true;
+                    
+                    if (user) {
+                        if (nullUserTimer) { clearTimeout(nullUserTimer); nullUserTimer = null; }
+                        currentUser = user;
+                        appState.firebaseUser = user;
+                        renderUIMaster();
+                    } else {
+                        nullUserTimer = setTimeout(() => {
+                            if (appState.firebaseUser) return; 
+                            currentUser = null;
+                            appState.firebaseUser = null;
+                            appState.chatsLoaded = false;
+                            state.chats = []; clearMessages(); renderSidebar();
+                            resetGoogleBtn(); 
+                            renderUIMaster();
+                        }, 800);
+                    }
+                });
+
+            } else {
+                console.warn("Firebase blocked by browser. Running local.");
+                appState.firebaseReady = true; 
+            }
+        } catch(e) {
+            console.error("Firebase init error:", e);
+            appState.firebaseReady = true; 
+        }
+
+        // --- 15. AUTH EVENT LISTENERS ---
+        const glBtn = document.getElementById('google-login-btn-main');
+        if (glBtn) glBtn.addEventListener('click', window.loginWithGoogle);
+
+        const emailLoginBtn = document.getElementById('email-login-btn');
+        if(emailLoginBtn) emailLoginBtn.addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            if(!email || !password) return window.showToast("Please enter email and password.");
+            if(auth) {
+                const originalText = emailLoginBtn.innerText;
+                emailLoginBtn.innerText = 'Logging in...';
+                auth.signInWithEmailAndPassword(email, password).catch(err => {
+                    emailLoginBtn.innerText = originalText;
+                    window.showToast(getCleanAuthError(err));
+                });
+            }
+        });
+
+        const emailSignupBtn = document.getElementById('email-signup-btn');
+        if(emailSignupBtn) emailSignupBtn.addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            if(!email || !password) return window.showToast("Please enter email and password.");
+            if(auth) {
+                const originalText = emailSignupBtn.innerText;
+                emailSignupBtn.innerText = 'Creating account...';
+                auth.createUserWithEmailAndPassword(email, password).catch(err => {
+                    emailSignupBtn.innerText = originalText;
+                    window.showToast(getCleanAuthError(err));
+                });
+            }
+        });
+
+        const loBtn = document.getElementById('google-logout-btn');
+        if (loBtn) loBtn.addEventListener('click', window.signOutUser);
+
+
+        // --- 16. INIT FUNCTION ---
         function init() { 
             const isDark = document.documentElement.classList.contains('dark');
             if (isDark) { const tl = document.getElementById('theme-icon-light'); if(tl) tl.classList.remove('hidden'); const td = document.getElementById('theme-icon-dark'); if(td) td.classList.add('hidden'); } 
             else { const tl = document.getElementById('theme-icon-light'); if(tl) tl.classList.add('hidden'); const td = document.getElementById('theme-icon-dark'); if(td) td.classList.remove('hidden'); }
             
-            try { marked.setOptions({ renderer: renderer, breaks: true, gfm: true }); } catch (e) {}
-            
             setupSpeechRecognition(); 
             loadSettings(); 
             loadChats(); 
+
             updateSendButton();
             
             currentChatId = null; 
@@ -1126,7 +1167,7 @@
             }
             renderUIMaster();
         }
-        
+
         init();
     </script>
 </body>

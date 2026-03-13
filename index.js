@@ -12,29 +12,6 @@ app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.use(express.static(__dirname, { index: false })); 
 
 // --- DYNAMIC PWA GENERATORS ---
-app.get('/sw.js', (req, res) => {
-    res.setHeader('Content-Type', 'application/javascript');
-    res.send(`
-        const CACHE_NAME = 'anurags-gpt-v1';
-        self.addEventListener('install', event => { self.skipWaiting(); event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add('/'))); });
-        self.addEventListener('activate', event => { event.waitUntil(clients.claim()); });
-        self.addEventListener('fetch', event => { event.respondWith(fetch(event.request).catch(() => caches.match('/'))); });
-    `);
-});
-
-app.get('/manifest.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.json({
-      "name": "Anurag's GPT", "short_name": "Anurag's GPT", "description": "Anurag's Custom AI Backend",
-      "start_url": "/", "display": "standalone", "background_color": "#0d1117", "theme_color": "#0d1117",
-      "orientation": "portrait",
-      "icons": [
-        { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-        { "src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-      ]
-    });
-});
-
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
@@ -129,8 +106,12 @@ app.get('/api/unban', (req, res) => {
 app.get('/api/image', async (req, res) => {
     try {
         const correctPassword = cleanApiKey('APP_PASSWORD', 'APPPASSWORD');
-        const userPassword = (req.query.pwd || '').trim();
-        if (correctPassword && userPassword !== correctPassword) return res.status(401).send("Unauthorized App Password");
+        // SECURE FIX: Read from headers first to prevent URL leaking
+        const userPassword = (req.headers['x-app-password'] || req.query.pwd || '').trim();
+        
+        if (correctPassword && userPassword !== correctPassword) {
+            return res.status(401).send("Unauthorized App Password");
+        }
 
         const prompt = req.query.prompt;
         const seed = req.query.seed || Math.floor(Math.random() * 1000000); 
@@ -177,7 +158,6 @@ app.post('/api/chat', async (req, res) => {
         const userPassword = (req.headers['x-app-password'] || '').trim();
         if (correctPassword && userPassword !== correctPassword) return res.status(401).json({ error: "Unauthorized: Invalid Password" });
 
-        // FIXED: Now we accept BOTH the messages and the custom system prompt from the frontend!
         const { messages, customSystemPrompt } = req.body;
         if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: "Invalid message format." });
 
@@ -195,7 +175,6 @@ Formatting Rules:
 4. YOUR IDENTITY & LOGO: If the user uploads an image of a blue circular icon with a white lightning bolt, DO NOT say it is Discord. You MUST recognize it and proudly declare that it is YOUR logo: The "Anurag's GPT" logo.
 5. SMART IMAGE EDITING (FAKE I2I): If the user uploads an image and asks you to edit or change it, act as a professional image generator. Analyze the uploaded image, then create a new image prompt that recreates it BUT includes the requested changes. Generate this new image using the Pollinations markdown: ![Image](https://image.pollinations.ai/prompt/your%20new%20description).`;
         
-        // FIXED: Merge the hardcoded identity with the custom user settings prompt seamlessly!
         let combinedInstructions = myCustomIdentity;
         if (customSystemPrompt && typeof customSystemPrompt === 'string' && customSystemPrompt.trim() !== '') {
             combinedInstructions += `\n\nADDITIONAL USER-DEFINED BEHAVIOR (MUST OBEY):\n${customSystemPrompt.trim()}`;
