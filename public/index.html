@@ -981,51 +981,58 @@
         }
 
         function renderUIMaster() {
-            const passOverlay = document.getElementById('password-overlay');
-            const loginOverlay = document.getElementById('login-overlay');
-            const profileSec = document.getElementById('user-profile-section');
+    const passOverlay = document.getElementById('password-overlay');
+    const loginOverlay = document.getElementById('login-overlay');
+    const profileSec = document.getElementById('user-profile-section');
 
-            if (!appState.isPasswordValid) {
-                if(passOverlay) { passOverlay.classList.remove('hidden'); passOverlay.style.display = 'flex'; }
-                if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; stopLoginAnimation(); }
-                return;
-            } else { 
-                if(passOverlay) { passOverlay.classList.add('hidden'); passOverlay.style.display = 'none'; }
-            }
+    // --- DEBUG PANEL ---
+    let dbg = document.getElementById('__debug_panel');
+    if (!dbg) { dbg = document.createElement('div'); dbg.id = '__debug_panel'; dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;padding:6px;z-index:99999;max-height:160px;overflow-y:auto;font-family:monospace;'; document.body.appendChild(dbg); }
+    const log = (msg) => { const line = document.createElement('div'); line.textContent = Date.now() + ' ' + msg; dbg.appendChild(line); dbg.scrollTop = dbg.scrollHeight; };
+    log('renderUIMaster: pwdValid=' + appState.isPasswordValid + ' fbReady=' + appState.firebaseReady + ' fbUser=' + (appState.firebaseUser ? appState.firebaseUser.email : 'null') + ' redirectPending=' + appState.redirectResultPending);
+    // --- END DEBUG ---
 
-            if (!appState.firebaseReady) {
-                return;
-            }
+    if (!appState.isPasswordValid) {
+        if(passOverlay) { passOverlay.classList.remove('hidden'); passOverlay.style.display = 'flex'; }
+        if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; stopLoginAnimation(); }
+        return;
+    } else { 
+        if(passOverlay) { passOverlay.classList.add('hidden'); passOverlay.style.display = 'none'; }
+    }
 
-            if (sessionStorage.getItem('awaiting_redirect') === 'true') {
-                if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; startLoginAnimation(); }
-                return; 
-            }
+    if (!appState.firebaseReady) {
+        return;
+    }
 
-            if (appState.firebaseUser) {
-                if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; stopLoginAnimation(); }
-                if(profileSec) { profileSec.style.display = 'flex'; profileSec.classList.remove('hidden'); } 
-                
-                const avatar = document.getElementById('user-avatar'); if(avatar) avatar.src = appState.firebaseUser.photoURL || '/icon.png';
-                
-                const uName = document.getElementById('user-name'); 
-                if(uName) {
-                    let dName = appState.firebaseUser.displayName;
-                    if(!dName && appState.firebaseUser.email) { dName = appState.firebaseUser.email.split('@')[0]; }
-                    uName.innerText = dName || 'User';
-                }
+    if (sessionStorage.getItem('awaiting_redirect') === 'true') {
+        if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; startLoginAnimation(); }
+        return; 
+    }
 
-                const uEmail = document.getElementById('user-email'); if(uEmail) uEmail.innerText = appState.firebaseUser.email || '';
+    if (appState.firebaseUser) {
+        if(loginOverlay) { loginOverlay.classList.add('hidden'); loginOverlay.style.display = 'none'; stopLoginAnimation(); }
+        if(profileSec) { profileSec.style.display = 'flex'; profileSec.classList.remove('hidden'); } 
+        
+        const avatar = document.getElementById('user-avatar'); if(avatar) avatar.src = appState.firebaseUser.photoURL || '/icon.png';
+        
+        const uName = document.getElementById('user-name'); 
+        if(uName) {
+            let dName = appState.firebaseUser.displayName;
+            if(!dName && appState.firebaseUser.email) { dName = appState.firebaseUser.email.split('@')[0]; }
+            uName.innerText = dName || 'User';
+        }
 
-                if (!appState.chatsLoaded) {
-                    loadChatsFromCloud(appState.firebaseUser);
-                    appState.chatsLoaded = true;
-                }
-            } else {
-                if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; startLoginAnimation(); }
-                if(profileSec) { profileSec.style.display = 'none'; profileSec.classList.add('hidden'); } 
-                appState.chatsLoaded = false;
-            }
+        const uEmail = document.getElementById('user-email'); if(uEmail) uEmail.innerText = appState.firebaseUser.email || '';
+
+        if (!appState.chatsLoaded) {
+            loadChatsFromCloud(appState.firebaseUser);
+            appState.chatsLoaded = true;
+        }
+    } else {
+        if(loginOverlay) { loginOverlay.classList.remove('hidden'); loginOverlay.style.display = 'flex'; startLoginAnimation(); }
+        if(profileSec) { profileSec.style.display = 'none'; profileSec.classList.add('hidden'); } 
+        appState.chatsLoaded = false;
+    }
         }
 
         // --- 14. FIREBASE INIT ---
