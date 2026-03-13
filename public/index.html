@@ -484,7 +484,7 @@
                 if (error.name === 'AbortError') { window.appendMessageToDOM('assistant', "*🛑 You stopped this response.*"); } 
                 else if (error.message !== "Incorrect Password." && error.message !== "IP BANNED") { window.appendMessageToDOM('assistant', `⚠️ **Error:** ${error.message}`); }
             } finally { resetUIState(); }
-                    }
+        }
                 // ============================================================
         // --- INJECTED: ALL MISSING CODE (added above existing Part 3) ---
         // ============================================================
@@ -507,7 +507,7 @@
         let recognition = null;
         let isTempChat = false;
         let tempChatData = { messages: [] };
-        let appState = { isPasswordValid: false, firebaseReady: false, firebaseUser: null, chatsLoaded: false };
+        let appState = { isPasswordValid: false, firebaseReady: false, firebaseUser: null, chatsLoaded: false, redirectResultPending: true };
         let currentUser = null;
         let nullUserTimer = null;
         let loginTextInterval = null;
@@ -1048,6 +1048,7 @@
                 
                 auth.getRedirectResult().then((result) => {
                     sessionStorage.removeItem('awaiting_redirect');
+                    appState.redirectResultPending = false;
                     if (nullUserTimer) { clearTimeout(nullUserTimer); nullUserTimer = null; }
                     if (result && result.user) {
                         currentUser = result.user;
@@ -1061,6 +1062,7 @@
                     }
                 }).catch((e) => { 
                     sessionStorage.removeItem('awaiting_redirect');
+                    appState.redirectResultPending = false;
                     if (nullUserTimer) { clearTimeout(nullUserTimer); nullUserTimer = null; }
                     appState.firebaseReady = true;
                     resetGoogleBtn();
@@ -1081,6 +1083,7 @@
                     } else {
                         nullUserTimer = setTimeout(() => {
                             if (appState.firebaseUser) return; 
+                            if (appState.redirectResultPending) return;
                             currentUser = null;
                             appState.firebaseUser = null;
                             appState.chatsLoaded = false;
