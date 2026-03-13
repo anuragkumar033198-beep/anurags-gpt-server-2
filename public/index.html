@@ -484,7 +484,7 @@
                 if (error.name === 'AbortError') { window.appendMessageToDOM('assistant', "*🛑 You stopped this response.*"); } 
                 else if (error.message !== "Incorrect Password." && error.message !== "IP BANNED") { window.appendMessageToDOM('assistant', `⚠️ **Error:** ${error.message}`); }
             } finally { resetUIState(); }
-        }
+                                            }
                 // ============================================================
         // --- INJECTED: ALL MISSING CODE (added above existing Part 3) ---
         // ============================================================
@@ -1081,8 +1081,9 @@
                         appState.firebaseUser = user;
                         renderUIMaster();
                     } else {
+                        if (nullUserTimer) { clearTimeout(nullUserTimer); nullUserTimer = null; }
                         nullUserTimer = setTimeout(() => {
-                            if (appState.firebaseUser) return; 
+                            if (appState.firebaseUser) return;
                             if (appState.redirectResultPending) return;
                             currentUser = null;
                             appState.firebaseUser = null;
@@ -1090,7 +1091,7 @@
                             state.chats = []; clearMessages(); renderSidebar();
                             resetGoogleBtn(); 
                             renderUIMaster();
-                        }, 800);
+                        }, 3000);
                     }
                 });
 
