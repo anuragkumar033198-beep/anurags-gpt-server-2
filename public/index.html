@@ -252,13 +252,22 @@
     <script>
         // --- 1. GUARDS ---
         if ('serviceWorker' in navigator) { 
-            navigator.serviceWorker.getRegistrations().then(function(registrations) { 
-                for(let registration of registrations) { registration.update(); } 
-            }).catch(() => {}); 
+            navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                console.log('✅ Service Worker Registered. Scope:', registration.scope);
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            newWorker.postMessage({ action: 'skipWaiting' });
+                        }
+                    });
+                });
+            }).catch(function(error) {
+                console.error('❌ Service Worker registration failed:', error);
+            });
         }
+        
         if (typeof pdfjsLib !== 'undefined') {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        }
 
         // --- 2. UTILS ---
         const $ = (selector) => document.querySelector(selector);
@@ -327,7 +336,7 @@
                 setTimeout(() => modal.classList.add('hidden'), 300);
             }
         };
-        window.fetchSecureImage = async function(prompt, imgEl) { 
+            window.fetchSecureImage = async function(prompt, imgEl) { 
             try { 
                 const res = await fetch(`/api/image?prompt=${prompt}`, { headers: { 'x-app-password': currentPassword } }); 
                 if (!res.ok) throw new Error("Unknown Backend Error"); 
@@ -484,8 +493,8 @@
                 if (error.name === 'AbortError') { window.appendMessageToDOM('assistant', "*🛑 You stopped this response.*"); } 
                 else if (error.message !== "Incorrect Password." && error.message !== "IP BANNED") { window.appendMessageToDOM('assistant', `⚠️ **Error:** ${error.message}`); }
             } finally { resetUIState(); }
-        }
-                // ============================================================
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   }
+                    // ============================================================
         // --- INJECTED: ALL MISSING CODE (added above existing Part 3) ---
         // ============================================================
 
