@@ -1119,22 +1119,32 @@
 
         // --- 15. AUTH EVENT LISTENERS ---
         const glBtn = document.getElementById('google-login-btn-main');
-        if (glBtn) glBtn.addEventListener('click', window.loginWithGoogle);
-
-        const emailLoginBtn = document.getElementById('email-login-btn');
-        if(emailLoginBtn) emailLoginBtn.addEventListener('click', async () => {
-            const email = document.getElementById('auth-email').value.trim();
-            const password = document.getElementById('auth-password').value;
-            if(!email || !password) return window.showToast("Please enter email and password.");
-            if(auth) {
-                const originalText = emailLoginBtn.innerText;
-                emailLoginBtn.innerText = 'Logging in...';
-                auth.signInWithEmailAndPassword(email, password).catch(err => {
-                    emailLoginBtn.innerText = originalText;
-                    window.showToast(getCleanAuthError(err));
-                });
-            }
-        });
+        if (glBtn) glBtn.addEventListener('click', window.loginWithGoogle = function() {
+            if (!auth) return window.showToast("Auth not ready. Please wait.");
+            const btn = document.getElementById('google-login-btn-main');
+            if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse font-bold">Signing in...</span>`; }
+            auth.signInWithPopup(provider).then((result) => {
+                if (result && result.user) {
+                    currentUser = result.user;
+                    appState.firebaseUser = result.user;
+                    appState.firebaseReady = true;
+                    renderUIMaster();
+                }
+            }).catch((e) => {
+                if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+                    if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse font-bold">Redirecting...</span>`; }
+                    sessionStorage.setItem('awaiting_redirect', 'true');
+                    auth.signInWithRedirect(provider).catch((err) => {
+                        sessionStorage.removeItem('awaiting_redirect');
+                        resetGoogleBtn();
+                        window.showToast(getCleanAuthError(err));
+                    });
+                } else {
+                    resetGoogleBtn();
+                    window.showToast(getCleanAuthError(e));
+                }
+            });
+        };
 
         const emailSignupBtn = document.getElementById('email-signup-btn');
         if(emailSignupBtn) emailSignupBtn.addEventListener('click', async () => {
