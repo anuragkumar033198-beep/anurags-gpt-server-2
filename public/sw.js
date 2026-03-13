@@ -1,9 +1,9 @@
-const CACHE_NAME = 'anurags-gpt-cache-v2'; // Change this v-number whenever you update your index.html!
+const CACHE_NAME = 'anurags-gpt-cache-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon.png'
+  '/icon-transparent.png'
 ];
 
 // 1. Install & Cache
