@@ -14,7 +14,7 @@ app.use(express.static(__dirname, { index: false }));
 // --- DYNAMIC PWA GENERATORS ---
 app.get('/.well-known/assetlinks.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
-    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": [ "D3:D2:E2:85:50:49:89:4D:82:5A:49:AD:A4:14:7D:51:46:E3:61:41:F0:36:F9:B9:93:C0:2F:98:36:D9:0B:08"] } }]);
+    res.json([{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "app.vercel.anurags_gpt_server_2.twa", "sha256_cert_fingerprints": [ "4B:3D:9E:99:97:66:F8:0D:91:42:34:BE:B5:2C:A9:71:31:F9:E0:02:B6:6D:05:59:B6:4F:A9:BA:F6:0A:31:D4"] } }]);
 });
 
 app.get('/', (req, res) => {
