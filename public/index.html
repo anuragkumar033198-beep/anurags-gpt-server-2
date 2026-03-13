@@ -484,7 +484,7 @@
                 if (error.name === 'AbortError') { window.appendMessageToDOM('assistant', "*🛑 You stopped this response.*"); } 
                 else if (error.message !== "Incorrect Password." && error.message !== "IP BANNED") { window.appendMessageToDOM('assistant', `⚠️ **Error:** ${error.message}`); }
             } finally { resetUIState(); }
-                                                                                                                                                      }
+        }
                 // ============================================================
         // --- INJECTED: ALL MISSING CODE (added above existing Part 3) ---
         // ============================================================
@@ -781,9 +781,28 @@
         window.loginWithGoogle = function() {
             if (!auth) return window.showToast("Auth not ready. Please wait.");
             const btn = document.getElementById('google-login-btn-main');
-            if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse font-bold">Redirecting...</span>`; }
-            sessionStorage.setItem('awaiting_redirect', 'true');
-            auth.signInWithRedirect(provider).catch((e) => { sessionStorage.removeItem('awaiting_redirect'); resetGoogleBtn(); window.showToast(getCleanAuthError(e)); });
+            if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse font-bold">Signing in...</span>`; }
+            auth.signInWithPopup(provider).then((result) => {
+                if (result && result.user) {
+                    currentUser = result.user;
+                    appState.firebaseUser = result.user;
+                    appState.firebaseReady = true;
+                    renderUIMaster();
+                }
+            }).catch((e) => {
+                if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+                    if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse font-bold">Redirecting...</span>`; }
+                    sessionStorage.setItem('awaiting_redirect', 'true');
+                    auth.signInWithRedirect(provider).catch((err) => {
+                        sessionStorage.removeItem('awaiting_redirect');
+                        resetGoogleBtn();
+                        window.showToast(getCleanAuthError(err));
+                    });
+                } else {
+                    resetGoogleBtn();
+                    window.showToast(getCleanAuthError(e));
+                }
+            });
         };
         window.signOutUser = function() {
             window.showConfirmModal("Sign Out?", "You will be signed out of your account.", "Sign Out", () => {
@@ -984,12 +1003,6 @@
             const passOverlay = document.getElementById('password-overlay');
             const loginOverlay = document.getElementById('login-overlay');
             const profileSec = document.getElementById('user-profile-section');
-            // --- DEBUG ---
-            let dbg = document.getElementById('__debug_panel');
-            if (!dbg) { dbg = document.createElement('div'); dbg.id = '__debug_panel'; dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;padding:6px;z-index:99999;max-height:160px;overflow-y:auto;font-family:monospace;'; document.body.appendChild(dbg); }
-            const log = (msg) => { const line = document.createElement('div'); line.textContent = Date.now() + ' ' + msg; dbg.appendChild(line); dbg.scrollTop = dbg.scrollHeight; };
-            log('RUI: pwdValid=' + appState.isPasswordValid + ' fbReady=' + appState.firebaseReady + ' fbUser=' + (appState.firebaseUser ? appState.firebaseUser.email : 'null') + ' rPending=' + appState.redirectResultPending + ' authCurrent=' + (auth && auth.currentUser ? auth.currentUser.email : 'null'));
-            // --- END DEBUG ---
 
             if (!appState.isPasswordValid) {
                 if(passOverlay) { passOverlay.classList.remove('hidden'); passOverlay.style.display = 'flex'; }
@@ -1119,32 +1132,22 @@
 
         // --- 15. AUTH EVENT LISTENERS ---
         const glBtn = document.getElementById('google-login-btn-main');
-        if (glBtn) glBtn.addEventListener('click', window.loginWithGoogle = function() {
-            if (!auth) return window.showToast("Auth not ready. Please wait.");
-            const btn = document.getElementById('google-login-btn-main');
-            if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse font-bold">Signing in...</span>`; }
-            auth.signInWithPopup(provider).then((result) => {
-                if (result && result.user) {
-                    currentUser = result.user;
-                    appState.firebaseUser = result.user;
-                    appState.firebaseReady = true;
-                    renderUIMaster();
-                }
-            }).catch((e) => {
-                if (e.code === 'auth/popup-blocked' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-                    if (btn) { btn.disabled = true; btn.innerHTML = `<span class="animate-pulse font-bold">Redirecting...</span>`; }
-                    sessionStorage.setItem('awaiting_redirect', 'true');
-                    auth.signInWithRedirect(provider).catch((err) => {
-                        sessionStorage.removeItem('awaiting_redirect');
-                        resetGoogleBtn();
-                        window.showToast(getCleanAuthError(err));
-                    });
-                } else {
-                    resetGoogleBtn();
-                    window.showToast(getCleanAuthError(e));
-                }
-            });
-        };
+        if (glBtn) glBtn.addEventListener('click', window.loginWithGoogle);
+
+        const emailLoginBtn = document.getElementById('email-login-btn');
+        if(emailLoginBtn) emailLoginBtn.addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value;
+            if(!email || !password) return window.showToast("Please enter email and password.");
+            if(auth) {
+                const originalText = emailLoginBtn.innerText;
+                emailLoginBtn.innerText = 'Logging in...';
+                auth.signInWithEmailAndPassword(email, password).catch(err => {
+                    emailLoginBtn.innerText = originalText;
+                    window.showToast(getCleanAuthError(err));
+                });
+            }
+        });
 
         const emailSignupBtn = document.getElementById('email-signup-btn');
         if(emailSignupBtn) emailSignupBtn.addEventListener('click', async () => {
