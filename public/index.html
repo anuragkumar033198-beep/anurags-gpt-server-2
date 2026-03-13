@@ -984,6 +984,12 @@
             const passOverlay = document.getElementById('password-overlay');
             const loginOverlay = document.getElementById('login-overlay');
             const profileSec = document.getElementById('user-profile-section');
+            // --- DEBUG ---
+            let dbg = document.getElementById('__debug_panel');
+            if (!dbg) { dbg = document.createElement('div'); dbg.id = '__debug_panel'; dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.85);color:#0f0;font-size:10px;padding:6px;z-index:99999;max-height:160px;overflow-y:auto;font-family:monospace;'; document.body.appendChild(dbg); }
+            const log = (msg) => { const line = document.createElement('div'); line.textContent = Date.now() + ' ' + msg; dbg.appendChild(line); dbg.scrollTop = dbg.scrollHeight; };
+            log('RUI: pwdValid=' + appState.isPasswordValid + ' fbReady=' + appState.firebaseReady + ' fbUser=' + (appState.firebaseUser ? appState.firebaseUser.email : 'null') + ' rPending=' + appState.redirectResultPending + ' authCurrent=' + (auth && auth.currentUser ? auth.currentUser.email : 'null'));
+            // --- END DEBUG ---
 
             if (!appState.isPasswordValid) {
                 if(passOverlay) { passOverlay.classList.remove('hidden'); passOverlay.style.display = 'flex'; }
